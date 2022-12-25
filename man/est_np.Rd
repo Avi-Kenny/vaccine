@@ -6,15 +6,22 @@
 \usage{
 est_np(
   dat,
+  t_0,
   cve = T,
   cr = T,
   s_out = seq(from = min(dat$s), to = max(dat$s), l = 101),
+  ci_type = "logit",
+  cf_folds = 1,
+  edge_corr = "none",
   params = list(),
+  grid_size = list(y = 100, s = 100, x = 10),
   verbose = F
 )
 }
 \arguments{
 \item{dat}{A data object returned by load_data}
+
+\item{t_0}{Time point of interest}
 
 \item{cve}{Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
 computed.}
@@ -25,6 +32,12 @@ computed.}
 cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points
 between the min and max biomarker values.}
 
+\item{ci_type}{TO DO}
+
+\item{cf_folds}{TO DO}
+
+\item{edge_corr}{TO DO}
+
 \item{params}{A list of key value pairs that can be used to select or tune
     various nuisance estimators. See examples. These include: \itemize{
     \item{\code{one}: asdf}
@@ -32,10 +45,21 @@ between the min and max biomarker values.}
     \item{\code{three}: asdf}
 }}
 
+\item{grid_size}{A list containing the following three keys:
+    \itemize{
+    \item{\code{y}: grid size for time values}
+    \item{\code{s}: grid size for marker values}
+    \item{\code{x}: grid size for covariate values}
+}
+    This controls rounding of covariates, which results in substantially
+    shorter computation times. If grid_size$y=100, this means that a grid of
+    equally-spaced points will be created from min(dat$y) to max(dat$y), and
+    each dat$y value will be rounded to the nearest grid point. The same
+    holds for grid_size$s. For grid_size$x, a separate grid is created for
+    each covariate column (binary and categorical covariates are ignored).}
+
 \item{verbose}{A Boolean. If set to TRUE, intermediate output will be
 displayed.}
-
-\item{t_0}{Time point of interest}
 }
 \value{
 A list containing the following: \itemize{

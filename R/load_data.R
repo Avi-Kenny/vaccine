@@ -82,6 +82,7 @@ load_data <- function(
     stop("NA values not allowed in `covariates` dataframe.")
   }
   names(covariates) <- paste0("x", c(1:length(covariates)))
+  # !!!!! convert factors to dummy columns
 
   # Input checks: weights
   if (length(weights)!=n) {
@@ -131,18 +132,9 @@ load_data <- function(
   .stb_p <- sum(df_pl$weights) / length(df_pl$z)
   df_pl$weights <- df_pl$weights / .stb_p
 
-  # !!!!! round values
-
-  dat <- list(
-    "df_vc" = df_vc,
-    "df_pl" = df_pl
-  )
-
+  # Create and return data object
+  dat <- list("df_vc"=df_vc, "df_pl"=df_pl)
   class(dat) <- "dat_vaccine"
-
   return(dat)
-
-  # num ph2 events
-  which(dat_orig$z==1 & dat_orig$delta==1)
 
 }
