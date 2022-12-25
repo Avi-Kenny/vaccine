@@ -112,6 +112,8 @@ load_data <- function(
       "weights" = ph2*weights[.ind_v],
       "z" = ph2[.ind_v]
     )
+    attr(df_vc, "n_orig") <- length(df_vc$z)
+    attr(df_vc, "dim_x") <- length(covariates)
   }
 
   if (.groups %in% c("placebo", "both")) {

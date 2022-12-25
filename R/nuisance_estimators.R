@@ -1,3 +1,5 @@
+# !!!!! TO DO: update docs throughout
+
 # !!!!! TO DO: construct_Q_n
 
 
@@ -112,7 +114,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     }
 
     # Estimate p_0
-    n_orig <- sum(dat$weights)
+    n_orig <- attr(dat, "n_orig")
     p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
 
     # Filter out observations with s==0
@@ -328,3 +330,229 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
   return(memoise2(fnc))
 
 }
+
+
+
+#' Construct estimator of marginal density of S
+#'
+#' @param dat_orig Dataset returned by generate_data()
+#' @param f_sIx_n A conditional density estimator returned by
+#'     construct_f_sIx_n()
+#' @return Marginal density estimator function
+construct_f_s_n <- function(dat_orig, f_sIx_n) {
+
+  memoise2(function(s) {
+    mean(apply(dat_orig$x, 1, function(x) { f_sIx_n(s,as.numeric(x)) }))
+  })
+
+}
+
+
+
+#' Construct density ratio estimator g_n
+#'
+#' @param f_sIx_n Conditional density estimator returned by construct_f_sIx_n
+#' @param f_s_n Marginal density estimator returned by construct_f_s_n
+#' @return Density ratio estimator function
+construct_g_n <- function(f_sIx_n, f_s_n) {
+
+  memoise2(function(s,x) { f_sIx_n(s,x) / f_s_n(s) })
+
+}
+
+
+
+#' Construct Phi_n
+#'
+#' @param dat Subsample of dataset returned by ss() for which z==1
+#' @param which One of c("ecdf", "inverse")
+#' @param type One of c("step", "linear (mid)")
+#' @return CDF or inverse CDF estimator function
+#' @notes
+#'   - Adaptation of stats::ecdf() source code
+construct_Phi_n <- function (dat, type="linear (mid)") {
+
+  # !!!!! re-stabilize weights?
+
+  n_orig <- attr(dat, "n_orig")
+  df <- data.frame(s=dat$s, weights=dat$weights)
+  df %<>% arrange(s)
+  vals_x <- unique(df$s)
+  vals_y <- c()
+
+  for (j in 1:length(vals_x)) {
+    indices <- which(df$s==vals_x[j])
+    weights_j <- df$weights[indices]
+    new_y_val <- (1/n_orig) * sum(weights_j)
+    vals_y <- c(vals_y, new_y_val)
+  }
+  vals_y <- cumsum(vals_y)
+
+  if (type=="step") {
+    method <- "constant"
+  } else if (type=="linear (mid)") {
+    vals_x <- c(vals_x[1], vals_x[1:(length(vals_x)-1)]+diff(vals_x)/2,
+                vals_x[length(vals_x)])
+    vals_y <- c(0, vals_y[1:(length(vals_y)-1)], 1)
+    method <- "linear"
+  }
+
+  return(approxfun(vals_x, vals_y, method=method, yleft=0, yright=1, f=0,
+                   ties="ordered"))
+
+}
+
+
+
+#' Construct nuisance estimator eta_n
+#'
+construct_eta_n <- function(dat, Q_n, p_n, t_0) {
+
+  n_orig <- attr(dat, "n_orig")
+  piece_1 <- dat$weights * In(dat$s!=0)
+
+  fnc <- function(u,x) {
+    (1/(n_orig*p_n)) * sum(
+      piece_1 * sapply(dat$s, function(s) { In(s<=u) * (1-Q_n(t_0,x,s)) })
+    )
+  }
+
+  return(memoise2(fnc))
+
+}
+
+
+
+#' Construct g-computation estimator function of theta_0
+#'
+#' @param dat_orig Dataset returned by generate_data()
+#' @param Q_n Conditional survival function estimator returned by construct_Q_n
+#' @return G-computation estimator of theta_0
+construct_r_tilde_Mn <- function(dat_orig, Q_n, t_0) {
+
+  memoise2(function(s) {
+    1 - mean(apply(dat_orig$x, 1, function(x) { Q_n(t_0, as.numeric(x), s) }))
+  })
+
+}
+
+
+
+#' Construct nuisance estimator Gamma_tilde_n
+#'
+construct_Gamma_tilde_n <- function(dat, r_tilde_Mn, p_n) {
+
+  n_orig <- attr(dat, "n_orig")
+  piece_1 <- dat$weights * In(dat$s!=0) * sapply(dat$s, r_tilde_Mn)
+  fnc <- function(u) { (1/(n_orig*p_n)) * sum(In(dat$s<=u)*piece_1) }
+
+  return(memoise2(fnc))
+
+}
+
+
+
+#' Construct nuisance estimator of conditional density f(Y,Delta|X,S)
+#'
+construct_f_n_srv <- function(Q_n, Qc_n, grid) {
+
+  # Helper function to calculate derivatives
+  # !!!!! Move outside?
+  construct_surv_deriv <- function(Q) {
+
+    max_index <- length(grid$y)
+
+    fnc <- function(t, x, s) {
+      t_index <- which.min(abs(grid$y-t))
+      if (t_index==1) {
+        t1 <- 0
+        t2 <- grid$y[2]
+      } else if (t_index==max_index) {
+        t1 <- grid$y[round(max_index-1)]
+        t2 <- grid$y[max_index]
+      } else {
+        t1 <- grid$y[round(t_index-1)]
+        t2 <- grid$y[round(t_index+1)]
+      }
+      return((Q(t2,x,s)-Q(t1,x,s))/(t2-t1))
+    }
+
+    return(memoise2(fnc))
+
+  }
+
+  # Calculate derivative estimators
+  Q_n_deriv <- construct_surv_deriv(Q_n)
+  Qc_n_deriv <- construct_surv_deriv(Qc_n)
+
+  fnc <- function(y, delta, x, s) {
+    if (delta==1) {
+      return(-1*Qc_n(y,x,s)*Q_n_deriv(y,x,s))
+    } else {
+      return(-1*Q_n(y,x,s)*Qc_n_deriv(y,x,s))
+    }
+  }
+
+  return(memoise2(fnc))
+
+}
+
+
+
+#' Construct q_n nuisance estimator function
+#'
+construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
+                          Gamma_tilde_n, f_n_srv) {
+
+  if (type=="standard") {
+
+    # !!!!! Can this function be used elsewhere?
+    q_n_star_inner <- memoise2(function(y, delta, x, s) {
+      if (s==0) {
+        return(0)
+      } else {
+        return(omega_n(x,s,y,delta)/g_n(s,x)+r_tilde_Mn(s))
+      }
+    })
+
+    q_n_star <- memoise2(function(y, delta, x, s, u) {
+      if (s==0) {
+        return(0)
+      } else {
+        return(In(s<=u)*q_n_star_inner(y, delta, x, s) - Gamma_tilde_n(u))
+      }
+    })
+
+    n <- length(dat$s)
+
+    fnc <- function(x, y, delta, u) {
+
+      # !!!!! Can these vectors be used elsewhere?
+      f_n_srv_s <- sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
+      q_n_star_s <- sapply(dat$s, function(s) { q_n_star(y, delta, x, s, u) })
+      g_n_s <- sapply(dat$s, function(s) { g_n(s,x) })
+
+      denom <- sum(dat$weights*f_n_srv_s*g_n_s)
+      if (denom==0) {
+        return (0)
+      } else {
+        num <- sum(dat$weights*q_n_star_s*f_n_srv_s*g_n_s)
+        return(num/denom)
+      }
+
+    }
+
+    return(memoise2(fnc))
+
+  }
+
+  if (type=="zero") {
+
+    return(function(x, y, delta, u) { 0 })
+
+  }
+
+}
+
+
+

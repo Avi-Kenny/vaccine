@@ -1,4 +1,58 @@
 
+# Benchmarking ways to apply over vectors
+if (F) {
+
+  ss <- rnorm(20000)
+
+  microbenchmark({
+    yy <- apply(as.array(ss), 1, function(s) { s^2 })
+  }, times=1000L)
+
+  microbenchmark({
+    yy <- sapply(ss, function(s) { s^2 })
+  }, times=1000L)
+
+  microbenchmark({
+    yy <- unlist(lapply(ss, function(s) { s^2 }))
+  }, times=1000L)
+
+}
+
+
+
+# Benchmarking ways to apply over rows
+if (F) {
+
+  x1 <- rnorm(20000)
+  x2 <- runif(20000)
+  x3 <- rexp(20000)
+  xx <- data.frame(x1=x1, x2=x2, x3=x3)
+
+  microbenchmark({
+    yy <- apply(xx, 1, function(x) {
+      x <- as.numeric(x)
+      x[1]*x[2]*x[3]
+    })
+  }, times=10L)
+
+  microbenchmark({
+    yy <- sapply(c(1:nrow(xx)), function(i) {
+      x <- as.numeric(xx[i,])
+      x[1]*x[2]*x[3]
+    })
+  }, times=10L)
+
+  microbenchmark({
+    yy <- unlist(lapply(c(1:nrow(xx)), function(i) {
+      x <- as.numeric(xx[i,])
+      x[1]*x[2]*x[3]
+    }))
+  }, times=10L)
+
+}
+
+
+
 # New superfunc
 if (F) {
 
@@ -83,6 +137,8 @@ if (F) {
   print(paste("Mem :", round(mean(m5$time)/1000), "ms"))
 
 }
+
+
 
 # Generate fake data
 if (F) {

@@ -65,7 +65,7 @@ create_grid <- function(dat_orig, grid_size, t_0) {
   if (!(t_0 %in% grid$y)) { grid$y <- sort(c(grid$y, t_0)) }
   grid$s <- round(seq(from=0, to=1, length.out=grid_size$s), 5)
   grid$x <- lapply(c(1:length(d$x)), function(i) {
-    x_col <- d$x[i,]
+    x_col <- d$x[,i]
     if (length(unique(x_col))>grid_size$x) {
       return(round(seq(from=min(x_col), to=max(x_col),
                        length.out=grid_size$x), 5))
@@ -120,8 +120,7 @@ round_dat <- function(dat_orig, grid) {
 ss <- function(dat_orig, indices) {
 
   i <- indices
-
-  return(list(
+  dat <- list(
     y = dat_orig$y[i],
     delta = dat_orig$delta[i],
     s = dat_orig$s[i],
@@ -129,6 +128,10 @@ ss <- function(dat_orig, indices) {
     weights = dat_orig$weights[i],
     z = dat_orig$z[i]
     # strata = dat_orig$strata[i] # !!!!!
-  ))
+  )
+  attr(dat, "n_orig") <- attr(dat_orig, "n_orig")
+  attr(dat, "dim_x") <- attr(dat_orig, "dim_x")
+
+  return(dat)
 
 }

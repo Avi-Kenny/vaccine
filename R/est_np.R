@@ -84,7 +84,7 @@ est_np <- function(
     density_bins = 15,
     deriv_type = "linear",
     gamma_type = "Super Learner",
-    q_n_type = "new"
+    q_n_type = "standard"
   )
   for (i in c(1:length(.default_params))) {
     p_name <- names(.default_params)[i]
@@ -105,7 +105,7 @@ est_np <- function(
   dat_orig <- round_dat(dat_orig, grid)
 
   # Obtain minimum value (excluding edge point mass)
-  if (p$edge_corr=="min") { s_min2 <- min(dat_orig$s[dat_orig$s!=0], na.rm=T) }
+  if (p$edge_corr) { s_min2 <- min(dat_orig$s[dat_orig$s!=0], na.rm=T) }
 
   # Rescale/round s_out and remove s_out points outside [0,1]
   s_out_orig <- s_out
@@ -144,32 +144,27 @@ est_np <- function(
 
   omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)
   f_sIx_n <- construct_f_sIx_n(dat, type, k=0, z1=F)
+  f_s_n <- construct_f_s_n(dat_orig, f_sIx_n)
+  g_n <- construct_g_n(f_sIx_n, f_s_n)
+  Phi_n <- construct_Phi_n(ss(dat, which(dat$s!=0))) # !!!!! Make sure Phi_n(1)=1
+  n_orig <- attr(dat_orig, "n_orig")
+  p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
+  eta_n <- construct_eta_n(dat, Q_n, p_n, t_0)
+  r_tilde_Mn <- construct_r_tilde_Mn(dat_orig, Q_n, t_0)
+  Gamma_tilde_n <- construct_Gamma_tilde_n(dat, r_tilde_Mn, p_n)
+  f_n_srv <- construct_f_n_srv(Q_n, Qc_n, grid)
+  q_n <- construct_q_n(type="standard", dat, omega_n, g_n, r_tilde_Mn,
+                       Gamma_tilde_n, f_n_srv)
 
-
-
+  Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n, eta_n, p_n,
+                                     q_n, r_tilde_Mn, Gamma_tilde_n)
 
 
   # !!!!! CONTINUE
   {
-    f_s_n <- construct_f_s_n(dat_orig, vlist$S_grid, f_sIx_n)
-    g_n <- construct_g_n(f_sIx_n, f_s_n)
-    dat2 <- ss(dat, which(dat$s!=0))
-    Phi_n <- construct_Phi_n(dat2, type=p$ecdf_type)
-    n_orig <- length(dat_orig$z)
-    p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
-    eta_n <- construct_eta_n(dat, Q_n, p_n, vals=NA)
-    r_tilde_Mn <- construct_r_tilde_Mn(dat_orig, vals=vlist$S_grid, Q_n)
-    Gamma_tilde_n <- construct_Gamma_tilde_n(dat, r_tilde_Mn, p_n, vals=NA)
-    f_n_srv <- construct_f_n_srv(Q_n=Q_n, Qc_n=Qc_n)
-    q_n <- construct_q_n(type=p$q_n_type, dat, dat_orig, omega_n=omega_n, g_n=g_n,
-                         p_n=p_n, r_tilde_Mn=r_tilde_Mn, Gamma_tilde_n=Gamma_tilde_n,
-                         Q_n=Q_n, Qc_n=Qc_n, f_n_srv=f_n_srv)
-    Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n, eta_n, p_n,
-                                       q_n, r_tilde_Mn, Gamma_tilde_n,
-                                       vals=vlist$S_grid)
 
     # Construct one-step edge estimator
-    if (p$edge_corr!="none") {
+    if (p$edge_corr) {
       g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
       r_Mn_edge_est <- r_Mn_edge(dat_orig, dat, g_sn, g_n, p_n, Q_n, omega_n)
       infl_fn_r_Mn_edge <- construct_infl_fn_r_Mn_edge(Q_n, g_sn, omega_n, g_n,
@@ -241,17 +236,7 @@ est_np <- function(
                            f_sIx_z1_n)
 
     # Edge correction
-    if (p$edge_corr=="none") {
-
-      r_Mn <- r_Mn_Gr
-
-    } else if (p$edge_corr=="point") {
-
-      r_Mn <- function(u) {
-        if(u==0) { r_Mn_edge_est } else { r_Mn_Gr(u) }
-      }
-
-    } else if (p$edge_corr=="min") {
+    if (p$edge_corr) {
 
       r_Mn <- Vectorize(function(u) {
         if(u==0 || u<s_min2) {
@@ -265,13 +250,9 @@ est_np <- function(
         }
       })
 
-      # gren_s_out <- sapply(c(1:length(s_out)), function(i) {
-      #   if (dir=="incr") {
-      #     as.numeric(r_Mn(s_out[i])>r_Mn_edge_est)
-      #   } else {
-      #     as.numeric(r_Mn(s_out[i])<r_Mn_edge_est)
-      #   }
-      # })
+    } else {
+
+      r_Mn <- r_Mn_Gr
 
     }
 
@@ -318,10 +299,7 @@ est_np <- function(
       }
 
       # Edge correction
-      if (p$edge_corr=="point") {
-        ci_lo[1] <- ests[1] - 1.96*sqrt(sigma2_edge_est/n_orig)
-        ci_hi[1] <- ests[1] + 1.96*sqrt(sigma2_edge_est/n_orig)
-      } else if (p$edge_corr=="min") {
+      if (p$edge_corr) {
         ci_lo2 <- ests[1] - 1.96*sqrt(sigma2_edge_est/n_orig)
         ci_hi2 <- ests[1] + 1.96*sqrt(sigma2_edge_est/n_orig)
         ci_lo <- In(r_Mn_edge_est<=ests)*pmin(ci_lo,ci_lo2) +
