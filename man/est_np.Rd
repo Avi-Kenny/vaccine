@@ -12,9 +12,10 @@ est_np(
   s_out = seq(from = min(dat$s), to = max(dat$s), l = 101),
   ci_type = "logit",
   cf_folds = 1,
-  edge_corr = "none",
+  edge_corr = F,
   params = list(),
-  grid_size = list(y = 100, s = 100, x = 10),
+  grid_size = list(y = 101, s = 101, x = 5),
+  return_extras = F,
   verbose = F
 )
 }
@@ -34,9 +35,12 @@ between the min and max biomarker values.}
 
 \item{ci_type}{TO DO}
 
-\item{cf_folds}{TO DO}
+\item{cf_folds}{An integer representing the number of cross-fitting folds to
+use. If cf_folds=1, cross-fitting will not be done.}
 
-\item{edge_corr}{TO DO}
+\item{edge_corr}{Boolean. If TRUE, the edge correction is performed. It is
+not recommended that the edge correction is performed unless there are
+at least 10 events corresponding to the marker lower limit}
 
 \item{params}{A list of key value pairs that can be used to select or tune
     various nuisance estimators. See examples. These include: \itemize{
@@ -45,18 +49,25 @@ between the min and max biomarker values.}
     \item{\code{three}: asdf}
 }}
 
-\item{grid_size}{A list containing the following three keys:
-    \itemize{
+\item{grid_size}{A list containing the following three keys: \itemize{
     \item{\code{y}: grid size for time values}
     \item{\code{s}: grid size for marker values}
     \item{\code{x}: grid size for covariate values}
 }
     This controls rounding of covariates, which results in substantially
-    shorter computation times. If grid_size$y=100, this means that a grid of
-    equally-spaced points will be created from min(dat$y) to max(dat$y), and
-    each dat$y value will be rounded to the nearest grid point. The same
-    holds for grid_size$s. For grid_size$x, a separate grid is created for
-    each covariate column (binary and categorical covariates are ignored).}
+    shorter computation times. If grid_size$s=100, this means that a grid of
+    equally-spaced points will be created from min(dat$s) to max(dat$s), and
+    each dat$s value will be rounded to the nearest grid point. For
+    grid_size$y, a grid will be created from 0 to max(c(dat$y,t_0)). For
+    grid_size$x, a separate grid is created for each covariate column
+    (binary and categorical covariates are ignored).}
+
+\item{return_extras}{Boolean. If set to TRUE, the following quantities (most
+    of which are mainly useful for debugging) are returned: \itemize{
+    \item{\code{one}: asdf}
+    \item{\code{two}: asdf}
+    \item{\code{three}: asdf}
+}}
 
 \item{verbose}{A Boolean. If set to TRUE, intermediate output will be
 displayed.}
@@ -72,6 +83,11 @@ A list containing the following: \itemize{
 Estimate controlled vaccine efficacy (CVE) and/or controlled
     risk (CR) using the monotone-constrainted nonparametric method of Kenny
     et al. 2023.
+}
+\note{
+- This method assumes that risk decreases as the biomarker increases. If it
+    is assumed that risk increases as the biomarker increases, reverse the
+    scale of the biomarker.
 }
 \examples{
 print("to do")

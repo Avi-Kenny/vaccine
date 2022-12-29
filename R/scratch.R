@@ -1,4 +1,163 @@
 
+# Profiling q_n
+if (F) {
+
+  microbenchmark({
+
+  for (file in c("influence_functions", "load_data", "misc_functions",
+                 "nuisance_estimators", "one_step_estimators")) {
+    source(paste0("R/",file,".R"))
+  }
+  # Constants
+  C2 <- list(n=800, alpha_1=0.5, alpha_2=0.7, alpha_3=-1, t_0=200,
+             sc_params=list(lmbd=2e-4,v=1.5,lmbd2=5e-5,v2=1.5),
+             appx=list(t_0=1,x_tol=25,s=0.01))
+
+  # Generate dataset
+  if (T) {
+    # Covariates and exposure
+    x <- data.frame(
+      x1 = sample(round(seq(0,1,0.1),1), size=C2$n, replace=T),
+      x2 = rbinom(C2$n, size=1, prob=0.5)
+    )
+    s <- round(runif(C2$n),2)
+
+    # Survival times
+    U <- runif(C2$n)
+    H_0_inv <- function(t) { ((1/C2$sc_params$lmbd)*t)^(1/C2$sc_params$v) }
+    lin <- C2$alpha_1*x$x1 + C2$alpha_2*x$x2 + C2$alpha_3*s # Cox model
+    # lin <- C2$alpha_3*expit(20*s-10) + C2$alpha_2*x$x1*x$x2 # Complex model
+    t <- H_0_inv(-1*log(U)*exp(-1*lin))
+
+    # Censoring times
+    U <- runif(C2$n)
+    H_0_inv2 <- function(t) { ((1/C2$sc_params$lmbd2)*t)^(1/C2$sc_params$v2) }
+    lin <- C2$alpha_1*x$x1 + C2$alpha_2*x$x2
+    c <- H_0_inv2(-1*log(U)*exp(-1*lin))
+
+    # Survival variables
+    y <- pmin(t,c)
+    delta <- as.integer(y==t)
+
+    # Data structure
+    expit <- function(x) { 1 / (1+exp(-x)) }
+    Pi <- function(delta, y, x) {
+      ev <- In(delta==1 & y<=C2$t_0)
+      return(ev + (1-ev)*expit(x$x1+x$x2-1))
+    }
+    Pi_0 <- Pi(delta,y,x)
+    z <- rbinom(C2$n, size=1, prob=Pi_0)
+    weights <- z / Pi_0
+    dat_orig <- list(x=x, s=ifelse(z==1,s,NA), z=z, y=y, delta=delta,
+                     weights=weights)
+    dat_orig$s <- round(dat_orig$s, -log10(C2$appx$s))
+    dat_orig$y <- round(dat_orig$y, -log10(C2$appx$t_0))
+
+    class(dat_orig) <- "dat_vaccine"
+    attr(dat_orig, "n_orig") <- C2$n
+    attr(dat_orig, "dim_x") <- 2
+  }
+  dat=list(df_vc=dat_orig);
+
+  # Run start of code
+  if (T) {
+
+    t_0=200; cve=T; cr=T; s_out=seq(0,1,0.1); ci_type="logit";
+    edge_corr=F; grid_size=list(y=101,s=101,x=5); verbose=F; cf_folds=1;
+    params <- list(surv_type="Cox", density_type="parametric", q_n_type="zero",
+                   deriv_type="linear")
+    dat_orig <- dat$df_vc
+    # Set params
+    .default_params <- list(
+      surv_type = "Super Learner",
+      density_type = "binning",
+      density_bins = 15,
+      deriv_type = "m-spline",
+      gamma_type = "Super Learner",
+      q_n_type = "standard",
+      convex_type = "GCM"
+    )
+    for (i in c(1:length(.default_params))) {
+      p_name <- names(.default_params)[i]
+      if (is.null(params[[p_name]])) { params[[p_name]] <- .default_params[[i]] }
+    }
+    p <- params
+    p$ci_type <- ci_type
+    p$cf_folds <- cf_folds
+    p$edge_corr <- edge_corr
+
+    # Rescale S to lie in [0,1] and round values
+    s_min <- min(dat_orig$s, na.rm=T)
+    s_max <- max(dat_orig$s, na.rm=T)
+    s_shift <- -1 * s_min
+    s_scale <- 1/(s_max-s_min)
+    dat_orig$s <- (dat_orig$s+s_shift)*s_scale
+    grid <- create_grid(dat_orig, grid_size, t_0)
+    dat_orig <- round_dat(dat_orig, grid)
+
+    # Obtain minimum value (excluding edge point mass)
+    if (p$edge_corr) { s_min2 <- min(dat_orig$s[dat_orig$s!=0], na.rm=T) }
+
+    # Rescale/round s_out and remove s_out points outside [0,1]
+    s_out_orig <- s_out
+    s_out <- (s_out+s_shift)*s_scale
+    s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] })
+    na_head <- sum(s_out<0)
+    na_tail <- sum(s_out>1)
+    if (na_head>0) { s_out <- s_out[-c(1:na_head)] }
+    len_p <- length(s_out)
+    if (na_tail>0) { s_out <- s_out[-c((len_p-na_tail+1):len_p)] }
+
+    # Create phase-two data object
+    dat <- ss(dat_orig, which(dat_orig$z==1))
+
+    # Prepare precomputation values for conditional survival estimator
+    x_distinct <- dplyr::distinct(dat_orig$x)
+    x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
+    vals_pre <- expand.grid(t=grid$y, x_index=x_distinct$x_index, s=grid$s)
+    vals_pre <- dplyr::inner_join(vals_pre, x_distinct, by="x_index")
+    vals <- list(
+      t = vals_pre$t,
+      x = subset(vals_pre, select=-c(t,x_index,s)),
+      s = vals_pre$s
+    )
+
+    # Fit conditional survival estimator
+    srvSL <- construct_Q_n(p$surv_type, dat, vals)
+    Q_n <- srvSL$srv
+    Qc_n <- srvSL$cens
+
+    # Compute various nuisance functions
+    omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)
+    f_sIx_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins, z1=F)
+    f_s_n <- construct_f_s_n(dat_orig, f_sIx_n)
+    g_n <- construct_g_n(f_sIx_n, f_s_n)
+    Phi_n <- construct_Phi_n(ss(dat, which(dat$s!=0))) # !!!!! Make sure Phi_n(1)=1
+    n_orig <- attr(dat_orig, "n_orig")
+    p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
+    eta_n <- construct_eta_n(dat, Q_n, p_n, t_0)
+    r_tilde_Mn <- construct_r_tilde_Mn(dat_orig, Q_n, t_0)
+    Gamma_tilde_n <- construct_Gamma_tilde_n(dat, r_tilde_Mn, p_n)
+    f_n_srv <- construct_f_n_srv(Q_n, Qc_n, grid)
+
+  }
+
+  # Construct and profile q_n
+  p$q_n_type <- "standard"
+  q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
+                       Gamma_tilde_n, f_n_srv)
+  dat_orig_df <- as_df(dat_orig)
+  u <- 0.5; dim_x <- 2;
+
+  # Profile this line
+  q_n_do <- as.numeric(apply(dat_orig_df, 1, function(r) {
+    q_n(as.numeric(r[1:dim_x]), r[["y"]], r[["delta"]], u)
+  }))
+
+  }, times=1L)
+
+}
+
 # Testing est_np
 if (F) {
 

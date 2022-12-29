@@ -1,5 +1,6 @@
 #' Construct Gamma_os_n primitive one-step estimator (based on EIF)
 #'
+#' @noRd
 construct_Gamma_os_n <- function(dat, dat_orig, omega_n, g_n, eta_n, p_n, q_n,
                                  r_tilde_Mn, Gamma_tilde_n) {
 
@@ -50,6 +51,7 @@ construct_Gamma_os_n <- function(dat, dat_orig, omega_n, g_n, eta_n, p_n, q_n,
 #' @param Q_n Conditional survival function estimator returned by construct_Q_n
 #' @param omega_n A nuisance influence function returned by construct_omega_n()
 #' @return Value of one-step estimator
+#' @noRd
 r_Mn_edge <- function(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0) {
 
   n_orig <- attr(dat_orig, "n_orig")

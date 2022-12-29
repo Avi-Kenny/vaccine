@@ -52,7 +52,7 @@
 #' print("to do")
 #' #list(cond_density_type="binning", cond_density_nbins=10)
 #' @export
-#' @notes
+#' @note
 #'   - This method assumes that risk decreases as the biomarker increases. If it
 #'     is assumed that risk increases as the biomarker increases, reverse the
 #'     scale of the biomarker.

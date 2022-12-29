@@ -23,7 +23,7 @@ chk <- function(num, msg="") {
 #' @param y Component of dataset returned by generate_data()
 #' @param x Component of dataset returned by generate_data()
 #' @return A vector of probabilities of sampling
-#' @notes
+#' @note
 #'   - Only used for simulation; for the real analysis, the weights are
 #'     calculated separately
 Pi <- function(sampling, delta, y, x) {
@@ -72,7 +72,7 @@ Pi <- function(sampling, delta, y, x) {
 #' @param return_strata Whether the discrete two-phase sampling strata
 #'     membership variable should be returned
 #' @return A sum-to-one vector of weights
-#' @notes
+#' @note
 #'   - Only used for simulation; for the real analysis, the weights are
 #'     calculated separately
 wts <- function(dat_orig, scale="stabilized", type="true", return_strata=F) {
@@ -215,7 +215,7 @@ lambda <- function(dat, k, G) {
 #' @param f_sIx_n Conditional density estimator returned by construct_f_sIx_n
 #' @param etastar_n A nuisance estimator returned by construct_etastar_n()
 #' @return Gamma_os_n estimator
-#' @notes This is a generalization of the one-step estimator from Westling &
+#' @note This is a generalization of the one-step estimator from Westling &
 #'     Carone 2020
 construct_Theta_os_n <- function(dat, dat_orig, omega_n=NA, f_sIx_n=NA,
                                  q_tilde_n=NA, etastar_n=NA, vals=NA) {

@@ -2,6 +2,7 @@
 #'
 #' @param x Numeric input
 #' @return Numeric output
+#' @noRd
 logit <- function(x) { log(x/(1-x)) }
 expit <- function(x) { 1 / (1+exp(-x)) }
 deriv_expit <- function(x) { exp(x) / ((1+exp(x))^2) }
@@ -11,6 +12,7 @@ deriv_logit <- function(x) { 1 / (x-x^2) }
 
 #' Alias for indicator (as.integer) function
 #'
+#' @noRd
 In <- as.integer
 
 
@@ -19,7 +21,7 @@ In <- as.integer
 #'
 #' @param fnc A function to be memoised
 #' @return Memoised version of function
-#' @notes
+#' @note
 #'   - This is a lightweight/faster version of the memoise() function
 #' @noRd
 memoise2 <- function(fnc) {
@@ -123,6 +125,7 @@ round_dat <- function(dat_orig, grid) {
 #' @param dat_orig Dataset returned by load_data()
 #' @param indices Indices to filter dataset by
 #' @return Filtered subsample of dataset
+#' @noRd
 ss <- function(dat_orig, indices) {
 
   i <- indices
@@ -148,6 +151,7 @@ ss <- function(dat_orig, indices) {
 #'
 #' @param d Either dat_orig or dat
 #' @return Data frame version of data object
+#' @noRd
 as_df <- function(d) {
   cbind(d$x, s=d$s, y=d$y, delta=d$delta, z=d$z, weights=d$weights)
 }

@@ -11,6 +11,8 @@
 #'     the conditional survival and censoring functions (applicable only if
 #'     type=="Super Learner")
 #' @return Conditional density estimator function
+#'
+#' @noRd
 construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 
   if (type=="Cox") {
@@ -261,6 +263,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 #'     that type="true" only works for surv_true="Cox" and assumes that Q_0
 #'     and Qc_0 (i.e. the true functions) are passed in.
 #' @return Estimator function of nuisance omega_0
+#' @noRd
 construct_omega_n <- function(Q_n, Qc_n, t_0, grid) {
 
   # Construct cumulative hazard estimator
@@ -307,8 +310,9 @@ construct_omega_n <- function(Q_n, Qc_n, t_0, grid) {
 #'     estimator
 #' @param z1 Compute the density conditional on Z=1
 #' @return Conditional density estimator function
-#' @notes
+#' @note
 #'   - Assumes support of S is [0,1]
+#' @noRd
 construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
 
   if (z1) { dat$weights <- rep(1, length(dat$weights)) }
@@ -585,6 +589,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
 #' @param f_sIx_n A conditional density estimator returned by
 #'     construct_f_sIx_n()
 #' @return Marginal density estimator function
+#' @noRd
 construct_f_s_n <- function(dat_orig, f_sIx_n) {
 
   n_orig <- attr(dat_orig, "n_orig")
@@ -603,6 +608,7 @@ construct_f_s_n <- function(dat_orig, f_sIx_n) {
 #' @param f_sIx_n Conditional density estimator returned by construct_f_sIx_n
 #' @param f_s_n Marginal density estimator returned by construct_f_s_n
 #' @return Density ratio estimator function
+#' @noRd
 construct_g_n <- function(f_sIx_n, f_s_n) {
 
   memoise2(function(s,x) { f_sIx_n(s,x) / f_s_n(s) })
@@ -617,8 +623,9 @@ construct_g_n <- function(f_sIx_n, f_s_n) {
 #' @param which One of c("ecdf", "inverse")
 #' @param type One of c("step", "linear (mid)")
 #' @return CDF or inverse CDF estimator function
-#' @notes
+#' @note
 #'   - Adaptation of stats::ecdf() source code
+#' @noRd
 construct_Phi_n <- function (dat, type="linear (mid)") {
 
   # !!!!! re-stabilize weights?
@@ -655,6 +662,7 @@ construct_Phi_n <- function (dat, type="linear (mid)") {
 
 #' Construct nuisance estimator eta_n
 #'
+#' @noRd
 construct_eta_n <- function(dat, Q_n, p_n, t_0) {
 
   n_orig <- attr(dat, "n_orig")
@@ -675,6 +683,7 @@ construct_eta_n <- function(dat, Q_n, p_n, t_0) {
 #' @param dat_orig Dataset returned by generate_data()
 #' @param Q_n Conditional survival function estimator returned by construct_Q_n
 #' @return G-computation estimator of theta_0
+#' @noRd
 construct_r_tilde_Mn <- function(dat_orig, Q_n, t_0) {
 
   n_orig <- attr(dat_orig, "n_orig")
@@ -690,6 +699,7 @@ construct_r_tilde_Mn <- function(dat_orig, Q_n, t_0) {
 
 #' Construct nuisance estimator Gamma_tilde_n
 #'
+#' @noRd
 construct_Gamma_tilde_n <- function(dat, r_tilde_Mn, p_n) {
 
   n_orig <- attr(dat, "n_orig")
@@ -703,6 +713,7 @@ construct_Gamma_tilde_n <- function(dat, r_tilde_Mn, p_n) {
 
 #' Construct nuisance estimator of conditional density f(Y,Delta|X,S)
 #'
+#' @noRd
 construct_f_n_srv <- function(Q_n, Qc_n, grid) {
 
   # Helper function to calculate derivatives
@@ -750,6 +761,7 @@ construct_f_n_srv <- function(Q_n, Qc_n, grid) {
 
 #' Construct q_n nuisance estimator function
 #'
+#' @noRd
 construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
                           Gamma_tilde_n, f_n_srv) {
 
@@ -774,12 +786,27 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
 
     n <- length(dat$s)
 
+    # !!!!!
+    f_n_srv_s <- memoise2(function(y,delta,x) {
+      sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
+    })
+    q_n_star_s <- memoise2(function(y,delta,x,u) {
+      sapply(dat$s, function(s) { q_n_star(y,delta,x,s,u) })
+    })
+    g_n_s <- memoise2(function(x) {
+      sapply(dat$s, function(s) { g_n(s,x) })
+    })
+
     fnc <- function(x, y, delta, u) {
 
-      # !!!!! Can these vectors be used elsewhere?
-      f_n_srv_s <- sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
-      q_n_star_s <- sapply(dat$s, function(s) { q_n_star(y,delta,x,s,u) })
-      g_n_s <- sapply(dat$s, function(s) { g_n(s,x) })
+      # !!!!! Can these vectors/functions be used elsewhere?
+      # !!!!! Try memoising these
+      # f_n_srv_s <- sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
+      # q_n_star_s <- sapply(dat$s, function(s) { q_n_star(y,delta,x,s,u) })
+      # g_n_s <- sapply(dat$s, function(s) { g_n(s,x) })
+      f_n_srv_s <- f_n_srv_s(y,delta,x)
+      q_n_star_s <- q_n_star_s(y,delta,x,u)
+      g_n_s <- g_n_s(x)
 
       denom <- sum(dat$weights*f_n_srv_s*g_n_s)
       if (denom==0) {
@@ -807,6 +834,7 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
 
 #' Construct estimator of nuisance g_sn
 #'
+#' @noRd
 construct_g_sn <- function(dat, f_n_srv, g_n, p_n) {
 
   n_orig <- attr(dat, "n_orig")
@@ -838,6 +866,7 @@ construct_g_sn <- function(dat, f_n_srv, g_n, p_n) {
 #' @param f_sIx_n A conditional density estimator returned by
 #'     construct_f_sIx_n() among the observations for which z==1
 #' @return gamma_n nuisance estimator function
+#' @noRd
 construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n) {
 
   # Construct pseudo-outcomes
@@ -913,6 +942,7 @@ construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n) {
 
 #' Construct estimator of g_z0(x,s) = P(Z=1|X=x,S=s)
 #'
+#' @noRd
 construct_g_zn <- function(dat_orig, type="Super Learner", f_sIx_n,
                            f_sIx_z1_n) {
 
@@ -967,6 +997,7 @@ construct_g_zn <- function(dat_orig, type="Super Learner", f_sIx_n,
 #'
 #' @param r_Mn An estimator of r_M0
 #' @param type One of c("m-spline", "linear", "line")
+#' @noRd
 construct_deriv_r_Mn <- function(type="m-spline", r_Mn) {
 
   if (type=="line") {
@@ -1030,6 +1061,7 @@ construct_deriv_r_Mn <- function(type="m-spline", r_Mn) {
 #' @param gamma_n Nuisance function estimator returned by construct_gamma_n()
 #' @param f_s_n Density estimator returned by construct_f_s_n()
 #' @return Chernoff scale factor estimator function
+#' @noRd
 construct_tau_n <- function(deriv_r_Mn, gamma_n, f_sIx_n, g_zn,
                             dat_orig) {
 
