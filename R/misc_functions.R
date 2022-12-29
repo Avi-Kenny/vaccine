@@ -92,7 +92,13 @@ round_dat <- function(dat_orig, grid) {
 
   # Round `y` and `s`
   d$y <- sapply(d$y, function(y) { grid$y[which.min(abs(grid$y-y))] })
-  d$s <- sapply(d$s, function(s) { grid$s[which.min(abs(grid$s-s))] })
+  d$s <- sapply(d$s, function(s) {
+    if (is.na(s)) {
+      return(NA)
+    } else {
+      return(grid$s[which.min(abs(grid$s-s))])
+    }
+  })
 
   # Round `x`
   for (i in c(1:length(d$x))) {
@@ -134,4 +140,14 @@ ss <- function(dat_orig, indices) {
 
   return(dat)
 
+}
+
+
+
+#' Convert dat_orig or dat to a data frame
+#'
+#' @param d Either dat_orig or dat
+#' @return Data frame version of data object
+as_df <- function(d) {
+  cbind(d$x, s=d$s, y=d$y, delta=d$delta, z=d$z, weights=d$weights)
 }

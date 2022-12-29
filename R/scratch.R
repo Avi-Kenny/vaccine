@@ -1,4 +1,278 @@
 
+# Testing est_np
+if (F) {
+
+  for (file in c("influence_functions", "load_data", "misc_functions",
+                 "nuisance_estimators", "one_step_estimators")) {
+    source(paste0("R/",file,".R"))
+  }
+  dat=list(df_vc=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig.rds"));
+
+  t_0=200; cve=T; cr=T; s_out=seq(0,1,0.1); ci_type="logit";
+  edge_corr=F; grid_size=list(y=101,s=101,x=5); verbose=F; cf_folds=1;
+  params <- list(surv_type="Cox", density_type="parametric", q_n_type="zero",
+                 deriv_type="linear")
+
+  # Run est_np.R through construct_Q_n()
+
+  vals_df <- data.frame(t=vals$t, x1=vals$x$x1, x2=vals$x$x2, s=vals$s)
+
+  # Run through construct_Gamma_os_n()
+
+  dat_df <- as_df(dat)
+
+  microbenchmark({
+    aa <- apply(dat_df, 1, function(r) {
+      omega_n(as.numeric(r[1:2]), r[["s"]], r[["y"]], r[["delta"]])
+    })
+  }, times=100L)
+
+  microbenchmark({
+    aa <- apply(dat_df, 1, function(r) {
+      g_n(r[["s"]], as.numeric(r[1:2]))
+    })
+  }, times=100L)
+
+  microbenchmark({
+    aa <- sapply(dat$s, r_tilde_Mn)
+  }, times=100L)
+
+  microbenchmark({
+    aa <- sapply(dat$s, Phi_n)
+  }, times=100L)
+
+
+}
+
+# Testing Cox
+if (F) {
+
+  # Generate data
+  if (T) {
+
+    # Constants
+    C2 <- list(
+      # points = round(seq(0,1,0.02),2), # round(seq(0,1,0.1),2)
+      n = 50000,
+      alpha_1 = 0.5,
+      alpha_2 = 0.7,
+      alpha_3 = -1,
+      t_0 = 200,
+      sc_params = list(lmbd=2e-4, v=1.5, lmbd2=5e-5, v2=1.5),
+      appx = list(t_0=1, x_tol=25, s=0.01)
+    )
+
+    # Generate dataset
+    {
+      # Covariates and exposure
+      x <- data.frame(
+        x1 = sample(round(seq(0,1,0.1),1), size=C2$n, replace=T),
+        x2 = rbinom(C2$n, size=1, prob=0.5)
+      )
+      s <- round(runif(C2$n),2)
+
+      # Survival times
+      U <- runif(C2$n)
+      H_0_inv <- function(t) { ((1/C2$sc_params$lmbd)*t)^(1/C2$sc_params$v) }
+      lin <- C2$alpha_1*x$x1 + C2$alpha_2*x$x2 + C2$alpha_3*s # Cox model
+      # lin <- C2$alpha_3*expit(20*s-10) + C2$alpha_2*x$x1*x$x2 # Complex model
+      t <- H_0_inv(-1*log(U)*exp(-1*lin))
+
+      # Censoring times
+      U <- runif(C2$n)
+      H_0_inv2 <- function(t) { ((1/C2$sc_params$lmbd2)*t)^(1/C2$sc_params$v2) }
+      lin <- C2$alpha_1*x$x1 + C2$alpha_2*x$x2
+      c <- H_0_inv2(-1*log(U)*exp(-1*lin))
+
+      # Survival variables
+      y <- pmin(t,c)
+      delta <- as.integer(y==t)
+
+      # Data structure
+      expit <- function(x) { 1 / (1+exp(-x)) }
+      Pi <- function(delta, y, x) {
+        ev <- In(delta==1 & y<=C2$t_0)
+        return(ev + (1-ev)*expit(x$x1+x$x2-1))
+      }
+      Pi_0 <- Pi(delta,y,x)
+      z <- rbinom(C2$n, size=1, prob=Pi_0)
+      weights <- z / Pi_0
+      dat_orig <- list(x=x, s=ifelse(z==1,s,NA), z=z, y=y, delta=delta,
+                       weights=weights)
+      dat_orig$s <- round(dat_orig$s, -log10(C2$appx$s))
+      dat_orig$y <- round(dat_orig$y, -log10(C2$appx$t_0))
+    }
+
+  }
+
+  dat <- ss(dat_orig, which(dat_orig$z==1))
+
+  ..p <<- list() # !!!!!
+  model_srv <- survival::coxph(
+    formula = formula(paste0("survival::Surv(y,delta)~",
+                             paste(names(dat$x),collapse="+"),"+s")),
+    data = cbind(y=dat$y, delta=dat$delta, dat$x, s=dat$s),
+    weights = dat$weights
+  )
+  coeffs_srv <- as.numeric(model_srv$coefficients)
+  coeffs_srv
+  c(alpha_1=0.5, alpha_2=0.7, alpha_3=-1)
+  # model_srv
+
+  ..p$coeffs_srv <<- coeffs_srv # !!!!!
+  bh_srv <- survival::basehaz(model_srv, centered=FALSE)
+
+  model_cens <- coxph(
+    formula = formula(paste0("Surv(y,delta)~",
+                             paste(names(dat$x),collapse="+"),"+s")),
+    data = cbind(y=dat$y, delta=1-dat$delta, dat$x, s=dat$s),
+    weights = dat$weights
+  )
+  coeffs_cens <- as.numeric(model_cens$coefficients)
+  ..p$coeffs_cens <<- coeffs_cens # !!!!!
+  bh_cens <- survival::basehaz(model_cens, centered=FALSE)
+
+  fnc_srv <- function(t, x, s) {
+    if (t==0) {
+      return(1)
+    } else {
+      # Lambda_t <- bh_srv$hazard[which.min(abs(bh_srv$time-t))]
+      Lambda_t <- bh_srv$hazard[max(which((bh_srv$time<t)==T))]
+      return(exp(-1*Lambda_t*exp(sum(coeffs_srv*as.numeric(c(x,s))))))
+    }
+  }
+
+  fnc_cens <- function(t, x, s) {
+    if (t==0) {
+      return(1)
+    } else {
+      Lambda_t <- bh_cens$hazard[max(which((bh_cens$time<t)==T))]
+      return(exp(-1*Lambda_t*exp(sum(coeffs_cens*as.numeric(c(x,s))))))
+    }
+  }
+
+
+}
+
+# Comparing two derivative estimators
+if (F) {
+
+  # Linear
+  # points_x: 0.000 0.195 0.295 0.695 0.895 1.000
+  # points_y: 0.00 0.10 0.40 0.75 0.95 1.00
+  # points_sl: 0.513 3.000 0.875 1.000 0.476
+
+  # M-Spline
+  # jump_points: 0.000 0.195 0.295 0.695 0.895 1.000
+  # midpoints: 0.098 0.245 0.495 0.795 0.948
+
+  # !!!!!
+  u <- runif(5)
+  ecd <- ecdf(u)
+  r_Mn <- Vectorize(function(x) {
+    return(1-ecd(x))
+    # p1 <- 0.2*In(x>=0.2)
+    # p2 <- 0.4*In(x>=0.3)
+    # p3 <- 0.3*In(x>=0.7)
+    # p4 <- 0.1*In(x>=0.9)
+    # return(1-(p1+p2+p3+p4))
+  })
+
+  if (T) {
+    # Estimate entire function on grid
+    r_Mns <- r_Mn(grid$s)
+
+    # grid_width <- grid$s[2] - grid$s[1]
+    points_x <- grid$s[1]
+    points_y <- r_Mns[1]
+    for (i in 2:length(grid$s)) {
+      if (r_Mns[i]-r_Mns[round(i-1)]!=0) {
+        points_x <- c(points_x, (grid$s[i]+grid$s[round(i-1)])/2)
+        # points_x <- c(points_x, grid$s[i]-(grid_width/2))
+        points_y <- c(points_y, mean(c(r_Mns[i],r_Mns[round(i-1)])))
+      }
+    }
+    points_x <- c(points_x, grid$s[length(grid$s)])
+    points_y <- c(points_y, r_Mns[length(grid$s)])
+    fnc_pre <- approxfun(x=points_x, y=points_y, method="linear", rule=2)
+    fnc_pre_lin <- fnc_pre # !!!!!
+    fnc_pre <- splinefun(x=points_x, y=points_y, method="monoH.FC")
+    fnc_pre_spl <- fnc_pre # !!!!!
+    fnc_lin <- function(s) {
+      width <- 0.1 # !!!!! Changed from 0.2
+      x1 <- s - width/2
+      x2 <- s + width/2
+      if (x1<0) { x2<-width; x1<-0; }
+      if (x2>1) { x1<-1-width; x2<-1; }
+      return(min((fnc_pre_lin(x2)-fnc_pre_lin(x1))/width,0))
+    }
+    fnc_spl <- function(s) {
+      width <- 0.1 # !!!!! Changed from 0.2
+      x1 <- s - width/2
+      x2 <- s + width/2
+      if (x1<0) { x2<-width; x1<-0; }
+      if (x2>1) { x1<-1-width; x2<-1; }
+      return(min((fnc_pre_spl(x2)-fnc_pre_spl(x1))/width,0))
+    }
+  }
+
+  df_plot <- data.frame(
+    x = c(grid$s, grid$s, grid$s),
+    y = c(sapply(grid$s,r_Mn),
+          sapply(grid$s,fnc_pre_lin),
+          sapply(grid$s,fnc_pre_spl)),
+    grp = c(rep("r_Mn",length(r_Mns)),
+            rep("fnc_pre_lin",length(r_Mns)),
+            rep("fnc_pre_spl",length(r_Mns)))
+  )
+  ggplot(df_plot, aes(x=x, y=y, color=grp)) + geom_line()
+
+  df_plot <- data.frame(
+    x = c(grid$s, grid$s),
+    y = c(sapply(grid$s,fnc_lin),
+          sapply(grid$s,fnc_spl)),
+    grp = c(rep("fnc_lin",length(r_Mns)),
+            rep("fnc_spl",length(r_Mns)))
+  )
+  ggplot(df_plot, aes(x=x, y=y, color=grp)) + geom_line()
+
+}
+
+# Reconciling
+if (F) {
+
+  # 640
+  reg <- function(x,s) {
+    # Dynamically filter to select index
+    cond <- paste0("round(s,5)==",round(s,5))
+    for (i in c(1:length(x))) {
+      cond <- paste0(cond," & round(x",i,",5)==",round(x[i],5))
+    }
+    index <- (dplyr::filter(newX, eval(parse(text=cond))))$index
+    if (length(index)!=1) {
+      stop(paste0("Error in gamma_n; ", "x=(", paste(x,collapse=","), "), s=",
+                  s))
+    }
+    return(pred[index])
+  }
+
+  # 694
+  reg <- function(x) {
+    # Dynamically filter to select index
+    cond <- "1==1"
+    for (i in c(1:length(x))) {
+      cond <- paste0(cond," & round(x",i,",5)==",round(x[i],5))
+    }
+    index <- (dplyr::filter(newX, eval(parse(text=cond))))$index
+    if (length(index)!=1) {
+      stop(paste0("Error in g_zn; ",
+                  "x=(", paste(x,collapse=","), ")"))
+    }
+    return(pred[index])
+  }
+
+}
+
 # Benchmarking ways to apply over vectors
 if (F) {
 
@@ -146,7 +420,7 @@ if (F) {
   # Constants
   C2 <- list(
     # points = round(seq(0,1,0.02),2), # round(seq(0,1,0.1),2)
-    n = 500,
+    n = 100,
     alpha_1 = 0.5,
     alpha_2 = 0.7,
     alpha_3 = -1,
@@ -162,7 +436,7 @@ if (F) {
       x1 = sample(round(seq(0,1,0.1),1), size=C2$n, replace=T),
       x2 = rbinom(C2$n, size=1, prob=0.5)
     )
-    s <- runif(C2$n)
+    s <- round(runif(C2$n),2)
 
     # Survival times
     U <- runif(C2$n)
@@ -182,10 +456,22 @@ if (F) {
     delta <- as.integer(y==t)
 
     # Data structure
-    dat_orig <- list(x=x, s=s, z=rep(1,C2$n), y=y, delta=delta)
+    expit <- function(x) { 1 / (1+exp(-x)) }
+    Pi <- function(delta, y, x) {
+      ev <- In(delta==1 & y<=C2$t_0)
+      return(ev + (1-ev)*expit(x$x1+x$x2-1))
+    }
+    Pi_0 <- Pi(delta,y,x)
+    z <- rbinom(C2$n, size=1, prob=Pi_0)
+    weights <- z / Pi_0
+    dat_orig <- list(x=x, s=ifelse(z==1,s,NA), z=z, y=y, delta=delta,
+                     weights=weights)
     dat_orig$s <- round(dat_orig$s, -log10(C2$appx$s))
     dat_orig$y <- round(dat_orig$y, -log10(C2$appx$t_0))
 
+    class(dat_orig) <- "dat_vaccine"
+    attr(dat_orig, "n_orig") <- C2$n
+    attr(dat_orig, "dim_x") <- 2
   }
 
 }

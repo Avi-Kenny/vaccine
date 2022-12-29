@@ -1,6 +1,252 @@
 # !!!!! TO DO: update docs throughout
 
-# !!!!! TO DO: construct_Q_n
+#' Construct conditional survival estimator Q_n
+#'
+#' @param dat Subsample of dataset returned by ss() for which z==1
+#' @param vals List of values to pre-compute function on; REQUIRED FOR SUPERLEARNER
+#' @param type One of c("true", "Cox", "Random Forest", "Super Learner")
+#' @param return_model Logical; if TRUE, return the model object instead of the
+#'     function
+#' @param print_coeffs Logical; if TRUE, print the algorithm coefficients for
+#'     the conditional survival and censoring functions (applicable only if
+#'     type=="Super Learner")
+#' @return Conditional density estimator function
+construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
+
+  if (type=="Cox") {
+
+    model_srv <- survival::coxph(
+      formula = formula(paste0("survival::Surv(y,delta)~",
+                               paste(names(dat$x),collapse="+"),"+s")),
+      data = cbind(y=dat$y, delta=dat$delta, dat$x, s=dat$s),
+      weights = dat$weights
+    )
+    coeffs_srv <- as.numeric(model_srv$coefficients)
+    bh_srv <- survival::basehaz(model_srv, centered=F)
+
+    model_cens <- survival::coxph(
+      formula = formula(paste0("survival::Surv(y,delta)~",
+                               paste(names(dat$x),collapse="+"),"+s")),
+      data = cbind(y=dat$y, delta=1-dat$delta, dat$x, s=dat$s),
+      weights = dat$weights
+    )
+    coeffs_cens <- as.numeric(model_cens$coefficients)
+    bh_cens <- survival::basehaz(model_cens, centered=F)
+
+    fnc_srv <- function(t, x, s) {
+      if (t==0) {
+        return(1)
+      } else {
+        Lambda_t <- bh_srv$hazard[which.min(abs(bh_srv$time-t))]
+        # Lambda_t <- bh_srv$hazard[max(which((bh_srv$time<t)==T))]
+        return(exp(-1*Lambda_t*exp(sum(coeffs_srv*as.numeric(c(x,s))))))
+      }
+    }
+
+    fnc_cens <- function(t, x, s) {
+      if (t==0) {
+        return(1)
+      } else {
+        Lambda_t <- bh_cens$hazard[which.min(abs(bh_cens$time-t))]
+        # Lambda_t <- bh_cens$hazard[max(which((bh_cens$time<t)==T))]
+        return(exp(-1*Lambda_t*exp(sum(coeffs_cens*as.numeric(c(x,s))))))
+      }
+    }
+
+    rm(model_srv)
+    rm(model_cens)
+
+  }
+
+  # if (type %in% c("Cox SL", "Super Learner")) {
+  #   if (type=="Cox SL") {
+  #     methods <- c("survSL.coxph")
+  #   } else if (type=="Super Learner") {
+  #     # Excluding "survSL.rfsrc" for now. survSL.pchSL gives errors.
+  #     methods <- c("survSL.coxph", "survSL.expreg", "survSL.km",
+  #                  "survSL.loglogreg", "survSL.pchreg", "survSL.weibreg")
+  #     # methods <- c("survSL.km", "survSL.pchreg", "survSL.rfsrc") # !!!!!
+  #   }
+  #
+  #   newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
+  #   new.times <- unique(vals$t)
+  #   srv <- survSuperLearner::survSuperLearner(
+  #     time = dat$y,
+  #     event = dat$delta,
+  #     X = cbind(dat$x, s=dat$s),
+  #     newX = newX,
+  #     new.times = new.times,
+  #     event.SL.library = methods,
+  #     cens.SL.library = methods,
+  #     obsWeights = dat$weights,
+  #     control = list(initWeightAlg=methods[1], max.SL.iter=10)
+  #   )
+  #
+  #   if (print_coeffs && type=="Super Learner") {
+  #     cat("\n------------------------------\n")
+  #     cat("SuperLearner algorithm weights\n")
+  #     cat("------------------------------\n\n")
+  #     cat("event.coef\n")
+  #     cat("----------\n")
+  #     print(sort(srv$event.coef, decr=T))
+  #     cat("\ncens.coef\n")
+  #     cat("---------\n")
+  #     print(sort(srv$cens.coef, decr=T))
+  #     cat("\n------------------------------\n")
+  #   }
+  #
+  #   srv_pred <- srv$event.SL.predict
+  #   cens_pred <- srv$cens.SL.predict
+  #   rm(srv)
+  #
+  #   # !!!!! Later consolidate these via a wrapper/constructor function
+  #   fnc_srv <- function(t, x, s) {
+  #     r <- list()
+  #     for (i in 1:length(x)) {
+  #       r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
+  #     }
+  #     if (class(newX[["s"]][1])=="factor") {
+  #       r[[length(x)+1]] <- which(s==newX[["s"]])
+  #     } else {
+  #       r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
+  #     }
+  #     row <- Reduce(intersect, r)
+  #     col <- which.min(abs(t-new.times))
+  #     if (length(row)!=1) {
+  #       stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
+  #                   paste(x,collapse=","),"),s=",s,""))
+  #     }
+  #     if (length(col)!=1) {
+  #       stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
+  #                   paste(x,collapse=","),"),s=",s,""))
+  #     }
+  #     return(srv_pred[row,col])
+  #   }
+  #
+  #   fnc_cens <- function(t, x, s) {
+  #     r <- list()
+  #     for (i in 1:length(x)) {
+  #       r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
+  #     }
+  #     if (class(newX[["s"]][1])=="factor") {
+  #       r[[length(x)+1]] <- which(s==newX[["s"]])
+  #     } else {
+  #       r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
+  #     }
+  #     row <- Reduce(intersect, r)
+  #     col <- which.min(abs(t-new.times))
+  #     if (length(row)!=1) {
+  #       stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
+  #                   paste(x,collapse=","),"),s=",s,""))
+  #     }
+  #     if (length(col)!=1) {
+  #       stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
+  #                   paste(x,collapse=","),"),s=",s,""))
+  #     }
+  #     return(cens_pred[row,col])
+  #   }
+  #
+  # }
+
+  # if (type=="survML") {
+  #
+  #   newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
+  #   new.times <- unique(vals$t)
+  #
+  #   fit <- survML::survMLc(
+  #     time = dat$y,
+  #     event = dat$delta,
+  #     X = cbind(dat$x, s=dat$s),
+  #     newX = newX,
+  #     newtimes = new.times,
+  #     bin_size = 0.025,
+  #     time_basis = "continuous",
+  #     time_grid_approx = sort(unique(dat$y)),
+  #     surv_form = "exp",
+  #     SL.library = rep(c("SL.mean", "SL.glm", "SL.gam", "SL.earth"),2),
+  #     V = 5,
+  #     obsWeights = dat$weights
+  #   )
+  #
+  #   srv_pred <- fit$S_T_preds
+  #   cens_pred <- fit$S_C_preds
+  #
+  #   if (print_coeffs && type=="Super Learner") {
+  #     cat("\n-------------------------------------\n")
+  #     cat("survML SuperLearner algorithm weights\n")
+  #     cat("\n-------------------------------------\n")
+  #     cat("P_Delta coeffs\n")
+  #     cat("--------------\n")
+  #     fit$fits$P_Delta$reg.object$coef
+  #     cat("S_Y_1 coeffs\n")
+  #     cat("------------\n")
+  #     fit$fits$S_Y_1$reg.object$coef
+  #     cat("S_Y_0 coeffs\n")
+  #     cat("------------\n")
+  #     fit$fits$S_Y_0$reg.object$coef
+  #     cat("\n-------------------------------------\n")
+  #   }
+  #
+  #   fnc_srv <- function(t, x, s) {
+  #     r <- list()
+  #     for (i in 1:length(x)) {
+  #       r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
+  #     }
+  #     if (class(newX[["s"]][1])=="factor") {
+  #       r[[length(x)+1]] <- which(s==newX[["s"]])
+  #     } else {
+  #       r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
+  #     }
+  #     row <- Reduce(intersect, r)
+  #     col <- which.min(abs(t-new.times))
+  #     if (length(row)!=1) {
+  #       stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
+  #                   paste(x,collapse=","),"),s=",s,""))
+  #     }
+  #     if (length(col)!=1) {
+  #       stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
+  #                   paste(x,collapse=","),"),s=",s,""))
+  #     }
+  #     return(srv_pred[row,col])
+  #   }
+  #
+  #   fnc_cens <- function(t, x, s) {
+  #     r <- list()
+  #     for (i in 1:length(x)) {
+  #       r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
+  #     }
+  #     if (class(newX[["s"]][1])=="factor") {
+  #       r[[length(x)+1]] <- which(s==newX[["s"]])
+  #     } else {
+  #       r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
+  #     }
+  #     row <- Reduce(intersect, r)
+  #     col <- which.min(abs(t-new.times))
+  #     if (length(row)!=1) {
+  #       stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
+  #                   paste(x,collapse=","),"),s=",s,""))
+  #     }
+  #     if (length(col)!=1) {
+  #       stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
+  #                   paste(x,collapse=","),"),s=",s,""))
+  #     }
+  #     return(cens_pred[row,col])
+  #   }
+  #
+  # }
+
+  if (type=="Cox") {
+    sfnc_srv <- fnc_srv
+    sfnc_cens <- fnc_cens
+  } else {
+    sfnc_srv <- memoise2(fnc_srv)
+    sfnc_cens <- memoise2(fnc_cens)
+  }
+  rm("vals", envir=environment(get("fnc_srv",envir=environment(sfnc_srv))))
+
+  return(list(srv=sfnc_srv, cens=sfnc_cens))
+
+}
 
 
 
@@ -12,7 +258,7 @@
 #' @param Qc_n Conditional censoring survival function estimator returned by
 #'     construct_Q_n
 #' @param type Defaults to "estimated". Override with "true" for debugging. Note
-#'     that type="true" only works for surv_true="Cox PH" and assumes that Q_0
+#'     that type="true" only works for surv_true="Cox" and assumes that Q_0
 #'     and Qc_0 (i.e. the true functions) are passed in.
 #' @return Estimator function of nuisance omega_0
 construct_omega_n <- function(Q_n, Qc_n, t_0, grid) {
@@ -73,23 +319,24 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     dens_s <- function(s, x, prm) {
       mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
       sigma <- 10*expit(prm[length(prm)])
-      return( dtruncnorm(s, a=0, b=1, mean=mu, sd=sigma) )
+      return( truncnorm::dtruncnorm(s, a=0, b=1, mean=mu, sd=sigma) )
     }
 
     # Set up weighted likelihood
     wlik <- function(prm) {
       -1 * sum(sapply(c(1:length(dat$s)), function(i) {
-        dat$weights[i] * log(pmax(dens_s(s=dat$s[i], x=as.numeric(dat$x[i,]), prm),1e-8))
+        dat$weights[i] *
+          log(pmax(dens_s(s=dat$s[i], x=as.numeric(dat$x[i,]), prm),1e-8))
       }))
     }
 
     # Run optimizer
-    opt <- solnp(
+    opt <- Rsolnp::solnp(
       pars = c(rep(0, length(dat$x)+1), 0.15),
       fun = wlik
     )
     if (opt$convergence!=0) {
-      warning("construct_f_sIx_n: solnp() did not converge")
+      warning("f_sIx_n: Rsolnp::solnp() did not converge")
     }
     prm <- opt$pars
 
@@ -99,7 +346,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     fnc <- function(s, x) {
       mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
       sigma <- 10*expit(prm[length(prm)])
-      return( dtruncnorm(s, a=0, b=1, mean=mu, sd=sigma) )
+      return( truncnorm::dtruncnorm(s, a=0, b=1, mean=mu, sd=sigma) )
     }
 
   }
@@ -110,7 +357,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     dens_s <- function(s, x, prm) {
       mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
       sigma <- 10*expit(prm[length(prm)])
-      return( dtruncnorm(s, a=C$appx$s, b=1, mean=mu, sd=sigma) )
+      return( truncnorm::dtruncnorm(s, a=C$appx$s, b=1, mean=mu, sd=sigma) )
     }
 
     # Estimate p_0
@@ -129,12 +376,12 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     }
 
     # Run optimizer
-    opt <- solnp(
+    opt <- Rsolnp::solnp(
       pars = c(rep(0, length(dat$x)+1), 0.15),
       fun = wlik
     )
     if (opt$convergence!=0) {
-      warning("construct_f_sIx_n: solnp() did not converge")
+      warning("f_sIx_n: Rsolnp::solnp() did not converge")
     }
     prm <- opt$pars
 
@@ -145,7 +392,8 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
       sigma <- 10*expit(prm[length(prm)])
       pc_1 <- In(s==0) * ( (1-p_n) / C$appx$s )
-      pc_2 <- In(s!=0) * p_n * dtruncnorm(s, a=0, b=1, mean=mu, sd=sigma)
+      pc_2 <- In(s!=0) * p_n *
+        truncnorm::dtruncnorm(s, a=0, b=1, mean=mu, sd=sigma)
       return(pc_1+pc_2)
     }
 
@@ -157,7 +405,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     dens_s <- function(s, x, prm) {
       mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
       sigma <- 10*expit(prm[round(length(x)+2)]) # !!!!! Try using exp instead of expit
-      return( dtruncnorm(s, a=C$appx$s, b=1, mean=mu, sd=sigma) )
+      return(truncnorm::dtruncnorm(s, a=C$appx$s, b=1, mean=mu, sd=sigma))
     }
 
     # Probability P(S=s|X=x) for s==0 or s!=0
@@ -176,12 +424,12 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     }
 
     # Run optimizer (edge)
-    opt_1 <- solnp(
+    opt_1 <- Rsolnp::solnp(
       pars = rep(0.01, length(dat$x)+1),
       fun = wlik_1
     )
     if (opt_1$convergence!=0) {
-      warning("construct_f_sIx_n: opt_1 did not converge")
+      warning("f_sIx_n: Rsolnp::solnp did not converge")
     }
     prm_1 <- opt_1$pars
     print("prm_1") # !!!!!
@@ -199,16 +447,14 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     }
 
     # Run optimizer (Normal)
-    opt_2 <- solnp(
+    opt_2 <- Rsolnp::solnp(
       pars = c(rep(0.01, length(dat_1$x)+1), 0.15),
       fun = wlik_2
     )
     if (opt_2$convergence!=0) {
-      warning("construct_f_sIx_n: solnp() did not converge")
+      warning("f_sIx_n: Rsolnp::solnp() did not converge")
     }
     prm_2 <- opt_2$pars
-    print("prm_2") # !!!!!
-    print(prm_2) # !!!!!
 
     # Remove large intermediate objects
     rm(dat,dat_1,opt_1,opt_2)
@@ -251,12 +497,12 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       }
 
       # Run optimizer
-      opt <- solnp(
+      opt <- Rsolnp::solnp(
         pars = rep(0.001,k+length(dat$x)-1),
         fun = wlik
       )
       if (opt$convergence!=0) {
-        warning("construct_f_sIx_n: solnp() did not converge")
+        warning("f_sIx_n: Rsolnp::solnp() did not converge")
       }
       prm <- opt$pars
 
@@ -319,7 +565,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       }
 
       k <- best$k
-      print(paste("Number of bins selected (f_sIx_n):", k))
+      print(paste("Number of bins selected (f_sIx_n):", k)) # !!!!! make this a message, configurable with verbose option
 
     }
 
@@ -341,8 +587,11 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
 #' @return Marginal density estimator function
 construct_f_s_n <- function(dat_orig, f_sIx_n) {
 
+  n_orig <- attr(dat_orig, "n_orig")
   memoise2(function(s) {
-    mean(apply(dat_orig$x, 1, function(x) { f_sIx_n(s,as.numeric(x)) }))
+    (1/n_orig) * sum(apply(dat_orig$x, 1, function(x) {
+      f_sIx_n(s,as.numeric(x))
+    }))
   })
 
 }
@@ -376,7 +625,7 @@ construct_Phi_n <- function (dat, type="linear (mid)") {
 
   n_orig <- attr(dat, "n_orig")
   df <- data.frame(s=dat$s, weights=dat$weights)
-  df %<>% arrange(s)
+  df <- dplyr::arrange(df, s)
   vals_x <- unique(df$s)
   vals_y <- c()
 
@@ -411,13 +660,11 @@ construct_eta_n <- function(dat, Q_n, p_n, t_0) {
   n_orig <- attr(dat, "n_orig")
   piece_1 <- dat$weights * In(dat$s!=0)
 
-  fnc <- function(u,x) {
+  return(memoise2(function(u,x) {
     (1/(n_orig*p_n)) * sum(
       piece_1 * sapply(dat$s, function(s) { In(s<=u) * (1-Q_n(t_0,x,s)) })
     )
-  }
-
-  return(memoise2(fnc))
+  }))
 
 }
 
@@ -430,8 +677,11 @@ construct_eta_n <- function(dat, Q_n, p_n, t_0) {
 #' @return G-computation estimator of theta_0
 construct_r_tilde_Mn <- function(dat_orig, Q_n, t_0) {
 
+  n_orig <- attr(dat_orig, "n_orig")
   memoise2(function(s) {
-    1 - mean(apply(dat_orig$x, 1, function(x) { Q_n(t_0, as.numeric(x), s) }))
+    1 - (1/n_orig) * sum(apply(dat_orig$x, 1, function(x) {
+      Q_n(t_0, as.numeric(x), s)
+    }))
   })
 
 }
@@ -444,9 +694,8 @@ construct_Gamma_tilde_n <- function(dat, r_tilde_Mn, p_n) {
 
   n_orig <- attr(dat, "n_orig")
   piece_1 <- dat$weights * In(dat$s!=0) * sapply(dat$s, r_tilde_Mn)
-  fnc <- function(u) { (1/(n_orig*p_n)) * sum(In(dat$s<=u)*piece_1) }
 
-  return(memoise2(fnc))
+  return(memoise2(function(u) { (1/(n_orig*p_n)) * sum(In(dat$s<=u)*piece_1) }))
 
 }
 
@@ -529,7 +778,7 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
 
       # !!!!! Can these vectors be used elsewhere?
       f_n_srv_s <- sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
-      q_n_star_s <- sapply(dat$s, function(s) { q_n_star(y, delta, x, s, u) })
+      q_n_star_s <- sapply(dat$s, function(s) { q_n_star(y,delta,x,s,u) })
       g_n_s <- sapply(dat$s, function(s) { g_n(s,x) })
 
       denom <- sum(dat$weights*f_n_srv_s*g_n_s)
@@ -551,6 +800,247 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
     return(function(x, y, delta, u) { 0 })
 
   }
+
+}
+
+
+
+#' Construct estimator of nuisance g_sn
+#'
+construct_g_sn <- function(dat, f_n_srv, g_n, p_n) {
+
+  n_orig <- attr(dat, "n_orig")
+  dat_df <- as_df(dat)
+
+  return(memoise2(function(x, y, delta) {
+    num <- f_n_srv(y, delta, x, 0) * g_n(s=0,x) * (1-p_n)
+    den <- (1/n_orig) * sum(
+      dat$weights * apply(dat_df, 1, function(r) {
+        f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
+      })
+    )
+    if (den==0) { return(0) } else { return(num/den) }
+  }))
+
+}
+
+
+
+#' Construct gamma_n nuisance estimator function
+#'
+#' @param dat_orig Dataset returned by generate_data()
+#' @param dat Subsample of dataset returned by ss() for which z==1
+#' @param vals List of values to pre-compute function on
+#' @param type Type of regression; one of c("cubic", "kernel", "kernel2")
+#' @param omega_n A nuisance influence function returned by construct_omega_n()
+#' @param f_sIx_n A conditional density estimator returned by
+#'     construct_f_sIx_n()
+#' @param f_sIx_n A conditional density estimator returned by
+#'     construct_f_sIx_n() among the observations for which z==1
+#' @return gamma_n nuisance estimator function
+construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n) {
+
+  # Construct pseudo-outcomes
+  dat_df <- as_df(dat)
+  dim_x <- attr(dat_orig, "dim_x")
+  omega_n_d <- apply(dat_df, 1, function(r) {
+    omega_n(as.numeric(r[1:dim_x]), r[["s"]], r[["y"]], r[["delta"]])
+  })
+  dat_df$po <- (dat$weights*as.numeric(omega_n_d))^2
+
+  # Filter out infinite values
+  if (sum(!is.finite(dat_df$po))!=0) {
+    dat_df <- dplyr::filter(dat_df, is.finite(po))
+    warning(paste("gamma_n:", sum(!is.finite(dat_df$po)),
+                  "non-finite pseudo-outcome values"))
+  }
+
+  # Setup
+  x_distinct <- dplyr::distinct(dat_orig$x)
+  x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
+  newX <- expand.grid(x_index=x_distinct$x_index, s=grid$s)
+  newX <- dplyr::inner_join(x_distinct, newX, by="x_index")
+  newX$x_index <- NULL
+
+  # Run regression
+  if (type=="Super Learner") {
+
+    # Fit SuperLearner regression
+    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.loess",
+                    "SL.nnet", "SL.ksvm", "SL.caret", "SL.rpartPrune",
+                    "SL.svm")
+
+    model_sl <- SuperLearner::SuperLearner(
+      Y = dat_df$po,
+      X = cbind(dat_df[,c(1:dim_x)],s=dat_df$s),
+      newX = newX,
+      family = "gaussian",
+      SL.library = SL.library,
+      verbose = F
+    )
+    pred <- as.numeric(model_sl$SL.predict)
+    if (sum(pred<0)!=0) {
+      warning(paste("gamma_n:", sum(pred<0), "negative predicted values"))
+    }
+    # print(coef(model_sl))
+    rm(model_sl)
+
+    newX$index <- c(1:nrow(newX))
+    reg <- function(x,s) {
+      # Dynamically filter to select index
+      cond <- paste0("round(s,5)==",round(s,5))
+      for (i in c(1:length(x))) {
+        cond <- paste0(cond," & round(x",i,",5)==",round(x[i],5))
+      }
+      index <- (dplyr::filter(newX, eval(parse(text=cond))))$index
+      if (length(index)!=1) {
+        stop(paste0("Error in gamma_n; ", "x=(", paste(x,collapse=","), "), s=",
+                    s))
+      }
+      return(pred[index])
+    }
+
+  }
+
+  # Remove large intermediate objects
+  rm(dat_orig,dat,omega_n)
+
+  return(memoise2(reg))
+
+}
+
+
+
+#' Construct estimator of g_z0(x,s) = P(Z=1|X=x,S=s)
+#'
+construct_g_zn <- function(dat_orig, type="Super Learner", f_sIx_n,
+                           f_sIx_z1_n) {
+
+  # Set library
+  if (type=="Super Learner") {
+    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.nnet",
+                    "SL.svm", "SL.glmnet")
+  } else if (type=="logistic") {
+    SL.library <- c("SL.glm")
+  }
+
+  # Create data objects
+  newX <- dplyr::distinct(dat_orig$x)
+
+  # Fit SuperLearner regression
+  model_sl <- SuperLearner::SuperLearner(
+    Y = dat_orig$z,
+    X = dat_orig$x,
+    newX = newX,
+    family = "binomial",
+    SL.library = SL.library,
+    verbose = F
+  )
+
+  pred <- as.numeric(model_sl$SL.predict)
+  rm(model_sl)
+
+  # Construct function
+  newX$index <- c(1:nrow(newX))
+  reg <- function(x) {
+    # Dynamically filter to select index
+    cond <- "1==1"
+    for (i in c(1:length(x))) {
+      cond <- paste0(cond," & round(x",i,",5)==",round(x[i],5))
+    }
+    index <- (dplyr::filter(newX, eval(parse(text=cond))))$index
+    if (length(index)!=1) {
+      stop(paste0("Error in g_zn; ",
+                  "x=(", paste(x,collapse=","), ")"))
+    }
+    return(pred[index])
+  }
+
+  return(memoise2(function(x,s) { (f_sIx_z1_n(s,x)/f_sIx_n(s,x))*reg(x) }))
+
+}
+
+
+
+#' Construct derivative estimator r_Mn'_n
+#'
+#'
+#' @param r_Mn An estimator of r_M0
+#' @param type One of c("m-spline", "linear", "line")
+construct_deriv_r_Mn <- function(type="m-spline", r_Mn) {
+
+  if (type=="line") {
+
+    fnc <- function(s) { r_Mn(1)-r_Mn(0) }
+
+  } else {
+
+    if (r_Mn(0)==r_Mn(1)) {
+      fnc <- function(s) { 0 }
+      warning("Estimated function is flat; variance estimation not possible.")
+    }
+
+    # Estimate entire function on grid
+    r_Mns <- sapply(grid$s, r_Mn)
+
+    # Compute set of midpoints of jump points (plus endpoints)
+    points_x <- grid$s[1]
+    points_y <- r_Mns[1]
+    for (i in 2:length(grid$s)) {
+      if (r_Mns[i]-r_Mns[round(i-1)]!=0) {
+        points_x <- c(points_x, (grid$s[i]+grid$s[round(i-1)])/2)
+        points_y <- c(points_y, mean(c(r_Mns[i],r_Mns[round(i-1)])))
+      }
+    }
+    points_x <- c(points_x, grid$s[length(grid$s)])
+    points_y <- c(points_y, r_Mns[length(grid$s)])
+
+    if (type=="linear") {
+      fnc_pre <- approxfun(x=points_x, y=points_y, method="linear", rule=2)
+    }
+
+    if (type=="m-spline") {
+      fnc_pre <- splinefun(x=points_x, y=points_y, method="monoH.FC")
+    }
+
+    # Construct numerical derivative
+    fnc <- function(s) {
+
+      width <- 0.1 # !!!!! Changed from 0.2
+      x1 <- s - width/2
+      x2 <- s + width/2
+      if (x1<0) { x2<-width; x1<-0; }
+      if (x2>1) { x1<-1-width; x2<-1; }
+
+      return(min((fnc_pre(x2)-fnc_pre(x1))/width,0))
+
+    }
+
+  }
+
+  return(fnc)
+
+}
+
+
+
+#' Construct tau_n Chernoff scale factor function
+#'
+#' @param deriv_r_Mn A derivative estimator returned by construct_deriv_r_Mn()
+#' @param gamma_n Nuisance function estimator returned by construct_gamma_n()
+#' @param f_s_n Density estimator returned by construct_f_s_n()
+#' @return Chernoff scale factor estimator function
+construct_tau_n <- function(deriv_r_Mn, gamma_n, f_sIx_n, g_zn,
+                            dat_orig) {
+
+  n_orig <- attr(dat_orig, "n_orig")
+  x <- dat_orig$x
+  return(Vectorize(function(u) {
+    abs(4*deriv_r_Mn(u) * (1/n_orig) * sum(apply(dat_orig$x, 1, function(x) {
+      x <- as.numeric(x)
+      return((gamma_n(x,u)*g_zn(x,u))/f_sIx_n(u,x))
+    })))^(1/3)
+  }))
 
 }
 

@@ -23,8 +23,7 @@
 #'     \item{\code{two}: asdf}
 #'     \item{\code{three}: asdf}
 #' }
-#' @param grid_size A list containing the following three keys:
-#'     \itemize{
+#' @param grid_size A list containing the following three keys: \itemize{
 #'     \item{\code{y}: grid size for time values}
 #'     \item{\code{s}: grid size for marker values}
 #'     \item{\code{x}: grid size for covariate values}
@@ -36,6 +35,12 @@
 #'     grid_size$y, a grid will be created from 0 to max(c(dat$y,t_0)). For
 #'     grid_size$x, a separate grid is created for each covariate column
 #'     (binary and categorical covariates are ignored).
+#' @param return_extras Boolean. If set to TRUE, the following quantities (most
+#'     of which are mainly useful for debugging) are returned: \itemize{
+#'     \item{\code{one}: asdf}
+#'     \item{\code{two}: asdf}
+#'     \item{\code{three}: asdf}
+#' }
 #' @param verbose A Boolean. If set to TRUE, intermediate output will be
 #'     displayed.
 #' @return A list containing the following: \itemize{
@@ -47,6 +52,10 @@
 #' print("to do")
 #' #list(cond_density_type="binning", cond_density_nbins=10)
 #' @export
+#' @notes
+#'   - This method assumes that risk decreases as the biomarker increases. If it
+#'     is assumed that risk increases as the biomarker increases, reverse the
+#'     scale of the biomarker.
 #' @references Kenny, A., Gilbert P., and Carone, M. (2023). Nonparametric
 #'     inference for the controlled risk and controlled vaccine efficacy curves.
 #' @references Gilbert P., Fong Y., Kenny A., and Carone, M. (2022). A
@@ -55,7 +64,7 @@
 est_np <- function(
   dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$s), to=max(dat$s), l=101),
   ci_type="logit", cf_folds=1, edge_corr=F, params=list(),
-  grid_size=list(y=101, s=101, x=5), verbose=F
+  grid_size=list(y=101, s=101, x=5), return_extras=F, verbose=F
 ) {
 
   if (class(dat_orig)!="dat_vaccine") {
@@ -63,17 +72,20 @@ est_np <- function(
                 "ad_data()."))
   }
 
+  # !!!!! Validate other inputs; import error handling function from SimEngine
+
   # Alias variables
   dat_orig <- dat$df_vc # !!!!! Maybe change this later
   .v <- verbose
-  # if (.v) { message("") } # !!!!!
 
   # Fix s_out if needed
-  if (any(is.na(dat$s))) {
-    if (missing(s_out)) {
-      s_out <- seq(from=min(dat$s, na.rm=T), to=max(dat$s, na.rm=T), l=101)
-    } else {
-      stop("NA values not allowed in s_out.")
+  if (F) { # !!!!! if clause is temporary
+    if (any(is.na(dat$s))) {
+      if (missing(s_out)) {
+        s_out <- seq(from=min(dat$s, na.rm=T), to=max(dat$s, na.rm=T), l=101)
+      } else {
+        stop("NA values not allowed in s_out.")
+      }
     }
   }
 
@@ -82,9 +94,10 @@ est_np <- function(
     surv_type = "Super Learner",
     density_type = "binning",
     density_bins = 15,
-    deriv_type = "linear",
+    deriv_type = "m-spline",
     gamma_type = "Super Learner",
-    q_n_type = "standard"
+    q_n_type = "standard",
+    convex_type = "GCM"
   )
   for (i in c(1:length(.default_params))) {
     p_name <- names(.default_params)[i]
@@ -132,18 +145,13 @@ est_np <- function(
   )
 
   # Fit conditional survival estimator
-  if (type=="Westling") {
-    srvSL <- construct_Q_n(dat, vals, type=p$Q_n_type, print_coeffs=T)
-    Q_n <- srvSL$srv
-    Qc_n <- srvSL$cens
-  } else if (type=="Wolock") {
-    # !!!!! TO DO
-  } else if (type=="Cox") {
-    # !!!!! TO DO
-  }
+  srvSL <- construct_Q_n(p$surv_type, dat, vals)
+  Q_n <- srvSL$srv
+  Qc_n <- srvSL$cens
 
+  # Compute various nuisance functions
   omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)
-  f_sIx_n <- construct_f_sIx_n(dat, type, k=0, z1=F)
+  f_sIx_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins, z1=F)
   f_s_n <- construct_f_s_n(dat_orig, f_sIx_n)
   g_n <- construct_g_n(f_sIx_n, f_s_n)
   Phi_n <- construct_Phi_n(ss(dat, which(dat$s!=0))) # !!!!! Make sure Phi_n(1)=1
@@ -153,177 +161,189 @@ est_np <- function(
   r_tilde_Mn <- construct_r_tilde_Mn(dat_orig, Q_n, t_0)
   Gamma_tilde_n <- construct_Gamma_tilde_n(dat, r_tilde_Mn, p_n)
   f_n_srv <- construct_f_n_srv(Q_n, Qc_n, grid)
-  q_n <- construct_q_n(type="standard", dat, omega_n, g_n, r_tilde_Mn,
+
+  q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
                        Gamma_tilde_n, f_n_srv)
+
+  # !!!!! Profiling q_n
+  if (F) {
+
+    # p$q_n_type <- "zero"
+    p$q_n_type <- "standard"
+    q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
+                         Gamma_tilde_n, f_n_srv)
+    dat_orig_df <- as_df(dat_orig)
+    u <- 0.5; dim_x <- 2;
+
+    # Profile this line
+    q_n_do <- as.numeric(apply(dat_orig_df, 1, function(r) {
+      q_n(as.numeric(r[1:dim_x]), r[["y"]], r[["delta"]], u)
+    }))
+
+  }
 
   Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n, eta_n, p_n,
                                      q_n, r_tilde_Mn, Gamma_tilde_n)
 
+  # !!!!! Profiling Gamma_os_n
+  if (F) {
 
-  # !!!!! CONTINUE
-  {
+    # p$q_n_type <- "zero"
+    p$q_n_type <- "standard"
+    q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
+                         Gamma_tilde_n, f_n_srv)
+    Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n, eta_n, p_n,
+                                       q_n, r_tilde_Mn, Gamma_tilde_n)
 
-    # Construct one-step edge estimator
-    if (p$edge_corr) {
-      g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
-      r_Mn_edge_est <- r_Mn_edge(dat_orig, dat, g_sn, g_n, p_n, Q_n, omega_n)
-      infl_fn_r_Mn_edge <- construct_infl_fn_r_Mn_edge(Q_n, g_sn, omega_n, g_n,
-                                                       r_Mn_edge_est, p_n)
-      sigma2_edge_est <- (1/n_orig) * sum((
-        infl_fn_r_Mn_edge(dat_orig$z, dat_orig$weights, dat_orig$s, dat_orig$x,
-                          dat_orig$y, dat_orig$delta)
-      )^2)
-    }
-
-    # Compute GCM (or least squares line) and extract its derivative
-    grid <- sort(unique(dat$s))
-    x_vals <- Phi_n(grid)
-    indices_to_keep <- !base::duplicated(x_vals)
-    x_vals <- x_vals[indices_to_keep]
-    if (dir=="incr") {
-      y_vals <- Gamma_os_n(grid[indices_to_keep])
-    } else {
-      y_vals <- -1 * Gamma_os_n(grid[indices_to_keep])
-    }
-    if (!any(x_vals==0)) {
-      x_vals <- c(0, x_vals)
-      y_vals <- c(0, y_vals)
-    }
-    if (p$convex_type=="GCM") {
-      gcm <- gcmlcm(x=x_vals, y=y_vals, type="gcm")
-      dGCM <- approxfun(
-        x = gcm$x.knots[-length(gcm$x.knots)],
-        y = gcm$slope.knots,
-        method = "constant",
-        rule = 2,
-        f = 0
-      )
-    } else if (p$convex_type=="CLS") {
-      gcm <- function(x) { 1 } # Ignored
-      fit <- cvx.lse.reg(t=x_vals, z=y_vals)
-      pred_x <- round(seq(0,1,0.001),3)
-      pred_y <- predict(fit, newdata=pred_x)
-      dGCM <- Vectorize(function(u) {
-        width <- 0.05
-        u1 <- u - width/2; u2 <- u + width/2;
-        if (u1<0) { u2 <- u2 - u1; u1 <- 0; }
-        if (u2>1) { u1 <- u1 - u2 + 1; u2 <- 1; }
-        u1 <- round(u1,3); u2 <- round(u2,3);
-        ind1 <- which(pred_x==u1); ind2 <- which(pred_x==u2);
-        y1 <- pred_y[ind1]; y2 <- pred_y[ind2];
-        return((y2-y1)/width)
-      })
-    }
-
-    # Construct Grenander-based r_Mn
-    if (dir=="incr") {
-      r_Mn_Gr <- Vectorize(function(u) { min(max(dGCM(Phi_n(u)),0),1) })
-    } else {
-      r_Mn_Gr <- Vectorize(function(u) { min(max(-1*dGCM(Phi_n(u)),0),1) })
-    }
-
-    # Compute variance component functions
-    f_sIx_z1_n <- construct_f_sIx_n(dat, vlist$SX_grid, type=p$g_n_type,
-                                    k=p$f_sIx_n_bins, z1=TRUE,
-                                    s_scale=s_scale, s_shift=s_shift)
-    f_s_z1_n <- construct_f_s_n(dat_orig, vlist$S_grid, f_sIx_z1_n)
-    gamma_n <- construct_gamma_n(dat_orig, dat, type=p$gamma_type,
-                                 vals=vlist$S_grid, omega_n=omega_n,
-                                 f_sIx_n=f_sIx_n, f_s_n=f_s_n,
-                                 f_s_z1_n=f_s_z1_n)
-
-    g_zn <- construct_g_zn(dat_orig, vals=NA, type="Super Learner", f_sIx_n,
-                           f_sIx_z1_n)
-
-    # Edge correction
-    if (p$edge_corr) {
-
-      r_Mn <- Vectorize(function(u) {
-        if(u==0 || u<s_min2) {
-          r_Mn_edge_est
-        } else {
-          if (dir=="incr") {
-            max(r_Mn_edge_est, r_Mn_Gr(u))
-          } else {
-            min(r_Mn_edge_est, r_Mn_Gr(u))
-          }
-        }
-      })
-
-    } else {
-
-      r_Mn <- r_Mn_Gr
-
-    }
-
-    # Generate estimates for each point
-    ests <- r_Mn(s_out)
-
-    # Construct variance scale factor
-    deriv_r_Mn <- construct_deriv_r_Mn(r_Mn, type=p$deriv_type, dir=dir)
-
-    tau_n <- construct_tau_n(deriv_r_Mn, gamma_n, f_sIx_n, f_s_n, g_zn,
-                             dat_orig)
-
-    # Generate confidence limits
-    if (p$ci_type=="none") {
-
-      ci_lo <- rep(0, length(ests))
-      ci_hi <- rep(0, length(ests))
-
-    } else {
-
-      # Generate variance scale factor for each point
-      tau_ns <- tau_n(s_out)
-
-      # Construct CIs
-      # The 0.975 quantile of the Chernoff distribution occurs at roughly 1.00
-      # The Normal approximation would use qnorm(0.975, sd=0.52) instead
-      qnt <- 1.00
-      n_orig <- length(dat_orig$z)
-      if (p$ci_type=="regular") {
-        ci_lo <- ests - (qnt*tau_ns)/(n_orig^(1/3))
-        ci_hi <- ests + (qnt*tau_ns)/(n_orig^(1/3))
-      } else if (p$ci_type=="logit") {
-        ci_lo <- expit(
-          logit(ests) - (qnt*tau_ns*deriv_logit(ests))/(n_orig^(1/3))
-        )
-        ci_hi <- expit(
-          logit(ests) + (qnt*tau_ns*deriv_logit(ests))/(n_orig^(1/3))
-        )
-      } else if (p$ci_type=="trunc") {
-        ci_lo <- ests - (qnt*tau_ns)/(n_orig^(1/3))
-        ci_hi <- ests + (qnt*tau_ns)/(n_orig^(1/3))
-        ci_lo %<>% pmax(0) %>% pmin(1)
-        ci_hi %<>% pmax(0) %>% pmin(1)
-      }
-
-      # Edge correction
-      if (p$edge_corr) {
-        ci_lo2 <- ests[1] - 1.96*sqrt(sigma2_edge_est/n_orig)
-        ci_hi2 <- ests[1] + 1.96*sqrt(sigma2_edge_est/n_orig)
-        ci_lo <- In(r_Mn_edge_est<=ests)*pmin(ci_lo,ci_lo2) +
-          In(r_Mn_edge_est>ests)*ci_lo
-        ci_lo[1] <- ci_lo2
-        ci_hi <- In(r_Mn_edge_est<=ests)*pmin(ci_hi,ci_hi2) +
-          In(r_Mn_edge_est>ests)*ci_hi
-        ci_hi[1] <- ci_hi2
-      }
-
-    }
-
-    res <- list(
-      s = s_out_orig,
-      est = c(rep(NA,na_head), ests, rep(NA,na_tail)),
-      ci_lo = c(rep(NA,na_head), ci_lo, rep(NA,na_tail)),
-      ci_hi = c(rep(NA,na_head), ci_hi, rep(NA,na_tail))
-    )
-
-    res$tau_ns <- c(rep(NA,na_head), tau_ns, rep(NA,na_tail))
-    res$n <- n_orig
+    microbenchmark({
+      Gamma_os_n(0.6)
+    }, times=10L)
 
   }
 
-  return(999)
+  # Compute edge-corrected estimator and standard error
+  if (p$edge_corr) {
+
+    g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
+    r_Mn_edge_est <- r_Mn_edge(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0)
+    infl_fn_r_Mn_edge <- construct_infl_fn_r_Mn_edge(Q_n, g_sn, omega_n, g_n,
+                                                     r_Mn_edge_est, p_n, t_0)
+    dat_orig_df <- as_df(dat_orig)
+    dim_x <- attr(dat_orig, "dim_x")
+    sigma2_edge_est <- mean(apply(dat_orig_df, 1, function(r) {
+      (infl_fn_r_Mn_edge(r[["z"]], r[["weights"]], r[["s"]],
+                         as.numeric(r[1:dim_x]), r[["y"]], r[["delta"]]))^2
+    }))
+
+  }
+
+  # Compute GCM (or least squares line) and extract its derivative
+  gcm_x_vals <- sapply(sort(unique(dat$s)), Phi_n)
+  indices_to_keep <- !base::duplicated(gcm_x_vals)
+  gcm_x_vals <- gcm_x_vals[indices_to_keep]
+  gcm_y_vals <- -1 * sapply(sort(unique(dat$s))[indices_to_keep], Gamma_os_n)
+  if (!any(gcm_x_vals==0)) {
+    gcm_x_vals <- c(0, gcm_x_vals)
+    gcm_y_vals <- c(0, gcm_y_vals)
+  }
+  if (p$convex_type=="GCM") {
+    gcm <- fdrtool::gcmlcm(x=gcm_x_vals, y=gcm_y_vals, type="gcm")
+    dGCM <- approxfun(
+      x = gcm$x.knots[-length(gcm$x.knots)],
+      y = gcm$slope.knots,
+      method = "constant",
+      rule = 2,
+      f = 0
+    )
+  } else if (p$convex_type=="CLS") {
+    gcm <- function(x) { 1 } # Ignored
+    fit <- cvx.lse.reg(t=gcm_x_vals, z=gcm_y_vals)
+    pred_x <- round(seq(0,1,0.001),3)
+    pred_y <- predict(fit, newdata=pred_x)
+    dGCM <- function(u) {
+      width <- 0.05
+      u1 <- u - width/2; u2 <- u + width/2;
+      if (u1<0) { u2 <- u2 - u1; u1 <- 0; }
+      if (u2>1) { u1 <- u1 - u2 + 1; u2 <- 1; }
+      u1 <- round(u1,3); u2 <- round(u2,3);
+      ind1 <- which(pred_x==u1); ind2 <- which(pred_x==u2);
+      y1 <- pred_y[ind1]; y2 <- pred_y[ind2];
+      return((y2-y1)/width)
+    }
+  }
+
+  # Construct Grenander-based r_Mn estimator (and truncate to lie within [0,1])
+  r_Mn_Gr <- function(u) { min(max(-1*dGCM(Phi_n(u)),0),1) }
+
+  # Compute variance component nuisance estimators
+  f_sIx_z1_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins,
+                                  z1=T)
+  f_s_z1_n <- construct_f_s_n(dat_orig, f_sIx_z1_n)
+  gamma_n <- construct_gamma_n(dat_orig, dat, type="Super Learner", omega_n)
+  g_zn <- construct_g_zn(dat_orig, type="Super Learner", f_sIx_n, f_sIx_z1_n)
+
+  # Create either regular or edge-corrected r_Mn estimator
+  if (p$edge_corr) {
+
+    r_Mn <- function(u) {
+      if(u==0 || u<s_min2) {
+        return(r_Mn_edge_est)
+      } else {
+        return(min(r_Mn_edge_est, r_Mn_Gr(u)))
+      }
+    }
+
+  } else {
+
+    r_Mn <- r_Mn_Gr
+
+  }
+
+  # Generate estimates for each point
+  ests <- sapply(s_out, r_Mn)
+
+  # Construct variance scale factor
+  deriv_r_Mn <- construct_deriv_r_Mn(type=p$deriv_type, r_Mn)
+  tau_n <- construct_tau_n(deriv_r_Mn, gamma_n, f_sIx_n, g_zn, dat_orig)
+
+  # Generate confidence limits
+  if (p$ci_type=="none") {
+
+    ci_lo <- rep(NA, length(ests))
+    ci_hi <- rep(NA, length(ests))
+
+  } else {
+
+    # Generate variance scale factor for each point
+    tau_ns <- sapply(s_out, tau_n)
+
+    # Construct CIs
+    # The 0.975 quantile of the Chernoff distribution occurs at roughly 1.00
+    qnt <- 1.00
+    if (p$ci_type=="regular") {
+      ci_lo <- ests - (qnt*tau_ns)/(n_orig^(1/3))
+      ci_hi <- ests + (qnt*tau_ns)/(n_orig^(1/3))
+    } else if (p$ci_type=="logit") {
+      ci_lo <- expit(
+        logit(ests) - (qnt*tau_ns*deriv_logit(ests))/(n_orig^(1/3))
+      )
+      ci_hi <- expit(
+        logit(ests) + (qnt*tau_ns*deriv_logit(ests))/(n_orig^(1/3))
+      )
+    }
+
+    # CI edge correction
+    if (p$edge_corr) {
+      ci_lo2 <- ests[1] - 1.96*sqrt(sigma2_edge_est/n_orig)
+      ci_hi2 <- ests[1] + 1.96*sqrt(sigma2_edge_est/n_orig)
+      ci_lo <- In(r_Mn_edge_est<=ests)*pmin(ci_lo,ci_lo2) +
+        In(r_Mn_edge_est>ests)*ci_lo
+      ci_lo[1] <- ci_lo2
+      ci_hi <- In(r_Mn_edge_est<=ests)*pmin(ci_hi,ci_hi2) +
+        In(r_Mn_edge_est>ests)*ci_hi
+      ci_hi[1] <- ci_hi2
+    }
+
+  }
+
+  # Create results object
+  res <- list(
+    s = s_out_orig,
+    est = c(rep(NA,na_head), ests, rep(NA,na_tail)),
+    ci_lo = c(rep(NA,na_head), ci_lo, rep(NA,na_tail)),
+    ci_hi = c(rep(NA,na_head), ci_hi, rep(NA,na_tail))
+  )
+
+  if (return_extras) {
+
+    res$extras <- list(
+      res$n <- n_orig,
+      res$tau_ns <- c(rep(NA,na_head), tau_ns, rep(NA,na_tail))
+      # !!!!! continue
+    )
+
+  }
+
+  return(res)
 
 }
