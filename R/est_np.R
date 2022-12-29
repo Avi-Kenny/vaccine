@@ -67,7 +67,7 @@ est_np <- function(
   grid_size=list(y=101, s=101, x=5), return_extras=F, verbose=F
 ) {
 
-  if (class(dat_orig)!="dat_vaccine") {
+  if (class(dat)!="dat_vaccine") {
     stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",
                 "ad_data()."))
   }
@@ -115,7 +115,7 @@ est_np <- function(
   s_scale <- 1/(s_max-s_min)
   dat_orig$s <- (dat_orig$s+s_shift)*s_scale
   grid <- create_grid(dat_orig, grid_size, t_0)
-  dat_orig <- round_dat(dat_orig, grid)
+  dat_orig <- round_dat(dat_orig, grid, grid_size)
 
   # Obtain minimum value (excluding edge point mass)
   if (p$edge_corr) { s_min2 <- min(dat_orig$s[dat_orig$s!=0], na.rm=T) }
@@ -259,7 +259,8 @@ est_np <- function(
   f_sIx_z1_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins,
                                   z1=T)
   f_s_z1_n <- construct_f_s_n(dat_orig, f_sIx_z1_n)
-  gamma_n <- construct_gamma_n(dat_orig, dat, type="Super Learner", omega_n)
+  gamma_n <- construct_gamma_n(dat_orig, dat, type="Super Learner", omega_n,
+                               grid)
   g_zn <- construct_g_zn(dat_orig, type="Super Learner", f_sIx_n, f_sIx_z1_n)
 
   # Create either regular or edge-corrected r_Mn estimator
@@ -283,7 +284,7 @@ est_np <- function(
   ests <- sapply(s_out, r_Mn)
 
   # Construct variance scale factor
-  deriv_r_Mn <- construct_deriv_r_Mn(type=p$deriv_type, r_Mn)
+  deriv_r_Mn <- construct_deriv_r_Mn(type=p$deriv_type, r_Mn, grid)
   tau_n <- construct_tau_n(deriv_r_Mn, gamma_n, f_sIx_n, g_zn, dat_orig)
 
   # Generate confidence limits

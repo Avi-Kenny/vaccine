@@ -361,7 +361,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     dens_s <- function(s, x, prm) {
       mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
       sigma <- 10*expit(prm[length(prm)])
-      return( truncnorm::dtruncnorm(s, a=C$appx$s, b=1, mean=mu, sd=sigma) )
+      return( truncnorm::dtruncnorm(s, a=0.01, b=1, mean=mu, sd=sigma) )
     }
 
     # Estimate p_0
@@ -395,7 +395,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     fnc <- function(s, x) {
       mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
       sigma <- 10*expit(prm[length(prm)])
-      pc_1 <- In(s==0) * ( (1-p_n) / C$appx$s )
+      pc_1 <- In(s==0) * ( (1-p_n) / 0.01 )
       pc_2 <- In(s!=0) * p_n *
         truncnorm::dtruncnorm(s, a=0, b=1, mean=mu, sd=sigma)
       return(pc_1+pc_2)
@@ -409,7 +409,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     dens_s <- function(s, x, prm) {
       mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
       sigma <- 10*expit(prm[round(length(x)+2)]) # !!!!! Try using exp instead of expit
-      return(truncnorm::dtruncnorm(s, a=C$appx$s, b=1, mean=mu, sd=sigma))
+      return(truncnorm::dtruncnorm(s, a=0.01, b=1, mean=mu, sd=sigma))
     }
 
     # Probability P(S=s|X=x) for s==0 or s!=0
@@ -465,7 +465,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
 
     fnc <- function(s, x) {
       if (s==0) {
-        return(prob_s(s=0, x, prm_1) / C$appx$s)
+        return(prob_s(s=0, x, prm_1) / 0.01)
       } else {
         return(prob_s(s=1, x, prm_1) * dens_s(s, x, prm_2))
       }
@@ -867,7 +867,8 @@ construct_g_sn <- function(dat, f_n_srv, g_n, p_n) {
 #'     construct_f_sIx_n() among the observations for which z==1
 #' @return gamma_n nuisance estimator function
 #' @noRd
-construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n) {
+construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n,
+                              grid) {
 
   # Construct pseudo-outcomes
   dat_df <- as_df(dat)
@@ -998,7 +999,7 @@ construct_g_zn <- function(dat_orig, type="Super Learner", f_sIx_n,
 #' @param r_Mn An estimator of r_M0
 #' @param type One of c("m-spline", "linear", "line")
 #' @noRd
-construct_deriv_r_Mn <- function(type="m-spline", r_Mn) {
+construct_deriv_r_Mn <- function(type="m-spline", r_Mn, grid) {
 
   if (type=="line") {
 

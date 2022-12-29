@@ -86,9 +86,10 @@ create_grid <- function(dat_orig, grid_size, t_0) {
 #'
 #' @param dat_orig Dataset returned by load_data()
 #' @param grid A grid, returned by create_grid()
+#' @param grid_size A list, as specified in est_np()
 #' @return Dataset with values rounded
 #' @noRd
-round_dat <- function(dat_orig, grid) {
+round_dat <- function(dat_orig, grid, grid_size) {
 
   d <- dat_orig
 

@@ -26,7 +26,7 @@ chk <- function(num, msg="") {
 #' @note
 #'   - Only used for simulation; for the real analysis, the weights are
 #'     calculated separately
-Pi <- function(sampling, delta, y, x) {
+Pi <- function(sampling, delta, y, x, t_0) {
 
   if (sampling=="iid") {
     probs <- rep(1, length(delta))
@@ -41,7 +41,7 @@ Pi <- function(sampling, delta, y, x) {
   } else if (sampling=="cycle") {
     probs <- rep(c(0.8,0.6,0.4,0.2), length.out=length(delta))
   } else {
-    ev <- In(delta==1 & y<=C$t_0)
+    ev <- In(delta==1 & y<=t_0)
     if (sampling=="two-phase (6%)") {
       probs <- ev + (1-ev)*expit(x$x1+x$x2-3.85)
     } else if (sampling=="two-phase (72%)") {
@@ -170,7 +170,7 @@ construct_q_tilde_n <- function(type="standard", f_n_srv, f_sIx_n, omega_n) {
 #' @param Q_n Conditional survival function estimator returned by construct_Q_n
 #' @param vals List of values to pre-compute function on
 #' @return Estimator function of nuisance eta*_0
-construct_etastar_n <- function(Q_n, vals=NA, tmp) {
+construct_etastar_n <- function(Q_n, t_0) {
 
   fnc <- function(u,x) {
     u <- round(u,-log10(C$appx$s))
@@ -179,7 +179,7 @@ construct_etastar_n <- function(Q_n, vals=NA, tmp) {
     } else {
       s_seq <- round(seq(C$appx$s,u,C$appx$s),-log10(C$appx$s))
       integral <- C$appx$s * sum(sapply(s_seq, function(s) {
-        Q_n(C$t_0, x, s)
+        Q_n(t_0, x, s)
       }))
       return(u-integral)
     }
@@ -890,8 +890,9 @@ cox_var <- function(dat_orig, dat, t, points, se_beta=F, se_bshz=F,
   if (se_marg) {
 
     # !!!! basehaz vs. Lambda_hat
+    # !!!!! Need to pass in t_0
     bh <- basehaz(model, centered=FALSE)
-    index <- max(which((bh$time<C$t_0)==T))
+    index <- max(which((bh$time<t_0)==T))
     est_bshz <- bh$hazard[index]
     N <- sum(dat$weights)
     res$est_marg <- unlist(lapply(points, function(s) {
