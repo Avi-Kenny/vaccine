@@ -32,9 +32,9 @@
 #'     shorter computation times. If grid_size$s=100, this means that a grid of
 #'     equally-spaced points will be created from min(dat$s) to max(dat$s), and
 #'     each dat$s value will be rounded to the nearest grid point. For
-#'     grid_size$y, a grid will be created from 0 to max(c(dat$y,t_0)). For
-#'     grid_size$x, a separate grid is created for each covariate column
-#'     (binary and categorical covariates are ignored).
+#'     grid_size$y, a grid will be created from 0 to t_0. For grid_size$x, a
+#'     separate grid is created for each covariate column (binary and
+#'     categorical covariates are ignored).
 #' @param return_extras Boolean. If set to TRUE, the following quantities (most
 #'     of which are mainly useful for debugging) are returned: \itemize{
 #'     \item{\code{one}: asdf}
@@ -108,17 +108,14 @@ est_np <- function(
   p$cf_folds <- cf_folds
   p$edge_corr <- edge_corr
 
-  # Rescale S to lie in [0,1] and round values
+  # Rescale S to lie in [0,1] and create rounded data object
   s_min <- min(dat_orig$s, na.rm=T)
   s_max <- max(dat_orig$s, na.rm=T)
   s_shift <- -1 * s_min
   s_scale <- 1/(s_max-s_min)
   dat_orig$s <- (dat_orig$s+s_shift)*s_scale
   grid <- create_grid(dat_orig, grid_size, t_0)
-  dat_orig <- round_dat(dat_orig, grid, grid_size)
-
-  # Obtain minimum value (excluding edge point mass)
-  if (p$edge_corr) { s_min2 <- min(dat_orig$s[dat_orig$s!=0], na.rm=T) }
+  dat_orig_rounded <- round_dat(dat_orig, grid, grid_size)
 
   # Rescale/round s_out and remove s_out points outside [0,1]
   s_out_orig <- s_out
@@ -130,11 +127,8 @@ est_np <- function(
   len_p <- length(s_out)
   if (na_tail>0) { s_out <- s_out[-c((len_p-na_tail+1):len_p)] }
 
-  # Create phase-two data object
-  dat <- ss(dat_orig, which(dat_orig$z==1))
-
   # Prepare precomputation values for conditional survival estimator
-  x_distinct <- dplyr::distinct(dat_orig$x)
+  x_distinct <- dplyr::distinct(dat_orig_rounded$x)
   x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
   vals_pre <- expand.grid(t=grid$y, x_index=x_distinct$x_index, s=grid$s)
   vals_pre <- dplyr::inner_join(vals_pre, x_distinct, by="x_index")
@@ -144,10 +138,20 @@ est_np <- function(
     s = vals_pre$s
   )
 
+  # Create phase-two data object (unrounded)
+  dat <- ss(dat_orig, which(dat_orig$z==1))
+
   # Fit conditional survival estimator
   srvSL <- construct_Q_n(p$surv_type, dat, vals)
   Q_n <- srvSL$srv
   Qc_n <- srvSL$cens
+
+  # Use rounded data objects moving forward
+  dat_orig <- dat_orig_rounded
+  dat <- ss(dat_orig_rounded, which(dat_orig_rounded$z==1))
+
+  # Obtain minimum value (excluding edge point mass)
+  if (p$edge_corr) { s_min2 <- min(dat_orig$s[dat_orig$s!=0], na.rm=T) }
 
   # Compute various nuisance functions
   omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)

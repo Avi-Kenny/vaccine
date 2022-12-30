@@ -63,7 +63,7 @@ create_grid <- function(dat_orig, grid_size, t_0) {
 
   d <- dat_orig
   grid <- list()
-  grid$y <- round(seq(from=0, to=max(c(d$y,t_0)), length.out=grid_size$y), 5)
+  grid$y <- round(seq(from=0, to=t_0, length.out=grid_size$y), 5)
   if (!(t_0 %in% grid$y)) { grid$y <- sort(c(grid$y, t_0)) }
   grid$s <- round(seq(from=0, to=1, length.out=grid_size$s), 5)
   grid$x <- lapply(c(1:length(d$x)), function(i) {
