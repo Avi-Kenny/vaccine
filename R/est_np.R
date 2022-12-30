@@ -351,7 +351,7 @@ est_np <- function(
       "omega_2" = omega_n(x=c(0,0),s=0.4,y=150,delta=1),
       "omega_3" = omega_n(x=c(1,1),s=0.6,y=100,delta=0),
       "omega_4" = omega_n(x=c(1,1),s=0.8,y=150,delta=1),
-      "p_n" = p_n,
+      "p_n" = p_n
     )
   } # DEBUG (3 of 3): !!!!! figure out differences w vaccine package
 
