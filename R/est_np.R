@@ -335,6 +335,26 @@ est_np <- function(
     ci_hi = c(rep(NA,na_head), ci_hi, rep(NA,na_tail))
   )
 
+  if (T) {
+    res$extras <- list(
+      "Gamma_0.2" = Gamma_os_n(0.2),
+      "Gamma_0.5" = Gamma_os_n(0.5),
+      "Gamma_tilde_0.2" = Gamma_tilde_n(0.2),
+      "Gamma_tilde_0.5" = Gamma_tilde_n(0.5),
+      "r_tilde_0.2" = r_tilde_Mn(0.2),
+      "r_tilde_0.5" = r_tilde_Mn(0.5),
+      "eta_0.2" = eta_n(u=0.2,x=c(0,0)),
+      "eta_0.5" = eta_n(u=0.5,x=c(1,1)),
+      "g_n_0.2" = g_n(s=0.2,x=c(0,0)),
+      "g_n_0.5" = g_n(s=0.5,x=c(1,1)),
+      "omega_1" = omega_n(x=c(0,0),s=0.2,y=100,delta=0),
+      "omega_2" = omega_n(x=c(0,0),s=0.4,y=150,delta=1),
+      "omega_3" = omega_n(x=c(1,1),s=0.6,y=100,delta=0),
+      "omega_4" = omega_n(x=c(1,1),s=0.8,y=150,delta=1),
+      "p_n" = p_n,
+    )
+  } # DEBUG (3 of 3): !!!!! figure out differences w vaccine package
+
   if (return_extras) {
 
     res$extras <- list(
