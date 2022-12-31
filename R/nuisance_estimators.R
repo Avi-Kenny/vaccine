@@ -279,12 +279,19 @@ construct_omega_n <- function(Q_n, Qc_n, t_0, grid) {
     })
   })
   omega_integral <- function(k,x,s) {
-    if (k<grid$y[2]) {
-      integral <- 0
+    index <- which.min(abs(k-grid$y)) - 1
+    if (index==0) {
+      return(0)
     } else {
-      index <- max(which(k>=grid$y))
-      integral <- sum(x_vals(x,s)[1:index]*y_vals(x,s)[1:index])
+      return(sum(x_vals(x,s)[1:index]*y_vals(x,s)[1:index]))
     }
+    # if (k<grid$y[2]) {
+    #   integral <- 0
+    # } else {
+    #   index <- max(which(k>grid$y))
+    #   integral <- sum(x_vals(x,s)[1:index]*y_vals(x,s)[1:index])
+    # }
+    # return(integral)
   }
   # omega_integral <- memoise2(omega_integral) # !!!!! Maybe try un-memoising this
 

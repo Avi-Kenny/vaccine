@@ -165,7 +165,6 @@ est_np <- function(
   r_tilde_Mn <- construct_r_tilde_Mn(dat_orig, Q_n, t_0)
   Gamma_tilde_n <- construct_Gamma_tilde_n(dat, r_tilde_Mn, p_n)
   f_n_srv <- construct_f_n_srv(Q_n, Qc_n, grid)
-
   q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
                        Gamma_tilde_n, f_n_srv)
 
