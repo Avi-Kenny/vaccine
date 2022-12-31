@@ -793,27 +793,27 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
 
     n <- length(dat$s)
 
-    # !!!!!
-    f_n_srv_s <- memoise2(function(y,delta,x) {
-      sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
-    })
-    q_n_star_s <- memoise2(function(y,delta,x,u) {
-      sapply(dat$s, function(s) { q_n_star(y,delta,x,s,u) })
-    })
-    g_n_s <- memoise2(function(x) {
-      sapply(dat$s, function(s) { g_n(s,x) })
-    })
+    # # !!!!!
+    # f_n_srv_s <- memoise2(function(y,delta,x) {
+    #   sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
+    # })
+    # q_n_star_s <- memoise2(function(y,delta,x,u) {
+    #   sapply(dat$s, function(s) { q_n_star(y,delta,x,s,u) })
+    # })
+    # g_n_s <- memoise2(function(x) {
+    #   sapply(dat$s, function(s) { g_n(s,x) })
+    # })
 
     fnc <- function(x, y, delta, u) {
 
       # !!!!! Can these vectors/functions be used elsewhere?
       # !!!!! Try memoising these
-      # f_n_srv_s <- sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
-      # q_n_star_s <- sapply(dat$s, function(s) { q_n_star(y,delta,x,s,u) })
-      # g_n_s <- sapply(dat$s, function(s) { g_n(s,x) })
-      f_n_srv_s <- f_n_srv_s(y,delta,x)
-      q_n_star_s <- q_n_star_s(y,delta,x,u)
-      g_n_s <- g_n_s(x)
+      f_n_srv_s <- sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
+      q_n_star_s <- sapply(dat$s, function(s) { q_n_star(y,delta,x,s,u) })
+      g_n_s <- sapply(dat$s, function(s) { g_n(s,x) })
+      # f_n_srv_s <- f_n_srv_s(y,delta,x)
+      # q_n_star_s <- q_n_star_s(y,delta,x,u)
+      # g_n_s <- g_n_s(x)
 
       denom <- sum(dat$weights*f_n_srv_s*g_n_s)
       if (denom==0) {
