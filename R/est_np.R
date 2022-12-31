@@ -28,13 +28,15 @@
 #'     \item{\code{s}: grid size for marker values}
 #'     \item{\code{x}: grid size for covariate values}
 #' }
-#'     This controls rounding of covariates, which results in substantially
-#'     shorter computation times. If grid_size$s=100, this means that a grid of
-#'     equally-spaced points will be created from min(dat$s) to max(dat$s), and
-#'     each dat$s value will be rounded to the nearest grid point. For
-#'     grid_size$y, a grid will be created from 0 to t_0. For grid_size$x, a
-#'     separate grid is created for each covariate column (binary and
-#'     categorical covariates are ignored).
+#'     This controls rounding of data values. Decreasing the grid size values
+#'     results in shorter computation times, and increasing the grid size values
+#'     results in more precise estimates. If grid_size$s=101, this means that a
+#'     grid of 101 equally-spaced points (defining 100 intervals) will be
+#'     created from min(S) to max(S), and each S value will be rounded to the
+#'     nearest grid point. For grid_size$y, a grid will be created from 0 to
+#'     t_0, and then extended to max(Y). For grid_size$x, a separate grid is
+#'     created for each covariate column (binary/categorical covariates are
+#'     ignored).
 #' @param return_extras Boolean. If set to TRUE, the following quantities (most
 #'     of which are mainly useful for debugging) are returned: \itemize{
 #'     \item{\code{one}: asdf}
@@ -158,7 +160,7 @@ est_np <- function(
   f_sIx_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins, z1=F)
   f_s_n <- construct_f_s_n(dat_orig, f_sIx_n)
   g_n <- construct_g_n(f_sIx_n, f_s_n)
-  Phi_n <- construct_Phi_n(ss(dat, which(dat$s!=0))) # !!!!! Make sure Phi_n(1)=1
+  Phi_n <- construct_Phi_n(ss(dat, which(dat$s!=0)))
   n_orig <- attr(dat_orig, "n_orig")
   p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
   eta_n <- construct_eta_n(dat, Q_n, p_n, t_0)

@@ -579,7 +579,7 @@ if (F) {
   # Constants
   C2 <- list(
     # points = round(seq(0,1,0.02),2), # round(seq(0,1,0.1),2)
-    n = 100,
+    n = 500,
     alpha_1 = 0.5,
     alpha_2 = 0.7,
     alpha_3 = -1,
