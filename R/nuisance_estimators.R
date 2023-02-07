@@ -2,7 +2,7 @@
 
 #' Construct conditional survival estimator Q_n
 #'
-#' @param dat Subsample of dataset returned by ss() for which z==1
+#' @param dat Subsample of dataset returned by `ss` for which z==1
 #' @param vals List of values to pre-compute function on; REQUIRED FOR SUPERLEARNER
 #' @param type One of c("true", "Cox", "Random Forest", "Super Learner")
 #' @param return_model Logical; if TRUE, return the model object instead of the
@@ -254,11 +254,10 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 
 #' Construct estimator of nuisance influence function omega_n
 #'
-#' @param vals List of values to pre-compute function on; passed to
-#'     construct_superfunc()
-#' @param Q_n Conditional survival function estimator returned by construct_Q_n
+#' @param Q_n Conditional survival function estimator returned by
+#'     `construct_Q_n`
 #' @param Qc_n Conditional censoring survival function estimator returned by
-#'     construct_Q_n
+#'     `construct_Q_n`
 #' @param type Defaults to "estimated". Override with "true" for debugging. Note
 #'     that type="true" only works for surv_true="Cox" and assumes that Q_0
 #'     and Qc_0 (i.e. the true functions) are passed in.
@@ -310,7 +309,7 @@ construct_omega_n <- function(Q_n, Qc_n, t_0, grid) {
 
 #' Construct estimator of conditional density of S given X
 #'
-#' @param dat Subsample of dataset returned by ss() for which z==1
+#' @param dat Subsample of dataset returned by `ss` for which z==1
 #' @param type One of c("parametric", "binning")
 #' @param k Number of bins for the binning estimator (if k=0, then the number of
 #'     bins will be selected via cross-validation); ignored for the parametric
@@ -592,9 +591,9 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
 
 #' Construct estimator of marginal density of S
 #'
-#' @param dat_orig Dataset returned by generate_data()
+#' @param dat_orig Dataset returned by `generate_data`
 #' @param f_sIx_n A conditional density estimator returned by
-#'     construct_f_sIx_n()
+#'     `construct_f_sIx_n`
 #' @return Marginal density estimator function
 #' @noRd
 construct_f_s_n <- function(dat_orig, f_sIx_n) {
@@ -626,12 +625,12 @@ construct_g_n <- function(f_sIx_n, f_s_n) {
 
 #' Construct Phi_n
 #'
-#' @param dat Subsample of dataset returned by ss() for which z==1
+#' @param dat Subsample of dataset returned by `ss` for which z==1
 #' @param which One of c("ecdf", "inverse")
 #' @param type One of c("step", "linear (mid)")
 #' @return CDF or inverse CDF estimator function
 #' @note
-#'   - Adaptation of stats::ecdf() source code
+#'   - Adaptation of stats::ecdf source code
 #' @noRd
 construct_Phi_n <- function (dat, type="linear (mid)") {
 
@@ -687,8 +686,9 @@ construct_eta_n <- function(dat, Q_n, p_n, t_0) {
 
 #' Construct g-computation estimator function of theta_0
 #'
-#' @param dat_orig Dataset returned by generate_data()
-#' @param Q_n Conditional survival function estimator returned by construct_Q_n
+#' @param dat_orig Dataset returned by `generate_data`
+#' @param Q_n Conditional survival function estimator returned by
+#'     `construct_Q_n`
 #' @return G-computation estimator of theta_0
 #' @noRd
 construct_r_tilde_Mn <- function(dat_orig, Q_n, t_0) {
@@ -793,7 +793,8 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
 
     n <- length(dat$s)
 
-    # !!!!!
+    # Helper functions
+    # !!!!! Can these vectors/functions be used elsewhere?
     f_n_srv_s <- memoise2(function(y,delta,x) {
       sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
     })
@@ -806,11 +807,6 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
 
     fnc <- function(x, y, delta, u) {
 
-      # !!!!! Can these vectors/functions be used elsewhere?
-      # !!!!! Try memoising these
-      # f_n_srv_s <- sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
-      # q_n_star_s <- sapply(dat$s, function(s) { q_n_star(y,delta,x,s,u) })
-      # g_n_s <- sapply(dat$s, function(s) { g_n(s,x) })
       f_n_srv_s <- f_n_srv_s(y,delta,x)
       q_n_star_s <- q_n_star_s(y,delta,x,u)
       g_n_s <- g_n_s(x)
@@ -863,15 +859,15 @@ construct_g_sn <- function(dat, f_n_srv, g_n, p_n) {
 
 #' Construct gamma_n nuisance estimator function
 #'
-#' @param dat_orig Dataset returned by generate_data()
-#' @param dat Subsample of dataset returned by ss() for which z==1
+#' @param dat_orig Dataset returned by `generate_data`
+#' @param dat Subsample of dataset returned by `ss` for which z==1
 #' @param vals List of values to pre-compute function on
 #' @param type Type of regression; one of c("cubic", "kernel", "kernel2")
-#' @param omega_n A nuisance influence function returned by construct_omega_n()
+#' @param omega_n A nuisance influence function returned by `construct_omega_n`
 #' @param f_sIx_n A conditional density estimator returned by
-#'     construct_f_sIx_n()
+#'     `construct_f_sIx_n`
 #' @param f_sIx_n A conditional density estimator returned by
-#'     construct_f_sIx_n() among the observations for which z==1
+#'     `construct_f_sIx_n` among the observations for which z==1
 #' @return gamma_n nuisance estimator function
 #' @noRd
 construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n,
@@ -1065,9 +1061,9 @@ construct_deriv_r_Mn <- function(type="m-spline", r_Mn, grid) {
 
 #' Construct tau_n Chernoff scale factor function
 #'
-#' @param deriv_r_Mn A derivative estimator returned by construct_deriv_r_Mn()
-#' @param gamma_n Nuisance function estimator returned by construct_gamma_n()
-#' @param f_s_n Density estimator returned by construct_f_s_n()
+#' @param deriv_r_Mn A derivative estimator returned by `construct_deriv_r_Mn`
+#' @param gamma_n Nuisance function estimator returned by `construct_gamma_n`
+#' @param f_s_n Density estimator returned by `construct_f_s_n`
 #' @return Chernoff scale factor estimator function
 #' @noRd
 construct_tau_n <- function(deriv_r_Mn, gamma_n, f_sIx_n, g_zn,

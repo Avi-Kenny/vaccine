@@ -1,9 +1,10 @@
 #' Construct influence function corresponding to r_Mn_edge
 #'
-#' @param Q_n Conditional survival function estimator returned by construct_Q_n
-#' @param g_sn Propensity score estimator returned by construct_g_sn()
-#' @param omega_n A nuisance influence function returned by construct_omega_n()
-#' @param r_Mn_edge_est Estimate returned by one-step estimator r_Mn_edge()
+#' @param Q_n Conditional survival function estimator returned by
+#'     `construct_Q_n`
+#' @param g_sn Propensity score estimator returned by `construct_g_sn`
+#' @param omega_n A nuisance influence function returned by `construct_omega_n`
+#' @param r_Mn_edge_est Estimate returned by one-step estimator `r_Mn_edge`
 #' @return Value of one-step estimator
 #' @noRd
 construct_infl_fn_r_Mn_edge <- function(Q_n, g_sn, omega_n, g_n,

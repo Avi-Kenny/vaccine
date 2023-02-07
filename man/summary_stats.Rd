@@ -7,7 +7,7 @@
 summary_stats(dat, print = F)
 }
 \arguments{
-\item{dat}{A data object returned by load_data}
+\item{dat}{A data object returned by `load_data`}
 }
 \value{
 A list containing the following: \itemize{

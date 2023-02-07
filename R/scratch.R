@@ -281,8 +281,8 @@ if (F) {
   ..p$coeffs_srv <<- coeffs_srv # !!!!!
   bh_srv <- survival::basehaz(model_srv, centered=FALSE)
 
-  model_cens <- coxph(
-    formula = formula(paste0("Surv(y,delta)~",
+  model_cens <- survival::coxph(
+    formula = formula(paste0("survival::Surv(y,delta)~",
                              paste(names(dat$x),collapse="+"),"+s")),
     data = cbind(y=dat$y, delta=1-dat$delta, dat$x, s=dat$s),
     weights = dat$weights

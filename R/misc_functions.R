@@ -22,7 +22,7 @@ In <- as.integer
 #' @param fnc A function to be memoised
 #' @return Memoised version of function
 #' @note
-#'   - This is a lightweight/faster version of the memoise() function
+#'   - This is a lightweight/faster version of the `memoise` function
 #' @noRd
 memoise2 <- function(fnc) {
 
@@ -55,8 +55,8 @@ memoise2 <- function(fnc) {
 
 #' Round data values
 #'
-#' @param dat_orig Dataset returned by load_data()
-#' @param grid_size A list, as specified in est_np()
+#' @param dat_orig Dataset returned by `load_data`
+#' @param grid_size A list, as specified in `est_np`
 #' @return Dataset with values rounded
 #' @noRd
 create_grid <- function(dat_orig, grid_size, t_0) {
@@ -86,9 +86,9 @@ create_grid <- function(dat_orig, grid_size, t_0) {
 
 #' Round data values
 #'
-#' @param dat_orig Dataset returned by load_data()
-#' @param grid A grid, returned by create_grid()
-#' @param grid_size A list, as specified in est_np()
+#' @param dat_orig Dataset returned by `load_data`
+#' @param grid A grid, returned by `create_grid`
+#' @param grid_size A list, as specified in `est_np`
 #' @return Dataset with values rounded
 #' @noRd
 round_dat <- function(dat_orig, grid, grid_size) {
@@ -125,7 +125,7 @@ round_dat <- function(dat_orig, grid, grid_size) {
 
 #' Subset dat_orig according to indices
 #'
-#' @param dat_orig Dataset returned by load_data()
+#' @param dat_orig Dataset returned by `load_data`
 #' @param indices Indices to filter dataset by
 #' @return Filtered subsample of dataset
 #' @noRd

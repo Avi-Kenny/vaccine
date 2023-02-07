@@ -4,7 +4,7 @@
 \alias{load_data}
 \title{Load and format data object}
 \usage{
-load_data(time, event, marker, covariates, weights, ph2)
+load_data(time, event, marker, covariates, weights, strata, ph2)
 }
 \arguments{
 \item{time}{A numeric vector of observed event or censoring times.}
@@ -20,6 +20,8 @@ binary, or factors. Character columns will be converted into factors.}
 
 \item{weights}{A numeric vector of inverse-probability-of-sampling (IPS)
 weights.}
+
+\item{strata}{!!!!! TO DO}
 
 \item{ph2}{A vector of binary values corresponding to whether the individual
 is in the phase-two cohort (1) or not (0). Accepts either integer (0/1)

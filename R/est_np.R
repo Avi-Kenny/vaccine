@@ -52,7 +52,6 @@
 #' }
 #' @examples
 #' print("to do")
-#' #list(cond_density_type="binning", cond_density_nbins=10)
 #' @export
 #' @note
 #'   - This method assumes that risk decreases as the biomarker increases. If it
@@ -99,7 +98,8 @@ est_np <- function(
     deriv_type = "m-spline",
     gamma_type = "Super Learner",
     q_n_type = "standard",
-    convex_type = "GCM"
+    convex_type = "GCM",
+    mono_cis = T
   )
   for (i in c(1:length(.default_params))) {
     p_name <- names(.default_params)[i]
@@ -330,6 +330,20 @@ est_np <- function(
       ci_hi[1] <- ci_hi2
     }
 
+  }
+
+  # !!!!! Testing: CI correction
+  if (p$mono_cis) {
+    val <- ci_lo[1]
+    for (i in c(2:length(ci_lo))) {
+      if (!is.na(ci_lo[i]) && !is.na(val) && ci_lo[i]>val) { ci_lo[i] <- val }
+      val <- ci_lo[i]
+    }
+    val <- ci_hi[1]
+    for (i in c(2:length(ci_hi))) {
+      if (!is.na(ci_hi[i]) && !is.na(val) && ci_hi[i]>val) { ci_hi[i] <- val }
+      val <- ci_hi[i]
+    }
   }
 
   # Create results object

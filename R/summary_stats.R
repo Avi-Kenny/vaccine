@@ -1,7 +1,7 @@
 #' Calculate summary statistics
 #'
 #' @description TO DO
-#' @param dat A data object returned by load_data
+#' @param dat A data object returned by `load_data`
 #' @return A list containing the following: \itemize{
 #'     \item{\code{one}: asdf}
 #'     \item{\code{two}: asdf}
