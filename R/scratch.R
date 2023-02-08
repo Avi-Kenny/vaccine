@@ -1,4 +1,17 @@
 
+# Profiling est_cox
+if (F) {
+
+  df_v <- readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig.rds")
+  attr(df_v, "n_orig") <- length(df_v$z)
+  attr(df_v, "dim_x") <- 2 # !!!!!
+  dat=list(v=df_v);
+  class(dat) <- "dat_vaccine"
+  library(vaccine)
+  res_cox <- est_cox(dat=dat, t_0=200, cve=F)
+
+}
+
 # Profiling q_n
 if (F) {
 
@@ -57,7 +70,7 @@ if (F) {
     attr(dat_orig, "n_orig") <- C2$n
     attr(dat_orig, "dim_x") <- 2
   }
-  dat=list(df_vc=dat_orig);
+  dat=list(v=dat_orig);
 
   # Run start of code
   if (T) {
@@ -66,7 +79,7 @@ if (F) {
     edge_corr=F; grid_size=list(y=101,s=101,x=5); verbose=F; cf_folds=1;
     params <- list(surv_type="Cox", density_type="parametric", q_n_type="zero",
                    deriv_type="linear")
-    dat_orig <- dat$df_vc
+    dat_orig <- dat$v
     # Set params
     .default_params <- list(
       surv_type = "Super Learner",
@@ -165,7 +178,7 @@ if (F) {
                  "nuisance_estimators", "one_step_estimators")) {
     source(paste0("R/",file,".R"))
   }
-  dat=list(df_vc=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig.rds"));
+  dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig.rds"));
 
   t_0=200; cve=T; cr=T; s_out=seq(0,1,0.1); ci_type="logit";
   edge_corr=F; grid_size=list(y=101,s=101,x=5); verbose=F; cf_folds=1;

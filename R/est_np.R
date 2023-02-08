@@ -63,7 +63,7 @@
 #'     Controlled Effects Approach to Assessing Immune Correlates of Protection.
 #' @export
 est_np <- function(
-  dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$s), to=max(dat$s), l=101),
+  dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$v$s), to=max(dat$v$s), l=101),
   ci_type="logit", cf_folds=1, edge_corr=F, params=list(),
   grid_size=list(y=101, s=101, x=5), return_extras=F, verbose=F
 ) {
@@ -76,7 +76,7 @@ est_np <- function(
   # !!!!! Validate other inputs; import error handling function from SimEngine
 
   # Alias variables
-  dat_orig <- dat$df_vc # !!!!! Maybe change this later
+  dat_orig <- dat$v # !!!!! Maybe change this later
   .v <- verbose
 
   # Fix s_out if needed

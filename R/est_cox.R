@@ -48,14 +48,14 @@
 #'     Controlled Effects Approach to Assessing Immune Correlates of Protection.
 #' @export
 est_cox <- function(
-    dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$s), to=max(dat$s), l=101),
+    dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$v$s), to=max(dat$v$s), l=101),
     ci_type="logit", grid_size=list(y=101, s=101, x=5), return_extras=F,
     verbose=F
 ) {
 
   # !!!!! Testing
   if (F) {
-    dat=list(df_vc=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig.rds"));
+    dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig.rds"));
     class(dat)="dat_vaccine";
     t_0=200; cve=T; cr=T; s_out=round(seq(0,1,0.02),2); ci_type="logit";
     grid_size=list(y=101, s=101, x=5); return_extras=F; verbose=F;
@@ -70,17 +70,18 @@ est_cox <- function(
   # !!!!! Validate other inputs; import error handling function from SimEngine
 
   # Alias variables
-  dat_orig <- dat$df_vc # !!!!! Maybe change this later
+  dat_orig <- dat$v # !!!!! Maybe change this later
   .v <- verbose
 
   # Fix s_out if needed
-  if (F) { # !!!!! if clause is temporary
-    if (any(is.na(dat$s))) {
-      if (missing(s_out)) {
-        s_out <- seq(from=min(dat$s, na.rm=T), to=max(dat$s, na.rm=T), l=101)
-      } else {
-        stop("NA values not allowed in s_out.")
-      }
+  browser()
+  if (any(is.na(dat_orig$s))) {
+    if (missing(s_out)) {
+      s_out <- seq(from=min(dat_orig$s, na.rm=T),
+                   to=max(dat_orig$s, na.rm=T),
+                   l=101)
+    } else {
+      stop("NA values not allowed in s_out.")
     }
   }
 

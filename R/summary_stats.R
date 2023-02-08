@@ -18,10 +18,10 @@ summary_stats <- function(dat, print=F) {
   }
 
   ss <- list(
-    "num_ph1_events_vc" = sum(df_vc$delta==1),
-    "num_ph1_events_pl" = sum(df_pl$delta==1),
-    "num_ph2_events_vc" = sum(df_vc$z==1 & df_vc$delta==1),
-    "num_ph2_events_pl" = sum(df_pl$z==1 & df_pl$delta==1)
+    "num_ph1_events_vc" = sum(dat$v$delta==1),
+    "num_ph1_events_pl" = sum(dat$p$delta==1),
+    "num_ph2_events_vc" = sum(dat$v$z==1 & dat$v$delta==1),
+    "num_ph2_events_pl" = sum(dat$p$z==1 & dat$p$delta==1)
   )
 
   if (print) {
@@ -35,6 +35,6 @@ summary_stats <- function(dat, print=F) {
                   ss$num_ph2_events_pl,"\n"))
   }
 
-  return(ss) # !!!!! need to return "quietly" (i.e. don't print)
+  return(ss) # !!!!! need to return "quietly" (i.e. don't print); use `invisible`?
 
 }

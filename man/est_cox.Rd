@@ -9,7 +9,7 @@ est_cox(
   t_0,
   cve = T,
   cr = T,
-  s_out = seq(from = min(dat$s), to = max(dat$s), l = 101),
+  s_out = seq(from = min(dat$v$s), to = max(dat$v$s), l = 101),
   ci_type = "logit",
   grid_size = list(y = 101, s = 101, x = 5),
   return_extras = F,

@@ -138,7 +138,7 @@ load_data <- function(
   df_pl$weights <- df_pl$weights / .stb_p
 
   # Create and return data object
-  dat <- list("df_vc"=df_vc, "df_pl"=df_pl)
+  dat <- list("v"=df_vc, "p"=df_pl)
   class(dat) <- "dat_vaccine"
   return(dat)
 
