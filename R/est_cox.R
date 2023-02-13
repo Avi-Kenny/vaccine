@@ -55,7 +55,7 @@ est_cox <- function(
 
   # !!!!! Testing
   if (F) {
-    dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig.rds"));
+    dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_200.rds"));
     class(dat)="dat_vaccine";
     t_0=200; cve=T; cr=T; s_out=round(seq(0,1,0.02),2); ci_type="logit";
     grid_size=list(y=101, s=101, x=5); return_extras=F; verbose=F;
@@ -74,15 +74,12 @@ est_cox <- function(
   .v <- verbose
 
   # Fix s_out if needed
-  browser()
-  if (any(is.na(dat_orig$s))) {
-    if (missing(s_out)) {
-      s_out <- seq(from=min(dat_orig$s, na.rm=T),
-                   to=max(dat_orig$s, na.rm=T),
-                   l=101)
-    } else {
-      stop("NA values not allowed in s_out.")
-    }
+  if (missing(s_out)) {
+    s_out <- seq(from=min(dat_orig$s, na.rm=T),
+                 to=max(dat_orig$s, na.rm=T),
+                 l=101)
+  } else {
+    if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
   }
 
   # Set params
@@ -134,7 +131,6 @@ est_cox <- function(
       # }
 
       # Fit a Cox model
-      # !!!!! Call to construct_Q_n instead ?????
       # Note: scaling the weights affects the SEs but not the estimates; thus, this
       #       is only needed for debugging
       model <- survival::coxph(
@@ -366,17 +362,9 @@ est_cox <- function(
 
       # Survival estimator (at a point)
       Q_n <- (function() {
-        .cache <- new.env()
+        Lambda_n_t_0 <- Lambda_n(t_0)
         function(z) {
-          key <- paste(z, collapse=" ")
-          val <- .cache[[key]]
-          if (is.null(val)) {
-            val <- (function(z) {
-              exp(-exp(sum(z*beta_n))*Lambda_n(t_0))
-            })(z)
-            .cache[[key]] <- val
-          }
-          return(val)
+          exp(-exp(sum(z*beta_n))*Lambda_n_t_0)
         }
       })()
 
@@ -411,10 +399,40 @@ est_cox <- function(
         }
       })()
 
+      memoise2 <- function(fnc) {
+
+        htab <- new.env()
+        ..new_fnc <- function() {
+          ..e <- parent.env(environment())
+          ..mc <- lapply(as.list(match.call())[-1L], eval, parent.frame())
+          key <- rlang::hash(..mc)
+          val <- ..e$htab[[key]]
+          if (is.null(val)) {
+            val <- do.call(..e$fnc, ..mc)
+            ..e$htab[[key]] <- val
+          }
+          return(val)
+        }
+
+        # Set formals and set up environment
+        formals(..new_fnc) <- formals(fnc)
+        f_env <- new.env(parent=environment(fnc))
+        f_env$arg_names <- names(formals(fnc))
+        f_env$htab <- htab
+        f_env$fnc <- fnc
+        environment(..new_fnc) <- f_env
+
+        return(..new_fnc)
+
+      }
+
       # Influence function: survival at a point (est. weights)
       omega_n <- (function() {
         .cache <- new.env()
         function(z_i,d_i,ds_i,t_i,wt_i,st_i,z) {
+          # ..count <<- ..count+1 # !!!!!
+          # ..mc <- lapply(as.list(match.call())[-1L], eval, parent.frame()) # !!!!!
+          # key <- rlang::hash(..mc) # !!!!!
           key <- paste(c(z_i,d_i,ds_i,t_i,wt_i,st_i,z), collapse=" ")
           val <- .cache[[key]]
           if (is.null(val)) {
@@ -468,8 +486,6 @@ est_cox <- function(
           exp(-1*exp(sum(beta_n*c(as.numeric(dat_orig$x[i,]),s)))*est_bshz)
         })))
       }))
-
-      # !!!!! Pre-calculate omega_n values
 
       # if (verbose) { print(paste("Check 3d (var est START: marg):", Sys.time())) }
       res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {

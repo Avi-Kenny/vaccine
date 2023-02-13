@@ -2,13 +2,34 @@
 # Profiling est_cox
 if (F) {
 
-  df_v <- readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig.rds")
+  df_v <- readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_200.rds")
+  # df_v <- readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_400.rds")
+  # df_v <- readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_800.rds")
   attr(df_v, "n_orig") <- length(df_v$z)
   attr(df_v, "dim_x") <- 2 # !!!!!
   dat=list(v=df_v);
   class(dat) <- "dat_vaccine"
   library(vaccine)
   res_cox <- est_cox(dat=dat, t_0=200, cve=F)
+  # s_out <- seq(min(dat$v$s,na.rm=T),max(dat$v$s,na.rm=T), l=11)
+  # res_cox <- est_cox(dat=dat, t_0=200, cve=F, s_out=s_out)
+  ..count
+
+  system.time({
+    n <- 400
+    ..count <- 0
+    x <- mean(sapply(c(1:101), function(s) {
+      y <- rnorm(n)
+      z <- rnorm(n)
+      mean(sapply(y, function(i) {
+        mean(sapply(z, function(j) {
+          ..count <<- ..count+1
+          i+j
+        }))
+      }))
+    }))
+    ..count
+  })
 
 }
 
@@ -178,7 +199,7 @@ if (F) {
                  "nuisance_estimators", "one_step_estimators")) {
     source(paste0("R/",file,".R"))
   }
-  dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig.rds"));
+  dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig.rds"));
 
   t_0=200; cve=T; cr=T; s_out=seq(0,1,0.1); ci_type="logit";
   edge_corr=F; grid_size=list(y=101,s=101,x=5); verbose=F; cf_folds=1;
