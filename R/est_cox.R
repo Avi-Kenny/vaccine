@@ -370,78 +370,78 @@ est_cox <- function(
         }
       })()
 
-      memoise2 <- function(fnc) {
+      # memoise2 <- function(fnc) {
+      #
+      #   htab <- new.env()
+      #   ..new_fnc <- function() {
+      #     ..e <- parent.env(environment())
+      #     ..mc <- lapply(as.list(match.call())[-1L], eval, parent.frame())
+      #     key <- rlang::hash(..mc)
+      #     val <- ..e$htab[[key]]
+      #     if (is.null(val)) {
+      #       val <- do.call(..e$fnc, ..mc)
+      #       ..e$htab[[key]] <- val
+      #     }
+      #     return(val)
+      #   }
+      #
+      #   # Set formals and set up environment
+      #   formals(..new_fnc) <- formals(fnc)
+      #   f_env <- new.env(parent=environment(fnc))
+      #   f_env$arg_names <- names(formals(fnc))
+      #   f_env$htab <- htab
+      #   f_env$fnc <- fnc
+      #   environment(..new_fnc) <- f_env
+      #
+      #   return(..new_fnc)
+      #
+      # }
 
-        htab <- new.env()
-        ..new_fnc <- function() {
-          ..e <- parent.env(environment())
-          ..mc <- lapply(as.list(match.call())[-1L], eval, parent.frame())
-          key <- rlang::hash(..mc)
-          val <- ..e$htab[[key]]
-          if (is.null(val)) {
-            val <- do.call(..e$fnc, ..mc)
-            ..e$htab[[key]] <- val
-          }
-          return(val)
-        }
+      # # Influence function: survival at a point (est. weights)
+      # omega_n <- (function() {
+      #   .cache <- new.env()
+      #   function(z_i,d_i,ds_i,t_i,wt_i,st_i,z) {
+      #     # ..count <<- ..count+1 # !!!!!
+      #     # ..mc <- lapply(as.list(match.call())[-1L], eval, parent.frame()) # !!!!!
+      #     # key <- rlang::hash(..mc) # !!!!!
+      #     key <- paste(c(z_i,d_i,ds_i,t_i,wt_i,st_i,z), collapse=" ")
+      #     val <- .cache[[key]]
+      #     if (is.null(val)) {
+      #       val <- (function(z_i,d_i,ds_i,t_i,wt_i,st_i,z) {
+      #         explin <- exp(sum(z*beta_n))
+      #         piece_1 <- Lambda_n(t_0) * explin *
+      #           (t(z)%*%infl_fn_beta(z_i,d_i,ds_i,t_i,wt_i,st_i))[1]
+      #         piece_2 <- explin * infl_fn_Lambda(z_i,d_i,ds_i,t_i,wt_i,st_i)
+      #         return(-1*Q_n(z)*(piece_1+piece_2))
+      #       })(z_i,d_i,ds_i,t_i,wt_i,st_i,z)
+      #       .cache[[key]] <- val
+      #     }
+      #     return(val)
+      #   }
+      # })()
 
-        # Set formals and set up environment
-        formals(..new_fnc) <- formals(fnc)
-        f_env <- new.env(parent=environment(fnc))
-        f_env$arg_names <- names(formals(fnc))
-        f_env$htab <- htab
-        f_env$fnc <- fnc
-        environment(..new_fnc) <- f_env
-
-        return(..new_fnc)
-
-      }
-
-      # Influence function: survival at a point (est. weights)
-      omega_n <- (function() {
-        .cache <- new.env()
-        function(z_i,d_i,ds_i,t_i,wt_i,st_i,z) {
-          # ..count <<- ..count+1 # !!!!!
-          # ..mc <- lapply(as.list(match.call())[-1L], eval, parent.frame()) # !!!!!
-          # key <- rlang::hash(..mc) # !!!!!
-          key <- paste(c(z_i,d_i,ds_i,t_i,wt_i,st_i,z), collapse=" ")
-          val <- .cache[[key]]
-          if (is.null(val)) {
-            val <- (function(z_i,d_i,ds_i,t_i,wt_i,st_i,z) {
-              explin <- exp(sum(z*beta_n))
-              piece_1 <- Lambda_n(t_0) * explin *
-                (t(z)%*%infl_fn_beta(z_i,d_i,ds_i,t_i,wt_i,st_i))[1]
-              piece_2 <- explin * infl_fn_Lambda(z_i,d_i,ds_i,t_i,wt_i,st_i)
-              return(-1*Q_n(z)*(piece_1+piece_2))
-            })(z_i,d_i,ds_i,t_i,wt_i,st_i,z)
-            .cache[[key]] <- val
-          }
-          return(val)
-        }
-      })()
-
-      # Influence function: marginalized survival (est. weights)
-      infl_fn_marg <- (function() {
-        .cache <- new.env()
-        x_ <- as.list(as.data.frame(t(dat_orig$x)))
-        function(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s) {
-          key <- paste(c(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s), collapse=" ")
-          val <- .cache[[key]]
-          if (is.null(val)) {
-            val <- (function(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s) {
-              piece_1 <- Q_n(c(x_i,s))
-              piece_2 <- (1/N) * sum(unlist(lapply(c(1:N), function(j) {
-                x_j <- x_[[j]]
-                omgn <- omega_n(c(x_i,s_i),d_i,ds_i,t_i,wt_i,st_i,c(x_j,s))
-                return(omgn-Q_n(c(x_j,s)))
-              })))
-              return(piece_1+piece_2)
-            })(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s)
-            .cache[[key]] <- val
-          }
-          return(val)
-        }
-      })()
+      # # Influence function: marginalized survival (est. weights)
+      # infl_fn_marg <- (function() {
+      #   .cache <- new.env()
+      #   x_ <- as.list(as.data.frame(t(dat_orig$x)))
+      #   function(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s) {
+      #     key <- paste(c(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s), collapse=" ")
+      #     val <- .cache[[key]]
+      #     if (is.null(val)) {
+      #       val <- (function(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s) {
+      #         piece_1 <- Q_n(c(x_i,s))
+      #         piece_2 <- (1/N) * sum(unlist(lapply(c(1:N), function(j) {
+      #           x_j <- x_[[j]]
+      #           omgn <- omega_n(c(x_i,s_i),d_i,ds_i,t_i,wt_i,st_i,c(x_j,s))
+      #           return(omgn-Q_n(c(x_j,s)))
+      #         })))
+      #         return(piece_1+piece_2)
+      #       })(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s)
+      #       .cache[[key]] <- val
+      #     }
+      #     return(val)
+      #   }
+      # })()
 
       # if (verbose) { print(paste("Check 2 (functions declared):", Sys.time())) }
 
