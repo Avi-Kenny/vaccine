@@ -448,6 +448,7 @@ est_cox <- function(
       # !!!! basehaz vs. Lambda_hat
       res_cox <- list()
       # res_cox <- list(model=model, beta_n=beta_n)
+      dim_x <- attr(dat_orig, "dim_x")
       bh <- survival::basehaz(model, centered=FALSE)
       index <- max(which((bh$time<t_0)==T))
       est_bshz <- bh$hazard[index]
@@ -459,10 +460,8 @@ est_cox <- function(
         })))
       }))
 
-      # Misc
       # if (verbose) { print(paste("Check 3d (var est START: marg):", Sys.time())) }
       dat_orig_df <- as_df(dat_orig, strata=T)
-      dim_x <- attr(dat_orig, "dim_x")
 
       # Pre-calculate Lambda_n(t_0)
       Lambda_n_t_0 <- Lambda_n(t_0)
@@ -473,20 +472,18 @@ est_cox <- function(
       # if (verbose) { print(paste0("Check 4d (point=",s,"): ", Sys.time())) }
 
         # Precalculate pieces dependent on s
-        # !!!!! Maybe consolidate this code into one loop
-        K_n1 <- (1/N) * sum((apply(dat_orig_df, 1, function(r) {
+        K_n <- (1/N) * Reduce("+", apply(dat_orig_df, 1, function(r) {
           x_i <- as.numeric(r[1:dim_x])
-          return(Q_n(c(x_i,s)))
-        })))
-        K_n2 <- (1/N) * sum((apply(dat_orig_df, 1, function(r) {
-          x_i <- as.numeric(r[1:dim_x])
-          return(Q_n(c(x_i,s)) * exp(sum(c(x_i,s)*beta_n)))
-        })))
-
-        K_n3 <- (1/N) * Reduce("+", apply(dat_orig_df, 1, function(r) {
-          x_i <- as.numeric(r[1:dim_x])
-          return(Q_n(c(x_i,s)) * exp(sum(c(x_i,s)*beta_n)) * c(x_i,s))
+          Q <- Q_n(c(x_i,s))
+          explin <- exp(sum(c(x_i,s)*beta_n))
+          K_n1 <- Q
+          K_n2 <- Q * explin
+          K_n3 <- Q * explin * c(x_i,s)
+          return(c(K_n1,K_n2,K_n3))
         }, simplify=F))
+        K_n1 <- K_n[1]
+        K_n2 <- K_n[2]
+        K_n3 <- K_n[3:length(K_n)]
 
         (1/N^2) * sum((apply(dat_orig_df, 1, function(r) {
 
