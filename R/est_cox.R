@@ -328,22 +328,11 @@ est_cox <- function(
       })()
 
       # Breslow estimator
-      Lambda_n <- Vectorize((function() {
-        .cache <- new.env()
-        function(x) {
-          key <- as.character(x)
-          val <- .cache[[key]]
-          if (is.null(val)) {
-            val <- (function(x) {
-              (1/N) * sum(unlist(lapply(i_ev, function(i) {
-                (WT[i] * In(T_[i]<=x)) / S_0n(T_[i])
-              })))
-            })(x)
-            .cache[[key]] <- val
-          }
-          return(val)
-        }
-      })())
+      Lambda_n <- function(t) {
+        (1/N) * sum(unlist(lapply(i_ev, function(i) {
+          (WT[i] * In(T_[i]<=t)) / S_0n(T_[i])
+        })))
+      }
 
       # Survival estimator (at a point)
       Q_n <- (function() {
