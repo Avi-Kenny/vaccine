@@ -330,7 +330,7 @@ est_cox <- function(
       # Breslow estimator
       Lambda_n <- function(t) {
         (1/N) * sum(unlist(lapply(i_ev, function(i) {
-          (WT[i] * In(T_[i]<=t)) / S_0n(T_[i])
+          In(T_[i]<=t) / S_0n(T_[i])
         })))
       }
 
@@ -348,21 +348,20 @@ est_cox <- function(
           val <- .cache[[key]]
           if (is.null(val)) {
             val <- (function(z_i,d_i,ds_i,t_i,wt_i,st_i) {
-              pc_2 <- vstar_n(st_i,d_i,t_0)
               pc_4 <- (1/N) * sum(unlist(lapply(t_ev, function(t_j) {
                 ( In(t_j<=t_0) * v_n(st_i,d_i,t_j) ) / (S_0n(t_j))^2
               })))
               pc_5 <- sum(mu_n*lstar_tilde(z_i,d_i,ds_i,t_i,wt_i,st_i))
 
               if (d_i==1) {
-                pc_1 <- ( wt_i * ds_i * In(t_i<=t_0) ) / S_0n(t_i)
+                pc_1 <- ( ds_i * In(t_i<=t_0) ) / S_0n(t_i)
                 pc_3 <- (1/N) * sum(unlist(lapply(t_ev, function(t_j) {
                   (In(t_j<=t_0)*wt_i*In(t_i>=t_j)*exp(sum(beta_n*z_i))) /
                     (S_0n(t_j))^2
                 })))
-                return(pc_1+pc_2-pc_3-pc_4-pc_5)
+                return(pc_1-pc_3-pc_4-pc_5)
               } else {
-                return(pc_2-pc_4-pc_5)
+                return(-1*(pc_4+pc_5))
               }
             })(z_i,d_i,ds_i,t_i,wt_i,st_i)
             .cache[[key]] <- val
