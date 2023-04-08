@@ -110,7 +110,7 @@ est_cox <- function(
   dat <- ss(dat_orig, which(dat_orig$z==1))
 
   # Fit Cox model and compute variance
-  # !!!!! replace t_0 with t
+  # !!!!! replace t_0 with t ?????
   {
 
       # # Setup
@@ -130,14 +130,13 @@ est_cox <- function(
       #   cl <- NULL
       # }
 
-      # Fit a Cox model
-      # Note: scaling the weights affects the SEs but not the estimates; thus, this
-      #       is only needed for debugging
+      # Fit an IPS-weighted Cox model
       model <- survival::coxph(
         formula = formula(paste0("survival::Surv(y,delta)~",
                                  paste(names(dat$x),collapse="+"),"+s")),
         data = cbind(y=dat$y, delta=dat$delta, dat$x, s=dat$s),
         weights = dat$weights
+        # Note: scaling the weights affects the SEs but not the estimates; thus, this is only needed for debugging
         # weights = dat$weights * (length(dat$weights)/sum(dat$weights))
       )
       beta_n <- as.numeric(model$coefficients)
@@ -327,20 +326,6 @@ est_cox <- function(
           return(val)
         }
       })()
-
-      # Nuisance function: vstar_n
-      vstar_n <- function(st_i,d_i,t) {
-        k_set <- which(ST==st_i & Ds_==1)
-        if (length(k_set)>0) {
-          return(
-            (1/N) * (p1_n[st_i]-p_n[st_i]*d_i)/(p1_n[st_i])^2 * sum(
-              unlist(lapply(k_set, function(k) {
-                In(T_[k]<=t) / S_0n(T_[k])
-              }))
-            )
-          )
-        } else { return(0) }
-      }
 
       # Breslow estimator
       Lambda_n <- Vectorize((function() {
