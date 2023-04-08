@@ -453,33 +453,14 @@ est_cox <- function(
       est_bshz <- bh$hazard[index]
       N <- sum(dat$weights)
       res_cox$est_marg <- unlist(lapply(s_out, function(s) {
-        (1/N) * sum(unlist(lapply(c(1:N), function(i) {
-          exp(-1*exp(sum(beta_n*c(as.numeric(dat_orig$x[i,]),s)))*est_bshz)
+        (1/N) * sum((apply(dat_orig$x, 1, function(r) {
+          x_i <- as.numeric(r[1:dim_x])
+          exp(-1*exp(sum(beta_n*c(as.numeric(x_i),s)))*est_bshz)
         })))
       }))
 
-      # # if (verbose) { print(paste("Check 3d (var est START: marg):", Sys.time())) }
-      # res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
-      #   # if (verbose) { print(paste0("Check 4d (point=",s,"): ", Sys.time())) }
-      #   # (1/N^2) * sum(unlist(pblapply(c(1:N), function(i) {
-      #   (1/N^2) * sum(unlist(lapply(c(1:N), function(i) { # !!!!! Not using parallelization or progress bar for now
-      #     (infl_fn_marg(
-      #       x_i = as.numeric(dat_orig$x[i,]),
-      #       s_i = dat_orig$s[i],
-      #       d_i = dat_orig$z[i],
-      #       ds_i = dat_orig$delta[i],
-      #       t_i = dat_orig$y[i],
-      #       wt_i = dat_orig$weights[i],
-      #       st_i = dat_orig$strata[i],
-      #       s = s
-      #     ))^2
-      #     # }, cl=cl)))
-      #   }))) # !!!!! Not using parallelization or progress bar for now
-      #
-      # }))
-      # # if (verbose) { print(paste("Check 5d (var est END: marg):", Sys.time())) }
-
       # Misc
+      # if (verbose) { print(paste("Check 3d (var est START: marg):", Sys.time())) }
       dat_orig_df <- as_df(dat_orig, strata=T)
       dim_x <- attr(dat_orig, "dim_x")
 
@@ -487,7 +468,9 @@ est_cox <- function(
       Lambda_n_t_0 <- Lambda_n(t_0)
 
       # Calculate variance
+      # !!!!! Not using parallelization or progress bar for now
       res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
+      # if (verbose) { print(paste0("Check 4d (point=",s,"): ", Sys.time())) }
 
         # Precalculate pieces dependent on s
         # !!!!! Maybe consolidate this code into one loop
@@ -527,6 +510,7 @@ est_cox <- function(
         })))
 
       }))
+      # if (verbose) { print(paste("Check 5d (var est END: marg):", Sys.time())) }
 
   }
 
