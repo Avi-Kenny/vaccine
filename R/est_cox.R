@@ -110,7 +110,6 @@ est_cox <- function(
   dat <- ss(dat_orig, which(dat_orig$z==1))
 
   # Fit Cox model and compute variance
-  # !!!!! replace t_0 with t ?????
   {
 
       # # Setup
@@ -257,7 +256,7 @@ est_cox <- function(
       }
 
       # Influence function: beta_hat (est. weights)
-      lstar_tilde <- (function() {
+      infl_fn_beta <- (function() {
         .cache <- new.env()
 
         exp_terms <- list()
@@ -341,7 +340,7 @@ est_cox <- function(
       })()
 
       # Influence function: Breslow estimator (est. weights)
-      infl_fn_Bres <- (function() {
+      infl_fn_Lambda <- (function() {
         .cache <- new.env()
         function(z_i,d_i,ds_i,t_i,wt_i,st_i) {
           key <- paste(c(z_i,d_i,ds_i,t_i,wt_i,st_i), collapse=" ")
@@ -351,7 +350,7 @@ est_cox <- function(
               pc_4 <- (1/N) * sum(unlist(lapply(t_ev, function(t_j) {
                 ( In(t_j<=t_0) * v_n(st_i,d_i,t_j) ) / (S_0n(t_j))^2
               })))
-              pc_5 <- sum(mu_n*lstar_tilde(z_i,d_i,ds_i,t_i,wt_i,st_i))
+              pc_5 <- sum(mu_n*infl_fn_beta(z_i,d_i,ds_i,t_i,wt_i,st_i))
 
               if (d_i==1) {
                 pc_1 <- ( ds_i * In(t_i<=t_0) ) / S_0n(t_i)
@@ -410,8 +409,8 @@ est_cox <- function(
             val <- (function(z_i,d_i,ds_i,t_i,wt_i,st_i,z) {
               explin <- exp(sum(z*beta_n))
               piece_1 <- Lambda_n(t_0) * explin *
-                (t(z)%*%lstar_tilde(z_i,d_i,ds_i,t_i,wt_i,st_i))[1]
-              piece_2 <- explin * infl_fn_Bres(z_i,d_i,ds_i,t_i,wt_i,st_i)
+                (t(z)%*%infl_fn_beta(z_i,d_i,ds_i,t_i,wt_i,st_i))[1]
+              piece_2 <- explin * infl_fn_Lambda(z_i,d_i,ds_i,t_i,wt_i,st_i)
               return(-1*Q_n(z)*(piece_1+piece_2))
             })(z_i,d_i,ds_i,t_i,wt_i,st_i,z)
             .cache[[key]] <- val
@@ -514,17 +513,49 @@ est_cox <- function(
         # y_ev <- t_ev
         # S_0n_ev <- sapply(y_ev, S_0n)
 
-        # res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
-        #   (1/N^2) * sum((
-        #     apply(dat_orig_df, 1, function(r) {
-        #
-        #       x_i <- as.numeric(r[1:dim_x])
-        #       s_i <- r[["s"]]
-        #       z_i <- r[["z"]] # d_i
-        #       dl_i <- r[["delta"]] # ds_i
-        #       y_i <- r[["y"]] # t_i
-        #       wt_i <- r[["weights"]]
-        #       st_i <- r[["strata"]]
+        # Pre-calculate Lambda_n(t_0)
+        Lambda_n_t_0 <- Lambda_n(t_0)
+
+        res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
+
+          # Precalculate pieces dependent on s
+          # !!!!! Maybe consolidate this code into one loop
+          K_n1 <- (1/N) * sum((apply(dat_orig_df, 1, function(r) {
+            x_i <- as.numeric(r[1:dim_x])
+            return(Q_n(c(x_i,s)))
+          })))
+          K_n2 <- (1/N) * sum((apply(dat_orig_df, 1, function(r) {
+            x_i <- as.numeric(r[1:dim_x])
+            return(Q_n(c(x_i,s)) * exp(sum(c(x_i,s)*beta_n)))
+          })))
+          K_n3 <- (1/N) * sum((apply(dat_orig_df, 1, function(r) {
+            x_i <- as.numeric(r[1:dim_x])
+            return(Q_n(c(x_i,s)) * exp(sum(c(x_i,s)*beta_n)) * c(x_i,s))
+          })))
+
+          (1/N^2) * sum((apply(dat_orig_df, 1, function(r) {
+
+              x_i <- as.numeric(r[1:dim_x])
+              s_i <- r[["s"]]
+              z_i <- r[["z"]] # d_i
+              dl_i <- r[["delta"]] # ds_i
+              y_i <- r[["y"]] # t_i
+              wt_i <- r[["weights"]]
+              st_i <- r[["strata"]]
+
+              pc_1 <- Q_n(c(x_i,s))
+              pc_2 <- Lambda_n_t_0 * sum(
+                K_n3 * infl_fn_beta(c(x_i,s_i),z_i,dl_i,y_i,wt_i,st_i)
+              )
+              pc_3 <- K_n2 * infl_fn_Lambda(z_i,z_i,dl_i,y_i,wt_i,st_i)
+              pc_4 <- K_n1
+
+              return((pc_1-pc_2-pc_3-pc_4)^2)
+
+          })))
+
+        }))
+
         #
         #       K_ni1 <- dl_i * In(y_i<=t_0) / S_0n(y_i)
         #       if (z_i==1) {
@@ -538,7 +569,7 @@ est_cox <- function(
         #       K_ni4 <- (1/N)*Reduce("+", lapply(i_ev, function(k) {
         #         ((WT[k]*In(T_[k]<=t_0))/S_0n(T_[k])) * m_n(T_[k])
         #       }))
-        #       K_ni5 <- lstar_tilde(c(x_i,s_i),z_i,dl_i,y_i,wt_i,st_i)
+        #       K_ni5 <- infl_fn_beta(c(x_i,s_i),z_i,dl_i,y_i,wt_i,st_i)
         #       K_ni6 <- K_ni1 - K_ni2 - sum(K_ni4*K_ni5)
         #
         #       return(Q_n(c(x_i,s)) +
@@ -546,9 +577,6 @@ est_cox <- function(
         #                K_ni3*sum(h_n3(s)*K_ni5) -
         #                h_n2(s))
         #
-        #     })
-        #   )^2)
-        # }))
 
         # res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
         #   (1/N^2) * sum((
