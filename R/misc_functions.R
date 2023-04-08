@@ -155,6 +155,8 @@ ss <- function(dat_orig, indices) {
 #' @param d Either dat_orig or dat
 #' @return Data frame version of data object
 #' @noRd
-as_df <- function(d) {
-  cbind(d$x, s=d$s, y=d$y, delta=d$delta, z=d$z, weights=d$weights)
+as_df <- function(d, strata=F) {
+  df <- cbind(d$x, s=d$s, y=d$y, delta=d$delta, z=d$z, weights=d$weights)
+  if (strata) { df$strata <- d$strata }
+  return(df)
 }

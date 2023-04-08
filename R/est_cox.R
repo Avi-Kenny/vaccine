@@ -363,9 +363,7 @@ est_cox <- function(
       # Survival estimator (at a point)
       Q_n <- (function() {
         Lambda_n_t_0 <- Lambda_n(t_0)
-        function(z) {
-          exp(-exp(sum(z*beta_n))*Lambda_n_t_0)
-        }
+        function(z) { exp(-exp(sum(z*beta_n))*Lambda_n_t_0) }
       })()
 
       # Influence function: Breslow estimator (est. weights)
@@ -487,25 +485,116 @@ est_cox <- function(
         })))
       }))
 
-      # if (verbose) { print(paste("Check 3d (var est START: marg):", Sys.time())) }
-      res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
-        # if (verbose) { print(paste0("Check 4d (point=",s,"): ", Sys.time())) }
-        # (1/N^2) * sum(unlist(pblapply(c(1:N), function(i) {
-        (1/N^2) * sum(unlist(lapply(c(1:N), function(i) { # !!!!! Not using parallelization or progress bar for now
-          (infl_fn_marg(
-            x_i = as.numeric(dat_orig$x[i,]),
-            s_i = dat_orig$s[i],
-            d_i = dat_orig$z[i],
-            ds_i = dat_orig$delta[i],
-            t_i = dat_orig$y[i],
-            wt_i = dat_orig$weights[i],
-            st_i = dat_orig$strata[i],
-            s = s
-          ))^2
-        # }, cl=cl)))
-        }))) # !!!!! Not using parallelization or progress bar for now
-      }))
-      # if (verbose) { print(paste("Check 5d (var est END: marg):", Sys.time())) }
+      # !!!!!! temp; for profiling
+      if (T) {
+
+        # if (verbose) { print(paste("Check 3d (var est START: marg):", Sys.time())) }
+        res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
+          # if (verbose) { print(paste0("Check 4d (point=",s,"): ", Sys.time())) }
+          # (1/N^2) * sum(unlist(pblapply(c(1:N), function(i) {
+          (1/N^2) * sum(unlist(lapply(c(1:N), function(i) { # !!!!! Not using parallelization or progress bar for now
+            (infl_fn_marg(
+              x_i = as.numeric(dat_orig$x[i,]),
+              s_i = dat_orig$s[i],
+              d_i = dat_orig$z[i],
+              ds_i = dat_orig$delta[i],
+              t_i = dat_orig$y[i],
+              wt_i = dat_orig$weights[i],
+              st_i = dat_orig$strata[i],
+              s = s
+            ))^2
+            # }, cl=cl)))
+          }))) # !!!!! Not using parallelization or progress bar for now
+        }))
+        # if (verbose) { print(paste("Check 5d (var est END: marg):", Sys.time())) }
+
+      } else {
+
+        # !!!!! Haven't finished debugging this section yet
+
+        dat_orig_df <- as_df(dat_orig, strata=T)
+        dim_x <- attr(dat_orig, "dim_x")
+        x_mtx <- dat_orig$x
+        x_mtx$s <- rep(NA, N)
+        x_mtx <- t(x_mtx)
+
+        # Memoise these?
+        h_n1 <- function(s) {
+          (1/N) * sum(apply(dat_orig$x, 1, function(x_j) {
+            exp(sum(c(as.numeric(x_j),s)*beta_n))
+          }))
+        }
+        h_n2 <- function(s) {
+          (1/N) * sum(apply(dat_orig$x, 1, function(x_j) {
+            Q_n(c(as.numeric(x_j),s))
+          }))
+        }
+        h_n3 <- function(s) {
+          x_mtx["s",] <- rep(0.33, N)
+          explin_j <- apply(dat_orig$x, 1, function(x_j) {
+            exp(sum(c(as.numeric(x_j),s)*beta_n))
+          })
+          return((1/N) * as.numeric(x_mtx %*% as.matrix(explin_j)))
+        }
+
+        wt_ev <- WT[i_ev]
+        y_ev <- t_ev
+        S_0n_ev <- sapply(y_ev, S_0n)
+
+        res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
+          (1/N^2) * sum((
+            apply(dat_orig_df, 1, function(r) {
+
+              x_i <- as.numeric(r[1:dim_x])
+              s_i <- r[["s"]]
+              z_i <- r[["z"]] # d_i
+              dl_i <- r[["delta"]] # ds_i
+              y_i <- r[["y"]] # t_i
+              wt_i <- r[["weights"]]
+              st_i <- r[["strata"]]
+
+              K_ni1 <- dl_i * In(y_i<=t_0) / S_0n(y_i)
+              if (z_i==1) {
+                K_ni2 <- (1/N) * sum((wt_ev*exp(
+                  sum(c(x_i,s_i)*beta_n) * In(y_ev<=t_0) * In(y_ev<=y_i)
+                )) / S_0n_ev^2)
+              } else {
+                K_ni2 <- 0 # !!!!! Check
+              }
+              K_ni3 <- (1/N) * sum((wt_ev*In(y_ev<=t_0))/S_0n_ev)
+              K_ni4 <- (1/N)*Reduce("+", lapply(i_ev, function(k) {
+                ((WT[k]*In(T_[k]<=t_0))/S_0n(T_[k])) * m_n(T_[k])
+              }))
+              K_ni5 <- lstar_tilde(c(x_i,s_i),z_i,dl_i,y_i,wt_i,st_i)
+              K_ni6 <- K_ni1 - K_ni2 - sum(K_ni4*K_ni5)
+
+              return(Q_n(c(x_i,s)) +
+                       K_ni6*h_n1(s) +
+                       K_ni3*sum(h_n3(s)*K_ni5) -
+                       h_n2(s))
+
+            })
+          )^2)
+        }))
+
+        # res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
+        #   (1/N^2) * sum((
+        #     apply(dat_orig_df, 1, function(r) {
+        #       infl_fn_marg(
+        #         x_i = as.numeric(r[1:dim_x]),
+        #         s_i = r[["s"]],
+        #         d_i = r[["z"]],
+        #         ds_i = r[["delta"]],
+        #         t_i = r[["y"]],
+        #         wt_i = r[["weights"]],
+        #         st_i = r[["strata"]],
+        #         s = s
+        #       )
+        #     })
+        #   )^2)
+        # }))
+
+      }
 
   }
 

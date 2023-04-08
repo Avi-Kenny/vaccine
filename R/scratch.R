@@ -15,6 +15,28 @@ if (F) {
   # res_cox <- est_cox(dat=dat, t_0=200, cve=F, s_out=s_out)
   ..count
 
+
+  n <- 16000
+  x1 <- rnorm(n)
+  x2 <- rnorm(n)
+  x3 <- rnorm(n)
+  beta1 <- runif(1)
+  beta2 <- runif(1)
+  beta3 <- runif(1)
+  lambda_t0 <- 2
+
+  Q_n <- function(x1,x2,x3,s) {
+    exp(-1*lambda_t0*exp(beta1*x1+beta2*x2+beta3*x3))
+  }
+
+  system.time({
+    mean(sapply(seq(0,1,0.01), function(s) {
+      mean(sapply(c(1:n), function(i) {
+        Q_n(x1[i],x2[i],x3[i],s)
+      }))
+    }))
+  })
+
   system.time({
     n <- 400
     ..count <- 0
