@@ -117,10 +117,11 @@ est_cox <- function(
   dat$v$s <- (dat$v$s+s_shift)*s_scale
   grid <- create_grid(dat$v, grid_size, t_0)
 
-  # Create spline basis
+  # Create spline basis and function
   dat$v$spl <- data.frame("s1"=dat$v$s)
   if (!is.na(spline_df) && spline_df!=1) {
 
+    # Create spline basis
     spl_basis <- splines::ns(
       x = dat$v$s,
       df = spline_df,
@@ -128,15 +129,26 @@ est_cox <- function(
       intercept = F,
       Boundary.knots = c(0,1)
     )
+    spl_knots <- as.numeric(attr(spl_basis, "knots"))
+    s_to_spl <- function(s) {
+      as.numeric(splines::ns(
+        x = s,
+        df = spline_df,
+        knots = spl_knots,
+        intercept = F,
+        Boundary.knots = c(0,1)
+      ))
+    }
+
     for (i in c(1:(dim(spl_basis)[2]))) {
       dat$v$spl[[paste0("s",i)]] <- spl_basis[,i]
     }
     dim_s <- dim(spl_basis)[2]
-    rm(spl_basis)
 
   } else {
 
     dim_s <- 1
+    s_to_spl <- function(s) { s }
 
   }
 
@@ -189,7 +201,7 @@ est_cox <- function(
     # weights = dat_v_ph2$weights * (length(dat_v_ph2$weights)/sum(dat_v_ph2$weights))
   )
   beta_n <- as.numeric(model$coefficients)
-  lin <- as.numeric(t(beta_n)%*%V_)
+  LIN <- as.numeric(t(beta_n)%*%V_)
 
   # Intermediate functions
   {
@@ -200,7 +212,7 @@ est_cox <- function(
         val <- .cache[[as.character(x)]]
         if (is.null(val)) {
           val <- (function(x) {
-            (1/N) * sum(WT*In(Y_>=x)*exp(lin))
+            (1/N) * sum(WT*In(Y_>=x)*exp(LIN))
           })(x)
           .cache[[as.character(x)]] <- val
         }
@@ -214,7 +226,7 @@ est_cox <- function(
         val <- .cache[[as.character(x)]]
         if (is.null(val)) {
           val <- (function(x) {
-            (1/N) * as.numeric(V_ %*% (WT*In(Y_>=x)*exp(lin)))
+            (1/N) * as.numeric(V_ %*% (WT*In(Y_>=x)*exp(LIN)))
           })(x)
           .cache[[as.character(x)]] <- val
         }
@@ -234,7 +246,7 @@ est_cox <- function(
                 if (!is.na(res[j,i])) {
                   res[i,j] <- res[j,i]
                 } else {
-                  res[i,j] <- (1/N)*sum(WT*In(Y_>=x)*V_[i,]*V_[j,]*exp(lin))
+                  res[i,j] <- (1/N)*sum(WT*In(Y_>=x)*V_[i,]*V_[j,]*exp(LIN))
                 }
               }
             }
@@ -416,7 +428,8 @@ est_cox <- function(
   res_cox$est_marg <- unlist(lapply(s_out, function(s) {
     (1/N) * sum((apply(dat$v$x, 1, function(r) {
       x_i <- as.numeric(r[1:dim_x])
-      exp(-1*exp(sum(beta_n*c(as.numeric(x_i),s)))*Lambda_n_t_0)
+      s_spl <- s_to_spl(s)
+      exp(-1*exp(sum(beta_n*c(x_i,s_spl)))*Lambda_n_t_0)
     })))
   }))
 
@@ -427,13 +440,14 @@ est_cox <- function(
   res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
 
     # Precalculate pieces dependent on s
+    s_spl <- s_to_spl(s)
     K_n <- (1/N) * Reduce("+", apply(dat_v_df, 1, function(r) {
       x_i <- as.numeric(r[1:dim_x])
-      Q <- Q_n(c(x_i,s))
-      explin <- exp(sum(c(x_i,s)*beta_n))
+      Q <- Q_n(c(x_i,s_spl))
+      explin <- exp(sum(c(x_i,s_spl)*beta_n))
       K_n1 <- Q
       K_n2 <- Q * explin
-      K_n3 <- Q * explin * c(x_i,s)
+      K_n3 <- Q * explin * c(x_i,s_spl)
       return(c(K_n1,K_n2,K_n3))
     }, simplify=F))
     K_n1 <- K_n[1]
@@ -443,14 +457,14 @@ est_cox <- function(
     (1/N^2) * sum((apply(dat_v_df, 1, function(r) {
 
       x_i <- as.numeric(r[1:dim_x])
-      s_i <- r[["s"]]
+      s_i <- s_to_spl(r[["s"]])
       z_i <- r[["z"]] # d_i
       d_i <- r[["delta"]] # ds_i
       y_i <- r[["y"]] # t_i
       wt_i <- r[["weights"]]
       st_i <- r[["strata"]]
 
-      pc_1 <- Q_n(c(x_i,s))
+      pc_1 <- Q_n(c(x_i,s_spl))
       pc_2 <- Lambda_n_t_0 * sum(
         K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
       )
