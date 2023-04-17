@@ -265,12 +265,6 @@ est_cox <- function(
   # !!!!!
   print("I_tilde_inv")
   print(I_tilde_inv)
-  print("beta_n")
-  print(beta_n)
-  print("lin")
-  print(lin)
-  print("l_star(c(1,1,1),1,50)")
-  print(l_star(c(1,1,1),1,50))
   print("l_tilde(c(1,1,1),1,50)")
   print(l_tilde(c(1,1,1),1,50))
 
