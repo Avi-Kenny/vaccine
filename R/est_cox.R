@@ -212,6 +212,14 @@ est_cox <- function(
 
       }
 
+      # !!!!!
+      print("S_0n(50)")
+      print(S_0n(50))
+      print("S_1n(50)")
+      print(S_1n(50))
+      print("S_2n(50)")
+      print(S_2n(50))
+
       # Create set of event times
       i_ev <- which(Ds_==1)
       t_ev <- T_[which(Ds_==1)]
