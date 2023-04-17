@@ -231,8 +231,11 @@ est_cox <- function(
   }
 
   # Estimated information matrix (for an individual)
+  h <- function(x) { (S_2n(x)/S_0n(x)) - m_n(x) %*% t(m_n(x)) }
   I_tilde <- Reduce("+", lapply(i_ev, function(i) {
-    WT[i] * (S_2n(Y_[i])/S_0n(Y_[i])) - m_n(Y_[i]) %*% t(m_n(Y_[i]))
+    WT[i] * (
+      (S_2n(Y_[i])/S_0n(Y_[i])) - m_n(Y_[i]) %*% t(m_n(Y_[i]))
+    )
   }))
   I_tilde <- (1/N)*I_tilde
   I_tilde_inv <- solve(I_tilde)
