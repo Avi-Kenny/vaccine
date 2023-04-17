@@ -247,12 +247,6 @@ est_cox <- function(
         }
       })()
 
-      # !!!!!
-      print("I_tilde_inv")
-      print(I_tilde_inv)
-      print("l_tilde(c(1,1,1),1,50)")
-      print(l_tilde(c(1,1,1),1,50))
-
       # Create p_n and p1_n vectors
       n_strata <- max(dat_orig$strata)
       p_n <- c()
