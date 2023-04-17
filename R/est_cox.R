@@ -56,8 +56,8 @@ est_cox <- function(
   # !!!!! Testing
   if (F) {
     # dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_200.rds"));
-    # dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_400.rds"));
-    dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_800.rds"));
+    dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_400.rds"));
+    # dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_800.rds"));
     class(dat)="dat_vaccine";
     attr(dat$v, "n_orig") <- length(dat$v$z)
     attr(dat$v, "dim_x") <- 2
@@ -457,7 +457,7 @@ est_cox <- function(
     (1/N^2) * sum((apply(dat_v_df, 1, function(r) {
 
       x_i <- as.numeric(r[1:dim_x])
-      s_i <- s_to_spl(r[["s"]])
+      if (!is.na(r[["s"]])) { s_i <- s_to_spl(r[["s"]]) }
       z_i <- r[["z"]] # d_i
       d_i <- r[["delta"]] # ds_i
       y_i <- r[["y"]] # t_i
