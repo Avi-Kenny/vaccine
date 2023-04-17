@@ -67,6 +67,25 @@ est_cox <- function(
     s_out=round(seq(0,1,0.02),2) # !!!!!
   }
 
+  # !!!!! Implement this eventually
+  # # Setup
+  # if (verbose) {
+  #   print(paste("Check 0 (start):", Sys.time()))
+  #   pbapply::pboptions(type="txt", char="#", txt.width=40, style=3)
+  # } else {
+  #   pbapply::pboptions(type="none")
+  # }
+  # if (parallel) {
+  #   n_cores <- parallel::detectCores() - 1
+  #   cl <- parallel::makeCluster(n_cores)
+  #   if (verbose) {
+  #     print(cl)
+  #   }
+  # } else {
+  #   cl <- NULL
+  # }
+
+
   if (class(dat)!="dat_vaccine") {
     stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",
                 "ad_data()."))
@@ -156,7 +175,7 @@ est_cox <- function(
 
   # Create set of event times
   i_ev <- which(D_==1)
-  t_ev <- Y_[which(D_==1)]
+  y_ev <- Y_[which(D_==1)]
 
   # Fit an IPS-weighted Cox model
   model <- survival::coxph(
@@ -231,7 +250,6 @@ est_cox <- function(
   }
 
   # Estimated information matrix (for an individual)
-  h <- function(x) { (S_2n(x)/S_0n(x)) - m_n(x) %*% t(m_n(x)) }
   I_tilde <- Reduce("+", lapply(i_ev, function(i) {
     WT[i] * (
       (S_2n(Y_[i])/S_0n(Y_[i])) - m_n(Y_[i]) %*% t(m_n(Y_[i]))
@@ -264,126 +282,107 @@ est_cox <- function(
     }
   })()
 
+  # Create p_n and p1_n vectors
+  n_strata <- max(dat$v$strata)
+  p_n <- c()
+  p1_n <- c()
+  for (c in c(1:n_strata)) {
+    p_n[c] <- mean(c==dat$v$strata)
+    p1_n[c] <- mean(c==dat$v$strata & dat$v$z==1)
+  }
 
+  # Influence function: beta_hat (est. weights)
+  infl_fn_beta <- (function() {
+    .cache <- new.env()
 
+    exp_terms <- list()
+    for (i in c(1:max(dat$v$strata))) {
+      js <- which(ST==i)
+      if (length(js)>0) {
+        exp_terms[[i]] <- (1/length(js)) * Reduce("+", lapply(js, function(j) {
+          l_tilde(V_[,j],D_[j],Y_[j])
+        }))
+      } else {
+        exp_terms[[i]] <- as.matrix(rep(0,dim_v)) # Avoid NAs in small samples
+      }
+    }
+
+    function(v_i,z_i,d_i,y_i,wt_i,st_i) { # z_i,d_i,ds_i,t_i,wt_i,st_i
+      key <- paste(c(v_i,z_i,d_i,y_i,wt_i,st_i), collapse=" ")
+      val <- .cache[[key]]
+      if (is.null(val)) {
+        val <- (function(v_i,z_i,d_i,y_i,wt_i,st_i) {
+
+          if (z_i) {
+            piece_1 <- wt_i*l_tilde(v_i,d_i,y_i)
+          } else {
+            piece_1 <- as.matrix(rep(0,dim_v))
+          }
+
+          if (p1_n[st_i]!=0) {
+            piece_2 <- (1 - (z_i*p_n[st_i])/p1_n[st_i]) * exp_terms[[st_i]]
+          } else {
+            piece_2 <- as.matrix(rep(0,dim_v)) # Avoid NAs in small samples
+          }
+
+          return(as.numeric(piece_1+piece_2))
+
+        })(v_i,z_i,d_i,y_i,wt_i,st_i)
+        .cache[[key]] <- val
+      }
+      return(val)
+    }
+  })()
+
+  # Nuisance constant: mu_n
+  mu_n <- (1/N) * as.numeric(Reduce("+", lapply(y_ev, function(y_j) {
+    (In(y_j<=t_0) * S_1n(y_j)) / (S_0n(y_j))^2
+  })))
+
+  # Nuisance function: v_n
+  v_n <- (function() {
+    .cache <- new.env()
+    function(st_i,z_i,y_j) { # st_i,d_i,t_j
+      key <- paste(c(st_i,z_i,y_j), collapse=" ")
+      val <- .cache[[key]]
+      if (is.null(val)) {
+        val <- (function(st_i,z_i,y_j) {
+          k_set <- which(ST==st_i)
+          if (length(k_set)>0) {
+            return(
+              (1/N) * (p1_n[st_i]-p_n[st_i]*z_i)/(p1_n[st_i])^2 * sum(
+                unlist(lapply(k_set, function(k) {
+                  In(Y_[k]>=y_j) * exp(sum(beta_n*V_[,k]))
+                }))
+              )
+            )
+          } else { return(0) }
+        })(st_i,z_i,y_j)
+        .cache[[key]] <- val
+      }
+      return(val)
+    }
+  })()
+
+  # Breslow estimator
+  Lambda_n <- function(t) {
+    (1/N) * sum(unlist(lapply(i_ev, function(i) {
+      In(Y_[i]<=t) / S_0n(Y_[i])
+    })))
+  }
+
+  # Survival estimator (at a point)
+  Q_n <- (function() {
+    Lambda_n_t_0 <- Lambda_n(t_0)
+    function(z) { exp(-exp(sum(z*beta_n))*Lambda_n_t_0) }
+  })()
 
 
 
   # Fit Cox model and compute variance
   {
 
-      # # Setup
-      # if (verbose) {
-      #   print(paste("Check 0 (start):", Sys.time()))
-      #   pbapply::pboptions(type="txt", char="#", txt.width=40, style=3)
-      # } else {
-      #   pbapply::pboptions(type="none")
-      # }
-      # if (parallel) {
-      #   n_cores <- parallel::detectCores() - 1
-      #   cl <- parallel::makeCluster(n_cores)
-      #   if (verbose) {
-      #     print(cl)
-      #   }
-      # } else {
-      #   cl <- NULL
-      # }
 
-
-
-
-      # Create p_n and p1_n vectors
-      n_strata <- max(dat$v$strata)
-      p_n <- c()
-      p1_n <- c()
-      for (c in c(1:n_strata)) {
-        p_n[c] <- mean(c==dat$v$strata)
-        p1_n[c] <- mean(c==dat$v$strata & dat$v$z==1)
-      }
-
-      # Influence function: beta_hat (est. weights)
-      infl_fn_beta <- (function() {
-        .cache <- new.env()
-
-        exp_terms <- list()
-        for (i in c(1:max(dat$v$strata))) {
-          js <- which(ST==i)
-          if (length(js)>0) {
-            exp_terms[[i]] <- (1/length(js)) * Reduce("+", lapply(js, function(j) {
-              l_tilde(V_[,j],D_[j],Y_[j])
-            }))
-          } else {
-            exp_terms[[i]] <- as.matrix(rep(0,dim_v)) # Avoid NAs in small samples
-          }
-        }
-
-        function(z_i,d_i,ds_i,t_i,wt_i,st_i) {
-          key <- paste(c(z_i,d_i,ds_i,t_i,wt_i,st_i), collapse=" ")
-          val <- .cache[[key]]
-          if (is.null(val)) {
-            val <- (function(z_i,d_i,ds_i,t_i,wt_i,st_i) {
-              if (d_i) {
-                piece_1 <- wt_i*l_tilde(z_i,ds_i,t_i)
-              } else {
-                piece_1 <- as.matrix(rep(0,dim_v))
-              }
-
-              if (p1_n[st_i]!=0) {
-                piece_2 <- (1 - (d_i*p_n[st_i])/p1_n[st_i]) * exp_terms[[st_i]]
-              } else {
-                piece_2 <- as.matrix(rep(0,dim_v)) # Avoid NAs in small samples
-              }
-
-              return(as.numeric(piece_1+piece_2))
-            })(z_i,d_i,ds_i,t_i,wt_i,st_i)
-            .cache[[key]] <- val
-          }
-          return(val)
-        }
-      })()
-
-      # Nuisance constant: mu_n
-      mu_n <- (1/N) * as.numeric(Reduce("+", lapply(t_ev, function(t_j) {
-        (In(t_j<=t_0) * S_1n(t_j)) / (S_0n(t_j))^2
-      })))
-
-      # Nuisance function: v_n
-      v_n <- (function() {
-        .cache <- new.env()
-        function(st_i,d_i,t_j) {
-          key <- paste(c(st_i,d_i,t_j), collapse=" ")
-          val <- .cache[[key]]
-          if (is.null(val)) {
-            val <- (function(st_i,d_i,t_j) {
-              k_set <- which(ST==st_i)
-              if (length(k_set)>0) {
-                return(
-                  (1/N) * (p1_n[st_i]-p_n[st_i]*d_i)/(p1_n[st_i])^2 * sum(
-                    unlist(lapply(k_set, function(k) {
-                      In(Y_[k]>=t_j) * exp(sum(beta_n*V_[,k]))
-                    }))
-                  )
-                )
-              } else { return(0) }
-            })(st_i,d_i,t_j)
-            .cache[[key]] <- val
-          }
-          return(val)
-        }
-      })()
-
-      # Breslow estimator
-      Lambda_n <- function(t) {
-        (1/N) * sum(unlist(lapply(i_ev, function(i) {
-          In(Y_[i]<=t) / S_0n(Y_[i])
-        })))
-      }
-
-      # Survival estimator (at a point)
-      Q_n <- (function() {
-        Lambda_n_t_0 <- Lambda_n(t_0)
-        function(z) { exp(-exp(sum(z*beta_n))*Lambda_n_t_0) }
-      })()
 
       # Influence function: Breslow estimator (est. weights)
       infl_fn_Lambda <- (function() {
@@ -393,14 +392,14 @@ est_cox <- function(
           val <- .cache[[key]]
           if (is.null(val)) {
             val <- (function(z_i,d_i,ds_i,t_i,wt_i,st_i) {
-              pc_4 <- (1/N) * sum(unlist(lapply(t_ev, function(t_j) {
+              pc_4 <- (1/N) * sum(unlist(lapply(y_ev, function(t_j) {
                 ( In(t_j<=t_0) * v_n(st_i,d_i,t_j) ) / (S_0n(t_j))^2
               })))
               pc_5 <- sum(mu_n*infl_fn_beta(z_i,d_i,ds_i,t_i,wt_i,st_i))
 
               if (d_i==1) {
                 pc_1 <- ( ds_i * In(t_i<=t_0) ) / S_0n(t_i)
-                pc_3 <- (1/N) * sum(unlist(lapply(t_ev, function(t_j) {
+                pc_3 <- (1/N) * sum(unlist(lapply(y_ev, function(t_j) {
                   (In(t_j<=t_0)*wt_i*In(t_i>=t_j)*exp(sum(beta_n*z_i))) /
                     (S_0n(t_j))^2
                 })))
