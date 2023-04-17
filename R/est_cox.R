@@ -212,14 +212,6 @@ est_cox <- function(
 
       }
 
-      # !!!!!
-      print("S_0n(50)")
-      print(S_0n(50))
-      print("S_1n(50)")
-      print(S_1n(50))
-      print("S_2n(50)")
-      print(S_2n(50))
-
       # Create set of event times
       i_ev <- which(Ds_==1)
       t_ev <- T_[which(Ds_==1)]
@@ -254,6 +246,18 @@ est_cox <- function(
           return(val)
         }
       })()
+
+      # !!!!!
+      print("I_tilde_inv")
+      print(I_tilde_inv)
+      print("beta_n")
+      print(beta_n)
+      print("lin")
+      print(lin)
+      print("l_star(c(1,1,1),1,50)")
+      print(l_star(c(1,1,1),1,50))
+      print("l_tilde(c(1,1,1),1,50)")
+      print(l_tilde(c(1,1,1),1,50))
 
       # Create p_n and p1_n vectors
       n_strata <- max(dat_orig$strata)
