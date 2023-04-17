@@ -172,6 +172,7 @@ est_cox <- function(
   Y_ <- dat_v_ph2$y
   D_ <- dat_v_ph2$delta
   dim_v <- dim(V_)[1]
+  dim_x <- attr(dat$v, "dim_x")
 
   # Create set of event times
   i_ev <- which(D_==1)
@@ -377,183 +378,92 @@ est_cox <- function(
     function(z) { exp(-exp(sum(z*beta_n))*Lambda_n_t_0) }
   })()
 
+  # Influence function: Breslow estimator (est. weights)
+  infl_fn_Lambda <- (function() {
+    .cache <- new.env()
+    function(v_i,z_i,d_i,y_i,wt_i,st_i) { # z_i,d_i,ds_i,t_i,wt_i,st_i
+      key <- paste(c(v_i,z_i,d_i,y_i,wt_i,st_i), collapse=" ")
+      val <- .cache[[key]]
+      if (is.null(val)) {
+        val <- (function(v_i,z_i,d_i,y_i,wt_i,st_i) {
+          pc_4 <- (1/N) * sum(unlist(lapply(y_ev, function(y_j) {
+            ( In(y_j<=t_0) * v_n(st_i,z_i,y_j) ) / (S_0n(y_j))^2
+          })))
+          pc_5 <- sum(mu_n*infl_fn_beta(v_i,z_i,d_i,y_i,wt_i,st_i))
 
-
-  # Fit Cox model and compute variance
-  {
-
-
-
-      # Influence function: Breslow estimator (est. weights)
-      infl_fn_Lambda <- (function() {
-        .cache <- new.env()
-        function(z_i,d_i,ds_i,t_i,wt_i,st_i) {
-          key <- paste(c(z_i,d_i,ds_i,t_i,wt_i,st_i), collapse=" ")
-          val <- .cache[[key]]
-          if (is.null(val)) {
-            val <- (function(z_i,d_i,ds_i,t_i,wt_i,st_i) {
-              pc_4 <- (1/N) * sum(unlist(lapply(y_ev, function(t_j) {
-                ( In(t_j<=t_0) * v_n(st_i,d_i,t_j) ) / (S_0n(t_j))^2
-              })))
-              pc_5 <- sum(mu_n*infl_fn_beta(z_i,d_i,ds_i,t_i,wt_i,st_i))
-
-              if (d_i==1) {
-                pc_1 <- ( ds_i * In(t_i<=t_0) ) / S_0n(t_i)
-                pc_3 <- (1/N) * sum(unlist(lapply(y_ev, function(t_j) {
-                  (In(t_j<=t_0)*wt_i*In(t_i>=t_j)*exp(sum(beta_n*z_i))) /
-                    (S_0n(t_j))^2
-                })))
-                return(pc_1-pc_3-pc_4-pc_5)
-              } else {
-                return(-1*(pc_4+pc_5))
-              }
-            })(z_i,d_i,ds_i,t_i,wt_i,st_i)
-            .cache[[key]] <- val
+          if (z_i==1) {
+            pc_1 <- ( d_i * In(y_i<=t_0) ) / S_0n(y_i)
+            pc_3 <- (1/N) * sum(unlist(lapply(y_ev, function(y_j) {
+              (In(y_j<=t_0)*wt_i*In(y_i>=y_j)*exp(sum(beta_n*v_i))) /
+                (S_0n(y_j))^2
+            })))
+            return(pc_1-pc_3-pc_4-pc_5)
+          } else {
+            return(-1*(pc_4+pc_5))
           }
-          return(val)
-        }
-      })()
+        })(v_i,z_i,d_i,y_i,wt_i,st_i)
+        .cache[[key]] <- val
+      }
+      return(val)
+    }
+  })()
 
-      # memoise2 <- function(fnc) {
-      #
-      #   htab <- new.env()
-      #   ..new_fnc <- function() {
-      #     ..e <- parent.env(environment())
-      #     ..mc <- lapply(as.list(match.call())[-1L], eval, parent.frame())
-      #     key <- rlang::hash(..mc)
-      #     val <- ..e$htab[[key]]
-      #     if (is.null(val)) {
-      #       val <- do.call(..e$fnc, ..mc)
-      #       ..e$htab[[key]] <- val
-      #     }
-      #     return(val)
-      #   }
-      #
-      #   # Set formals and set up environment
-      #   formals(..new_fnc) <- formals(fnc)
-      #   f_env <- new.env(parent=environment(fnc))
-      #   f_env$arg_names <- names(formals(fnc))
-      #   f_env$htab <- htab
-      #   f_env$fnc <- fnc
-      #   environment(..new_fnc) <- f_env
-      #
-      #   return(..new_fnc)
-      #
-      # }
+  # if (verbose) { print(paste("Check 2 (functions declared):", Sys.time())) }
 
-      # # Influence function: survival at a point (est. weights)
-      # omega_n <- (function() {
-      #   .cache <- new.env()
-      #   function(z_i,d_i,ds_i,t_i,wt_i,st_i,z) {
-      #     # ..count <<- ..count+1 # !!!!!
-      #     # ..mc <- lapply(as.list(match.call())[-1L], eval, parent.frame()) # !!!!!
-      #     # key <- rlang::hash(..mc) # !!!!!
-      #     key <- paste(c(z_i,d_i,ds_i,t_i,wt_i,st_i,z), collapse=" ")
-      #     val <- .cache[[key]]
-      #     if (is.null(val)) {
-      #       val <- (function(z_i,d_i,ds_i,t_i,wt_i,st_i,z) {
-      #         explin <- exp(sum(z*beta_n))
-      #         piece_1 <- Lambda_n(t_0) * explin *
-      #           (t(z)%*%infl_fn_beta(z_i,d_i,ds_i,t_i,wt_i,st_i))[1]
-      #         piece_2 <- explin * infl_fn_Lambda(z_i,d_i,ds_i,t_i,wt_i,st_i)
-      #         return(-1*Q_n(z)*(piece_1+piece_2))
-      #       })(z_i,d_i,ds_i,t_i,wt_i,st_i,z)
-      #       .cache[[key]] <- val
-      #     }
-      #     return(val)
-      #   }
-      # })()
+  # Compute marginalized risk
+  res_cox <- list()
+  Lambda_n_t_0 <- Lambda_n(t_0)
+  res_cox$est_marg <- unlist(lapply(s_out, function(s) {
+    (1/N) * sum((apply(dat$v$x, 1, function(r) {
+      x_i <- as.numeric(r[1:dim_x])
+      exp(-1*exp(sum(beta_n*c(as.numeric(x_i),s)))*Lambda_n_t_0)
+    })))
+  }))
 
-      # # Influence function: marginalized survival (est. weights)
-      # infl_fn_marg <- (function() {
-      #   .cache <- new.env()
-      #   x_ <- as.list(as.data.frame(t(dat$v$x)))
-      #   function(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s) {
-      #     key <- paste(c(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s), collapse=" ")
-      #     val <- .cache[[key]]
-      #     if (is.null(val)) {
-      #       val <- (function(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s) {
-      #         piece_1 <- Q_n(c(x_i,s))
-      #         piece_2 <- (1/N) * sum(unlist(lapply(c(1:N), function(j) {
-      #           x_j <- x_[[j]]
-      #           omgn <- omega_n(c(x_i,s_i),d_i,ds_i,t_i,wt_i,st_i,c(x_j,s))
-      #           return(omgn-Q_n(c(x_j,s)))
-      #         })))
-      #         return(piece_1+piece_2)
-      #       })(x_i,s_i,d_i,ds_i,t_i,wt_i,st_i,s)
-      #       .cache[[key]] <- val
-      #     }
-      #     return(val)
-      #   }
-      # })()
+  # if (verbose) { print(paste("Check 3d (var est START: marg):", Sys.time())) }
 
-      # if (verbose) { print(paste("Check 2 (functions declared):", Sys.time())) }
+  # Compute variance estimate
+  dat_v_df <- as_df(dat$v, strata=T)
+  res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
 
-      # !!!! basehaz vs. Lambda_hat
-      res_cox <- list()
-      # res_cox <- list(model=model, beta_n=beta_n)
-      dim_x <- attr(dat$v, "dim_x")
-      bh <- survival::basehaz(model, centered=FALSE)
-      index <- max(which((bh$time<t_0)==T))
-      est_bshz <- bh$hazard[index]
-      N <- sum(dat$v$weights)
-      res_cox$est_marg <- unlist(lapply(s_out, function(s) {
-        (1/N) * sum((apply(dat$v$x, 1, function(r) {
-          x_i <- as.numeric(r[1:dim_x])
-          exp(-1*exp(sum(beta_n*c(as.numeric(x_i),s)))*est_bshz)
-        })))
-      }))
+    # Precalculate pieces dependent on s
+    K_n <- (1/N) * Reduce("+", apply(dat_v_df, 1, function(r) {
+      x_i <- as.numeric(r[1:dim_x])
+      Q <- Q_n(c(x_i,s))
+      explin <- exp(sum(c(x_i,s)*beta_n))
+      K_n1 <- Q
+      K_n2 <- Q * explin
+      K_n3 <- Q * explin * c(x_i,s)
+      return(c(K_n1,K_n2,K_n3))
+    }, simplify=F))
+    K_n1 <- K_n[1]
+    K_n2 <- K_n[2]
+    K_n3 <- K_n[3:length(K_n)]
 
-      # if (verbose) { print(paste("Check 3d (var est START: marg):", Sys.time())) }
-      dat_v_df <- as_df(dat$v, strata=T)
+    (1/N^2) * sum((apply(dat_v_df, 1, function(r) {
 
-      # Pre-calculate Lambda_n(t_0)
-      Lambda_n_t_0 <- Lambda_n(t_0)
+      x_i <- as.numeric(r[1:dim_x])
+      s_i <- r[["s"]]
+      z_i <- r[["z"]] # d_i
+      d_i <- r[["delta"]] # ds_i
+      y_i <- r[["y"]] # t_i
+      wt_i <- r[["weights"]]
+      st_i <- r[["strata"]]
 
-      # Calculate variance
-      # !!!!! Not using parallelization or progress bar for now
-      res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
-      # if (verbose) { print(paste0("Check 4d (point=",s,"): ", Sys.time())) }
+      pc_1 <- Q_n(c(x_i,s))
+      pc_2 <- Lambda_n_t_0 * sum(
+        K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+      )
+      pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+      pc_4 <- K_n1
 
-        # Precalculate pieces dependent on s
-        K_n <- (1/N) * Reduce("+", apply(dat_v_df, 1, function(r) {
-          x_i <- as.numeric(r[1:dim_x])
-          Q <- Q_n(c(x_i,s))
-          explin <- exp(sum(c(x_i,s)*beta_n))
-          K_n1 <- Q
-          K_n2 <- Q * explin
-          K_n3 <- Q * explin * c(x_i,s)
-          return(c(K_n1,K_n2,K_n3))
-        }, simplify=F))
-        K_n1 <- K_n[1]
-        K_n2 <- K_n[2]
-        K_n3 <- K_n[3:length(K_n)]
+      return((pc_1-pc_2-pc_3-pc_4)^2)
 
-        (1/N^2) * sum((apply(dat_v_df, 1, function(r) {
+    })))
 
-          x_i <- as.numeric(r[1:dim_x])
-          s_i <- r[["s"]]
-          z_i <- r[["z"]] # d_i
-          dl_i <- r[["delta"]] # ds_i
-          y_i <- r[["y"]] # t_i
-          wt_i <- r[["weights"]]
-          st_i <- r[["strata"]]
+  }))
 
-          pc_1 <- Q_n(c(x_i,s))
-          pc_2 <- Lambda_n_t_0 * sum(
-            K_n3 * infl_fn_beta(c(x_i,s_i),z_i,dl_i,y_i,wt_i,st_i)
-          )
-          pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,dl_i,y_i,wt_i,st_i)
-          pc_4 <- K_n1
-
-          return((pc_1-pc_2-pc_3-pc_4)^2)
-
-        })))
-
-      }))
-      # if (verbose) { print(paste("Check 5d (var est END: marg):", Sys.time())) }
-
-  }
+  # if (verbose) { print(paste("Check 5d (var est END: marg):", Sys.time())) }
 
   # Extract estimates and SEs
   ests <- 1-res_cox$est_marg
