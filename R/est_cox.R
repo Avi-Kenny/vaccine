@@ -230,6 +230,15 @@ est_cox <- function(
 
   }
 
+  # !!!!!
+  print("S_0n(50)")
+  print(S_0n(50))
+  print("S_1n(50)")
+  print(S_1n(50))
+  print("S_2n(50)")
+  print(S_2n(50))
+
+
   # Estimated information matrix (for an individual)
   I_tilde <- Reduce("+", lapply(i_ev, function(i) {
     WT[i] * (S_2n(Y_[i])/S_0n(Y_[i])) - m_n(Y_[i]) %*% t(m_n(Y_[i]))
