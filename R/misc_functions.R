@@ -141,6 +141,9 @@ ss <- function(dat_orig, indices) {
     z = dat_orig$z[i]
     # strata = dat_orig$strata[i] # !!!!!
   )
+  if (!is.null(dat_orig$spl)) {
+    dat$spl <- dat_orig$spl[i,, drop=F]
+  }
   attr(dat, "n_orig") <- attr(dat_orig, "n_orig")
   attr(dat, "dim_x") <- attr(dat_orig, "dim_x")
 
