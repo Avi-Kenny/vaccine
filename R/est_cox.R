@@ -62,7 +62,7 @@ est_cox <- function(
     attr(dat$v, "n_orig") <- length(dat$v$z)
     attr(dat$v, "dim_x") <- 2
     t_0=200; cve=T; cr=T; s_out=round(seq(0,1,0.02),2); ci_type="logit";
-    grid_size=list(y=101, s=101, x=5); return_extras=F; verbose=F;
+    grid_size=list(y=101, s=101, x=5); return_extras=F; verbose=F; spline_df=4;
     source("R/misc_functions.R");
     s_out=round(seq(0,1,0.02),2) # !!!!!
   }
@@ -441,7 +441,7 @@ est_cox <- function(
 
     # Precalculate pieces dependent on s
     s_spl <- s_to_spl(s)
-    K_n <- (1/N) * Reduce("+", apply(dat_v_df, 1, function(r) {
+    K_n <- (1/N) * Reduce("+", apply2(dat_v_df, 1, function(r) {
       x_i <- as.numeric(r[1:dim_x])
       Q <- Q_n(c(x_i,s_spl))
       explin <- exp(sum(c(x_i,s_spl)*beta_n))
