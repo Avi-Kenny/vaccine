@@ -28,7 +28,7 @@
 #' print("to do")
 #' @export
 load_data <- function(
-  time, event, marker, covariates, weights, ph2
+  time, event, vacc, marker, covariates, weights, ph2
 ) {
 
   # !!!!! Add strata; this should be converted to an integer such that unique strata are numbered 1:(# strata)
