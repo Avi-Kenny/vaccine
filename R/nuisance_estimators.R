@@ -39,8 +39,8 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       if (t==0) {
         return(1)
       } else {
-        Lambda_t <- bh_srv$hazard[which.min(abs(bh_srv$time-t))]
-        # Lambda_t <- bh_srv$hazard[max(which((bh_srv$time<t)==T))]
+        # Lambda_t <- bh_srv$hazard[which.min(abs(bh_srv$time-t))]
+        Lambda_t <- bh_srv$hazard[max(which((bh_srv$time<t)==T))]
         return(exp(-1*Lambda_t*exp(sum(coeffs_srv*as.numeric(c(x,s))))))
       }
     }
@@ -49,8 +49,8 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       if (t==0) {
         return(1)
       } else {
-        Lambda_t <- bh_cens$hazard[which.min(abs(bh_cens$time-t))]
-        # Lambda_t <- bh_cens$hazard[max(which((bh_cens$time<t)==T))]
+        # Lambda_t <- bh_cens$hazard[which.min(abs(bh_cens$time-t))]
+        Lambda_t <- bh_cens$hazard[max(which((bh_cens$time<t)==T))]
         return(exp(-1*Lambda_t*exp(sum(coeffs_cens*as.numeric(c(x,s))))))
       }
     }
@@ -60,95 +60,95 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 
   }
 
-  # if (type %in% c("Cox SL", "Super Learner")) {
-  #   if (type=="Cox SL") {
-  #     methods <- c("survSL.coxph")
-  #   } else if (type=="Super Learner") {
-  #     # Excluding "survSL.rfsrc" for now. survSL.pchSL gives errors.
-  #     methods <- c("survSL.coxph", "survSL.expreg", "survSL.km",
-  #                  "survSL.loglogreg", "survSL.pchreg", "survSL.weibreg")
-  #     # methods <- c("survSL.km", "survSL.pchreg", "survSL.rfsrc") # !!!!!
-  #   }
-  #
-  #   newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
-  #   new.times <- unique(vals$t)
-  #   srv <- survSuperLearner::survSuperLearner(
-  #     time = dat$y,
-  #     event = dat$delta,
-  #     X = cbind(dat$x, s=dat$s),
-  #     newX = newX,
-  #     new.times = new.times,
-  #     event.SL.library = methods,
-  #     cens.SL.library = methods,
-  #     obsWeights = dat$weights,
-  #     control = list(initWeightAlg=methods[1], max.SL.iter=10)
-  #   )
-  #
-  #   if (print_coeffs && type=="Super Learner") {
-  #     cat("\n------------------------------\n")
-  #     cat("SuperLearner algorithm weights\n")
-  #     cat("------------------------------\n\n")
-  #     cat("event.coef\n")
-  #     cat("----------\n")
-  #     print(sort(srv$event.coef, decr=T))
-  #     cat("\ncens.coef\n")
-  #     cat("---------\n")
-  #     print(sort(srv$cens.coef, decr=T))
-  #     cat("\n------------------------------\n")
-  #   }
-  #
-  #   srv_pred <- srv$event.SL.predict
-  #   cens_pred <- srv$cens.SL.predict
-  #   rm(srv)
-  #
-  #   # !!!!! Later consolidate these via a wrapper/constructor function
-  #   fnc_srv <- function(t, x, s) {
-  #     r <- list()
-  #     for (i in 1:length(x)) {
-  #       r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
-  #     }
-  #     if (class(newX[["s"]][1])=="factor") {
-  #       r[[length(x)+1]] <- which(s==newX[["s"]])
-  #     } else {
-  #       r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
-  #     }
-  #     row <- Reduce(intersect, r)
-  #     col <- which.min(abs(t-new.times))
-  #     if (length(row)!=1) {
-  #       stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
-  #                   paste(x,collapse=","),"),s=",s,""))
-  #     }
-  #     if (length(col)!=1) {
-  #       stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
-  #                   paste(x,collapse=","),"),s=",s,""))
-  #     }
-  #     return(srv_pred[row,col])
-  #   }
-  #
-  #   fnc_cens <- function(t, x, s) {
-  #     r <- list()
-  #     for (i in 1:length(x)) {
-  #       r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
-  #     }
-  #     if (class(newX[["s"]][1])=="factor") {
-  #       r[[length(x)+1]] <- which(s==newX[["s"]])
-  #     } else {
-  #       r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
-  #     }
-  #     row <- Reduce(intersect, r)
-  #     col <- which.min(abs(t-new.times))
-  #     if (length(row)!=1) {
-  #       stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
-  #                   paste(x,collapse=","),"),s=",s,""))
-  #     }
-  #     if (length(col)!=1) {
-  #       stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
-  #                   paste(x,collapse=","),"),s=",s,""))
-  #     }
-  #     return(cens_pred[row,col])
-  #   }
-  #
-  # }
+  if (type %in% c("Cox SL", "Super Learner")) {
+    if (type=="Cox SL") {
+      methods <- c("survSL.coxph")
+    } else if (type=="Super Learner") {
+      # Excluding "survSL.rfsrc" for now. survSL.pchSL gives errors.
+      methods <- c("survSL.coxph", "survSL.expreg", "survSL.km",
+                   "survSL.loglogreg", "survSL.pchreg", "survSL.weibreg")
+      # methods <- c("survSL.km", "survSL.pchreg", "survSL.rfsrc") # !!!!!
+    }
+
+    newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
+    new.times <- unique(vals$t)
+    srv <- survSuperLearner::survSuperLearner(
+      time = dat$y,
+      event = dat$delta,
+      X = cbind(dat$x, s=dat$s),
+      newX = newX,
+      new.times = new.times,
+      event.SL.library = methods,
+      cens.SL.library = methods,
+      obsWeights = dat$weights,
+      control = list(initWeightAlg=methods[1], max.SL.iter=10)
+    )
+
+    if (print_coeffs && type=="Super Learner") {
+      cat("\n------------------------------\n")
+      cat("SuperLearner algorithm weights\n")
+      cat("------------------------------\n\n")
+      cat("event.coef\n")
+      cat("----------\n")
+      print(sort(srv$event.coef, decr=T))
+      cat("\ncens.coef\n")
+      cat("---------\n")
+      print(sort(srv$cens.coef, decr=T))
+      cat("\n------------------------------\n")
+    }
+
+    srv_pred <- srv$event.SL.predict
+    cens_pred <- srv$cens.SL.predict
+    rm(srv)
+
+    # !!!!! Later consolidate these via a wrapper/constructor function
+    fnc_srv <- function(t, x, s) {
+      r <- list()
+      for (i in 1:length(x)) {
+        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
+      }
+      if (class(newX[["s"]][1])=="factor") {
+        r[[length(x)+1]] <- which(s==newX[["s"]])
+      } else {
+        r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
+      }
+      row <- Reduce(intersect, r)
+      col <- which.min(abs(t-new.times))
+      if (length(row)!=1) {
+        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
+                    paste(x,collapse=","),"),s=",s,""))
+      }
+      if (length(col)!=1) {
+        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
+                    paste(x,collapse=","),"),s=",s,""))
+      }
+      return(srv_pred[row,col])
+    }
+
+    fnc_cens <- function(t, x, s) {
+      r <- list()
+      for (i in 1:length(x)) {
+        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
+      }
+      if (class(newX[["s"]][1])=="factor") {
+        r[[length(x)+1]] <- which(s==newX[["s"]])
+      } else {
+        r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
+      }
+      row <- Reduce(intersect, r)
+      col <- which.min(abs(t-new.times))
+      if (length(row)!=1) {
+        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
+                    paste(x,collapse=","),"),s=",s,""))
+      }
+      if (length(col)!=1) {
+        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
+                    paste(x,collapse=","),"),s=",s,""))
+      }
+      return(cens_pred[row,col])
+    }
+
+  }
 
   # if (type=="survML") {
   #
@@ -502,8 +502,12 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       })
 
       # Set up weighted likelihood
+      dat_df <- as_df(dat)
+      dim_x <- attr(dat, "dim_x")
       wlik <- function(prm) {
-        -1 * sum(dat$weights * log(pmax(dens_s(s=dat$s, x=dat$x, prm),1e-8)))
+        -1 * sum(dat$weights * log(pmax(apply(dat_df, 1, function(r) {
+          dens_s(s=r[["s"]], x=as.numeric(r[1:dim_x]), prm)
+        }),1e-8)))
       }
 
       # Run optimizer
@@ -847,7 +851,7 @@ construct_g_sn <- function(dat, f_n_srv, g_n, p_n) {
     num <- f_n_srv(y, delta, x, 0) * g_n(s=0,x) * (1-p_n)
     den <- (1/n_orig) * sum(
       dat$weights * apply(dat_df, 1, function(r) {
-        f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
+        f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x) # !!!!! Can this be replaced with sapply ?????
       })
     )
     if (den==0) { return(0) } else { return(num/den) }

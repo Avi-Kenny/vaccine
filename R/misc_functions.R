@@ -17,6 +17,20 @@ In <- as.integer
 
 
 
+#' Helper function for debugging; prints timestamps
+#'
+#' @noRd
+chk <- function(num, msg="") {
+  if (msg=="") {
+    str <- paste0("Check ", num, ": ", Sys.time())
+  } else {
+    str <- paste0("Check ", num, " (", msg, "): ", Sys.time())
+  }
+  print(str)
+}
+
+
+
 #' Memoise a function
 #'
 #' @param fnc A function to be memoised
@@ -107,9 +121,9 @@ round_dat <- function(dat_orig, grid, grid_size) {
 
   # Round `x`
   for (i in c(1:length(d$x))) {
-    x_col <- d$x[i,]
+    x_col <- d$x[,i]
     if (length(unique(x_col))>grid_size$x) {
-      d$x[i,] <- sapply(x_col, function(x) {
+      d$x[,i] <- sapply(x_col, function(x) {
         grid$x[[i]][which.min(abs(grid$x[[i]]-x))]
       })
     }
@@ -141,6 +155,9 @@ ss <- function(dat_orig, indices) {
     z = dat_orig$z[i]
     # strata = dat_orig$strata[i] # !!!!!
   )
+  if (!is.null(dat_orig$spl)) {
+    dat$spl <- dat_orig$spl[i,, drop=F]
+  }
   attr(dat, "n_orig") <- attr(dat_orig, "n_orig")
   attr(dat, "dim_x") <- attr(dat_orig, "dim_x")
 
@@ -155,6 +172,104 @@ ss <- function(dat_orig, indices) {
 #' @param d Either dat_orig or dat
 #' @return Data frame version of data object
 #' @noRd
-as_df <- function(d) {
-  cbind(d$x, s=d$s, y=d$y, delta=d$delta, z=d$z, weights=d$weights)
+as_df <- function(d, strata=F) {
+  df <- cbind(d$x, s=d$s, y=d$y, delta=d$delta, z=d$z, weights=d$weights)
+  if (strata) { df$strata <- d$strata }
+  return(df)
+}
+
+
+
+#' Copy of apply function
+#'
+#' @noRd
+apply2 <- function (X, MARGIN, FUN, ..., simplify=TRUE) {
+  FUN <- match.fun(FUN)
+  simplify <- isTRUE(simplify)
+  dl <- length(dim(X))
+  if (!dl)
+    stop("dim(X) must have a positive length")
+  if (is.object(X))
+    X <- if (dl == 2L)
+      as.matrix(X)
+  else as.array(X)
+  d <- dim(X)
+  dn <- dimnames(X)
+  ds <- seq_len(dl)
+  if (is.character(MARGIN)) {
+    if (is.null(dnn <- names(dn)))
+      stop("'X' must have named dimnames")
+    MARGIN <- match(MARGIN, dnn)
+    if (anyNA(MARGIN))
+      stop("not all elements of 'MARGIN' are names of dimensions")
+  }
+  d.call <- d[-MARGIN]
+  d.ans <- d[MARGIN]
+  if (anyNA(d.call) || anyNA(d.ans))
+    stop("'MARGIN' does not match dim(X)")
+  s.call <- ds[-MARGIN]
+  s.ans <- ds[MARGIN]
+  dn.call <- dn[-MARGIN]
+  dn.ans <- dn[MARGIN]
+  d2 <- prod(d.ans)
+  if (d2 == 0L) {
+    newX <- array(vector(typeof(X), 1L), dim = c(prod(d.call),
+                                                 1L))
+    ans <- forceAndCall(1, FUN, if (length(d.call) < 2L) newX[,
+                                                              1] else array(newX[, 1L], d.call, dn.call), ...)
+    return(if (is.null(ans)) ans else if (length(d.ans) <
+                                          2L) ans[1L][-1L] else array(ans, d.ans, dn.ans))
+  }
+  newX <- aperm(X, c(s.call, s.ans))
+  dim(newX) <- c(prod(d.call), d2)
+  ans <- vector("list", d2)
+  if (length(d.call) < 2L) {
+    if (length(dn.call))
+      dimnames(newX) <- c(dn.call, list(NULL))
+    for (i in 1L:d2) {
+      tmp <- forceAndCall(1, FUN, newX[, i], ...)
+      if (!is.null(tmp))
+        ans[[i]] <- tmp
+    }
+  }
+  else for (i in 1L:d2) {
+    tmp <- forceAndCall(1, FUN, array(newX[, i], d.call,
+                                      dn.call), ...)
+    if (!is.null(tmp))
+      ans[[i]] <- tmp
+  }
+  ans.list <- !simplify || is.recursive(ans[[1L]])
+  l.ans <- length(ans[[1L]])
+  ans.names <- names(ans[[1L]])
+  if (!ans.list)
+    ans.list <- any(lengths(ans) != l.ans)
+  if (!ans.list && length(ans.names)) {
+    all.same <- vapply(ans, function(x) identical(names(x),
+                                                  ans.names), NA)
+    if (!all(all.same))
+      ans.names <- NULL
+  }
+  len.a <- if (ans.list)
+    d2
+  else length(ans <- unlist(ans, recursive = FALSE))
+  if (length(MARGIN) == 1L && len.a == d2) {
+    names(ans) <- if (length(dn.ans[[1L]]))
+      dn.ans[[1L]]
+    ans
+  }
+  else if (len.a == d2)
+    array(ans, d.ans, dn.ans)
+  else if (len.a && len.a%%d2 == 0L) {
+    if (is.null(dn.ans))
+      dn.ans <- vector(mode = "list", length(d.ans))
+    dn1 <- list(ans.names)
+    if (length(dn.call) && !is.null(n1 <- names(dn <- dn.call[1])) &&
+        nzchar(n1) && length(ans.names) == length(dn[[1]]))
+      names(dn1) <- n1
+    dn.ans <- c(dn1, dn.ans)
+    array(ans, c(len.a%/%d2, d.ans), if (!is.null(names(dn.ans)) ||
+                                         !all(vapply(dn.ans, is.null, NA)))
+      dn.ans)
+  }
+  else ans
 }

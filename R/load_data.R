@@ -16,7 +16,6 @@
 #'     binary, or factors. Character columns will be converted into factors.
 #' @param weights A numeric vector of inverse-probability-of-sampling (IPS)
 #'     weights.
-#' @param strata !!!!! TO DO
 #' @param ph2 A vector of binary values corresponding to whether the individual
 #'     is in the phase-two cohort (1) or not (0). Accepts either integer (0/1)
 #'     or Boolean (T/F) values.
@@ -29,7 +28,7 @@
 #' print("to do")
 #' @export
 load_data <- function(
-  time, event, marker, covariates, weights, strata, ph2
+  time, event, marker, covariates, weights, ph2
 ) {
 
   # !!!!! Add strata; this should be converted to an integer such that unique strata are numbered 1:(# strata)
@@ -113,6 +112,7 @@ load_data <- function(
       "s" = marker[.ind_v],
       "x" = covariates[.ind_v,],
       "weights" = ph2*weights[.ind_v],
+      "strata" = factor(ph2*weights[.ind_v]),
       "z" = ph2[.ind_v]
     )
     attr(df_vc, "n_orig") <- length(df_vc$z)
@@ -127,6 +127,7 @@ load_data <- function(
       "s" = marker[.ind_p],
       "x" = covariates[.ind_p,],
       "weights" = ph2*weights[.ind_p],
+      "strata" = factor(ph2*weights[.ind_p]),
       "z" = ph2[.ind_p]
     )
   }
