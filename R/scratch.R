@@ -1,4 +1,25 @@
 
+# Misc profiling
+if (F) {
+
+  # Old code
+  microbenchmark({
+    K_n1 <- (1/N) * sum((apply(dat_orig_df, 1, function(r) {
+      x_i <- as.numeric(r[1:dim_x])
+      return(Q_n(c(x_i,s)))
+    })))
+    K_n2 <- (1/N) * sum((apply(dat_orig_df, 1, function(r) {
+      x_i <- as.numeric(r[1:dim_x])
+      return(Q_n(c(x_i,s)) * exp(sum(c(x_i,s)*beta_n)))
+    })))
+    K_n3 <- (1/N) * Reduce("+", apply(dat_orig_df, 1, function(r) {
+      x_i <- as.numeric(r[1:dim_x])
+      return(Q_n(c(x_i,s)) * exp(sum(c(x_i,s)*beta_n)) * c(x_i,s))
+    }, simplify=F))
+  }, times=100L)
+
+}
+
 # Profiling est_cox
 if (F) {
 
