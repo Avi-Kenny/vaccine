@@ -1,20 +1,5 @@
 if (F) {
 
-#' Helper function for debugging; prints timestamps
-#'
-#' @param num Number
-#' @param msg Message
-chk <- function(num, msg="") {
-  if (msg=="") {
-    str <- paste0("Check ", num, ": ", Sys.time())
-  } else {
-    str <- paste0("Check ", num, " (", msg, "): ", Sys.time())
-  }
-  print(str)
-}
-
-
-
 #' Probability of sampling
 #'
 #' @param sampling One of c("iid", "two-phase (6%)", "two-phase (72%)",
