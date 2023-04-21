@@ -114,7 +114,7 @@ load_data <- function(
       "s" = marker[.ind_v],
       "x" = covariates[.ind_v,],
       "weights" = ph2*weights[.ind_v],
-      "strata" = factor(ph2*weights[.ind_v]),
+      "strata" = as.integer(factor(ph2*weights[.ind_v])),
       "z" = ph2[.ind_v]
     )
     attr(df_vc, "n_orig") <- length(df_vc$z)
@@ -138,7 +138,7 @@ load_data <- function(
       "s" = marker[.ind_p],
       "x" = covariates[.ind_p,],
       "weights" = ph2*weights[.ind_p],
-      "strata" = factor(ph2*weights[.ind_p]),
+      "strata" = as.integer(factor(ph2*weights[.ind_p])),
       "z" = ph2[.ind_p]
     )
     attr(df_vc, "n_orig") <- length(df_pl$z)
