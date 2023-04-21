@@ -17,6 +17,20 @@ In <- as.integer
 
 
 
+#' Helper function for debugging; prints timestamps
+#'
+#' @noRd
+chk <- function(num, msg="") {
+  if (msg=="") {
+    str <- paste0("Check ", num, ": ", Sys.time())
+  } else {
+    str <- paste0("Check ", num, " (", msg, "): ", Sys.time())
+  }
+  print(str)
+}
+
+
+
 #' Memoise a function
 #'
 #' @param fnc A function to be memoised
@@ -107,9 +121,9 @@ round_dat <- function(dat_orig, grid, grid_size) {
 
   # Round `x`
   for (i in c(1:length(d$x))) {
-    x_col <- d$x[i,]
+    x_col <- d$x[,i]
     if (length(unique(x_col))>grid_size$x) {
-      d$x[i,] <- sapply(x_col, function(x) {
+      d$x[,i] <- sapply(x_col, function(x) {
         grid$x[[i]][which.min(abs(grid$x[[i]]-x))]
       })
     }
