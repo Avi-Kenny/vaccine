@@ -105,6 +105,8 @@ load_data <- function(
   ph2 <- as.integer(ph2)
 
   if (.groups %in% c("vaccine", "both")) {
+
+    # Create data object
     .ind_v <- which(vacc==1)
     df_vc <- list(
       "y" = time[.ind_v],
@@ -117,9 +119,18 @@ load_data <- function(
     )
     attr(df_vc, "n_orig") <- length(df_vc$z)
     attr(df_vc, "dim_x") <- length(covariates)
+
+    # Stabilize weights (rescale to sum to sample size)
+    .stb_v <- sum(df_vc$weights) / length(df_vc$z)
+    df_vc$weights <- df_vc$weights / .stb_v
+
+  } else {
+    df_vc <- NA
   }
 
   if (.groups %in% c("placebo", "both")) {
+
+    # Create data object
     .ind_p <- which(vacc==1)
     df_pl <- list(
       "y" = time[.ind_p],
@@ -130,13 +141,15 @@ load_data <- function(
       "strata" = factor(ph2*weights[.ind_p]),
       "z" = ph2[.ind_p]
     )
-  }
+    attr(df_vc, "n_orig") <- length(df_pl$z)
 
-  # Stabilize weights (rescale to sum to sample size)
-  .stb_v <- sum(df_vc$weights) / length(df_vc$z)
-  df_vc$weights <- df_vc$weights / .stb_v
-  .stb_p <- sum(df_pl$weights) / length(df_pl$z)
-  df_pl$weights <- df_pl$weights / .stb_p
+    # Stabilize weights (rescale to sum to sample size)
+    .stb_p <- sum(df_pl$weights) / length(df_pl$z)
+    df_pl$weights <- df_pl$weights / .stb_p
+
+  } else {
+    df_pl <- NA
+  }
 
   # Create and return data object
   dat <- list("v"=df_vc, "p"=df_pl)
