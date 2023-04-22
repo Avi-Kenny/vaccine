@@ -614,7 +614,7 @@ est_cox <- function(
 
   # Create results object
   res <- list(
-    s = s_out_orig,
+    s = s_out,
     # est = c(rep(NA,na_head), ests, rep(NA,na_tail)),
     # ci_lo = c(rep(NA,na_head), ci_lo, rep(NA,na_tail)),
     # ci_hi = c(rep(NA,na_head), ci_hi, rep(NA,na_tail))
