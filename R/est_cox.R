@@ -50,7 +50,7 @@
 est_cox <- function(
     dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$v$s), to=max(dat$v$s), l=101),
     ci_type="logit", grid_size=list(y=101, s=101, x=5), return_extras=F,
-    verbose=F, spline_df=NA, temp_round=F, temp_boot=F # !!!!!
+    verbose=F, spline_df=NA, temp_boot=F # !!!!!
 ) {
 
   # !!!!! Testing
@@ -105,13 +105,14 @@ est_cox <- function(
     if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
   }
 
-  # Rescale S to lie in [0,1]
-  s_min <- min(dat$v$s, na.rm=T)
-  s_max <- max(dat$v$s, na.rm=T)
-  s_shift <- -1 * s_min
-  s_scale <- 1/(s_max-s_min)
-  dat$v$s <- (dat$v$s+s_shift)*s_scale
-  grid <- create_grid(dat$v, grid_size, t_0)
+  # # !!!!! Later, comment all of this out
+  # # Rescale S to lie in [0,1]
+  # s_min <- min(dat$v$s, na.rm=T)
+  # s_max <- max(dat$v$s, na.rm=T)
+  # s_shift <- -1 * s_min
+  # s_scale <- 1/(s_max-s_min)
+  # dat$v$s <- (dat$v$s+s_shift)*s_scale
+  # grid <- create_grid(dat$v, grid_size, t_0)
 
   # Create spline basis and function
   dat$v$spl <- data.frame("s1"=dat$v$s)
@@ -150,16 +151,16 @@ est_cox <- function(
 
   }
 
-  # Rescale/round s_out and remove s_out points outside [0,1]
-  # !!!!! Maybe don't need to round or rescale
-  s_out_orig <- s_out
-  s_out <- (s_out+s_shift)*s_scale
-  s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] })
-  na_head <- sum(s_out<0)
-  na_tail <- sum(s_out>1)
-  if (na_head>0) { s_out <- s_out[-c(1:na_head)] }
-  len_p <- length(s_out)
-  if (na_tail>0) { s_out <- s_out[-c((len_p-na_tail+1):len_p)] }
+  # # Rescale/round s_out and remove s_out points outside [0,1]
+  # # !!!!! Later, comment all of this out
+  # s_out_orig <- s_out
+  # s_out <- (s_out+s_shift)*s_scale
+  # na_head <- sum(s_out<0)
+  # na_tail <- sum(s_out>1)
+  # if (na_head>0) { s_out <- s_out[-c(1:na_head)] }
+  # len_p <- length(s_out)
+  # if (na_tail>0) { s_out <- s_out[-c((len_p-na_tail+1):len_p)] }
+  # # s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] }) # !!!!!
 
   if (temp_boot) {
 
@@ -260,7 +261,6 @@ est_cox <- function(
       res_cox$var_est_marg[i] <- var(sapply(boot_ests, function(x) {x[[i]]}))
     }
 
-
   } else {
 
     # Create phase-two data object (unrounded)
@@ -279,9 +279,8 @@ est_cox <- function(
     dim_v <- dim(V_)[1]
     dim_x <- attr(dat$v, "dim_x")
 
-    # Create set of event times
-    i_ev <- which(D_==1)
-    y_ev <- Y_[which(D_==1)]
+    # Create set of event times (ph1 cohort)
+    y_ev <- dat$v$y[which(dat$v$delta==1)]
 
     # Fit an IPS-weighted Cox model
     model <- survival::coxph(
@@ -293,6 +292,21 @@ est_cox <- function(
       # Note: scaling the weights affects the SEs but not the estimates; thus, this is only needed for debugging
       # weights = dat_v_ph2$weights * (length(dat_v_ph2$weights)/sum(dat_v_ph2$weights))
     )
+
+    # !!!!!
+    if (T) {
+
+
+      bh <- basehaz(model, centered=FALSE)
+      index <- max(which((bh$time<t_0)==T))
+      est_bshz <- bh$hazard[index]
+
+      print("summary(model)") # !!!!!
+      print(summary(model)) # !!!!!
+      print("head(cbind(y=Y_, delta=D_, X, SP))") # !!!!!
+      print(head(cbind(y=Y_, delta=D_, X, SP))) # !!!!!
+
+    }
     beta_n <- as.numeric(model$coefficients)
     LIN <- as.numeric(t(beta_n)%*%V_)
 
@@ -356,19 +370,17 @@ est_cox <- function(
     }
 
     # Estimated information matrix (for an individual)
-    I_tilde <- Reduce("+", lapply(i_ev, function(i) {
-      WT[i] * (
-        (S_2n(Y_[i])/S_0n(Y_[i])) - m_n(Y_[i]) %*% t(m_n(Y_[i]))
-      )
+    I_tilde <- Reduce("+", lapply(y_ev, function(y_j) {
+      (S_2n(y_j)/S_0n(y_j)) - m_n(y_j) %*% t(m_n(y_j))
     }))
     I_tilde <- (1/N)*I_tilde
     I_tilde_inv <- solve(I_tilde)
 
     # Score function (Cox model)
     l_star <- function(v_i,d_i,y_i) { # z_i,ds_i,t_i
-      d_i*(v_i-m_n(y_i)) - (1/N)*Reduce("+", lapply(i_ev, function(j) {
-        (WT[j]*exp(sum(v_i*beta_n))*In(Y_[j]<=y_i)*(v_i-m_n(Y_[j]))) /
-          S_0n(Y_[j])
+      d_i*(v_i-m_n(y_i)) - (1/N)*Reduce("+", lapply(y_ev, function(y_j) {
+        (exp(sum(v_i*beta_n))*In(y_j<=y_i)*(v_i-m_n(y_j))) /
+          S_0n(y_j)
       }))
     }
 
@@ -441,8 +453,8 @@ est_cox <- function(
     })()
 
     # Nuisance constant: mu_n
-    mu_n <- (1/N) * as.numeric(Reduce("+", lapply(y_ev, function(y_j) {
-      (In(y_j<=t_0) * S_1n(y_j)) / (S_0n(y_j))^2
+    mu_n <- -1 * (1/N) * as.numeric(Reduce("+", lapply(y_ev, function(y_j) {
+      (In(y_j<=t_0) * m_n(y_j)) / S_0n(y_j)
     })))
 
     # Nuisance function: v_n
@@ -472,8 +484,8 @@ est_cox <- function(
 
     # Breslow estimator
     Lambda_n <- function(t) {
-      (1/N) * sum(unlist(lapply(i_ev, function(i) {
-        In(Y_[i]<=t) / S_0n(Y_[i])
+      (1/N) * sum(unlist(lapply(y_ev, function(y_j) {
+        In(y_j<=t) / S_0n(y_j)
       })))
     }
 
@@ -502,9 +514,9 @@ est_cox <- function(
                 (In(y_j<=t_0)*wt_i*In(y_i>=y_j)*exp(sum(beta_n*v_i))) /
                   (S_0n(y_j))^2
               })))
-              return(pc_1-pc_3-pc_4-pc_5)
+              return(pc_1-pc_3-pc_4+pc_5)
             } else {
-              return(-1*(pc_4+pc_5))
+              return(pc_5-pc_4)
             }
           })(v_i,z_i,d_i,y_i,wt_i,st_i)
           .cache[[key]] <- val
@@ -518,6 +530,12 @@ est_cox <- function(
     # Compute marginalized risk
     res_cox <- list()
     Lambda_n_t_0 <- Lambda_n(t_0)
+    print("beta_n") # !!!!!
+    print(beta_n) # !!!!!
+    print("Lambda_n_t_0") # !!!!!
+    print(Lambda_n_t_0) # !!!!!
+    print("est_bshz") # !!!!!
+    print(est_bshz) # !!!!!
     res_cox$est_marg <- unlist(lapply(s_out, function(s) {
       (1/N) * sum((apply(dat$v$x, 1, function(r) {
         x_i <- as.numeric(r[1:dim_x])
@@ -597,10 +615,16 @@ est_cox <- function(
   # Create results object
   res <- list(
     s = s_out_orig,
-    est = c(rep(NA,na_head), ests, rep(NA,na_tail)),
-    ci_lo = c(rep(NA,na_head), ci_lo, rep(NA,na_tail)),
-    ci_hi = c(rep(NA,na_head), ci_hi, rep(NA,na_tail))
+    # est = c(rep(NA,na_head), ests, rep(NA,na_tail)),
+    # ci_lo = c(rep(NA,na_head), ci_lo, rep(NA,na_tail)),
+    # ci_hi = c(rep(NA,na_head), ci_hi, rep(NA,na_tail))
+    est = ests, # !!!!!
+    ci_lo = ci_lo, # !!!!!
+    ci_hi = ci_hi # !!!!!
   )
+
+  # Return extras
+  if (return_extras) { res$model <- model }
 
   return(res)
 

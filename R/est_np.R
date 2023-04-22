@@ -123,7 +123,7 @@ est_np <- function(
   # Rescale/round s_out and remove s_out points outside [0,1]
   s_out_orig <- s_out
   s_out <- (s_out+s_shift)*s_scale
-  s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] })
+  s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] }) # !!!!! Move this line down
   na_head <- sum(s_out<0)
   na_tail <- sum(s_out>1)
   if (na_head>0) { s_out <- s_out[-c(1:na_head)] }
@@ -145,10 +145,6 @@ est_np <- function(
     x = subset(vals_pre, select=-c(t,x_index,s)),
     s = vals_pre$s
   )
-  chk(paste("length(vals$t):",length(vals$t))) # !!!!!
-  chk(paste("length(x_distinct$x_index):",length(x_distinct$x_index))) # !!!!!
-  chk(paste("length(unique(vals$t)):",length(unique(vals$t)))) # !!!!!
-  chk(paste("length(unique(vals$s)):",length(unique(vals$s)))) # !!!!!
 
   # Create phase-two data object (unrounded)
   chk(3)
