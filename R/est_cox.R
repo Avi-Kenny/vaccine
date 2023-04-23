@@ -175,11 +175,13 @@ est_cox <- function(
   V_ <- t(as.matrix(cbind(X,SP)))
   Y_ <- dat_v_ph2$y
   D_ <- dat_v_ph2$delta
+
+  # Get dimensions
   dim_v <- dim(V_)[1]
   dim_x <- attr(dat$v, "dim_x")
 
-  # Create set of event times (ph1 cohort)
-  y_ev <- dat$v$y[which(dat$v$delta==1)]
+  # Create set of event times
+  i_ev <- which(D_==1)
 
   # Fit an IPS-weighted Cox model
   model <- survival::coxph(
@@ -269,17 +271,17 @@ est_cox <- function(
   }
 
   # Estimated information matrix (for an individual)
-  I_tilde <- Reduce("+", lapply(y_ev, function(y_j) {
-    (S_2n(y_j)/S_0n(y_j)) - m_n(y_j) %*% t(m_n(y_j))
+  I_tilde <- Reduce("+", lapply(i_ev, function(i) {
+    WT[i] * ( (S_2n(Y_[i])/S_0n(Y_[i])) - m_n(Y_[i]) %*% t(m_n(Y_[i])) )
   }))
   I_tilde <- (1/N)*I_tilde
   I_tilde_inv <- solve(I_tilde)
 
   # Score function (Cox model)
-  l_star <- function(v_i,d_i,y_i) { # z_i,ds_i,t_i
-    d_i*(v_i-m_n(y_i)) - (1/N)*Reduce("+", lapply(y_ev, function(y_j) {
-      (exp(sum(v_i*beta_n))*In(y_j<=y_i)*(v_i-m_n(y_j))) /
-        S_0n(y_j)
+  l_n <- function(v_i,d_i,y_i) { # z_i,ds_i,t_i
+    d_i*(v_i-m_n(y_i)) - (1/N)*Reduce("+", lapply(i_ev, function(j) {
+      (WT[j]*exp(sum(v_i*beta_n))*In(Y_[j]<=y_i) * (v_i-m_n(Y_[j]))) /
+        S_0n(Y_[j])
     }))
   }
 
@@ -291,7 +293,7 @@ est_cox <- function(
       val <- .cache[[key]]
       if (is.null(val)) {
         val <- (function(v_i,d_i,y_i) {
-          I_tilde_inv %*% l_star(v_i,d_i,y_i)
+          I_tilde_inv %*% l_n(v_i,d_i,y_i)
         })(v_i,d_i,y_i)
         .cache[[key]] <- val
       }
@@ -352,12 +354,12 @@ est_cox <- function(
   })()
 
   # Nuisance constant: mu_n
-  mu_n <- -1 * (1/N) * as.numeric(Reduce("+", lapply(y_ev, function(y_j) {
-    (In(y_j<=t_0) * m_n(y_j)) / S_0n(y_j)
+  mu_n <- -1 * (1/N) * as.numeric(Reduce("+", lapply(i_ev, function(j) {
+    (WT[j] * In(Y_[j]<=t_0) * m_n(Y_[j])) / S_0n(Y_[j])
   })))
 
-  # Nuisance function: v_n
-  v_n <- (function() {
+  # Nuisance function: v_1n
+  v_1n <- (function() {
     .cache <- new.env()
     function(st_i,z_i,y_j) { # st_i,d_i,t_j
       key <- paste(c(st_i,z_i,y_j), collapse=" ")
@@ -381,10 +383,35 @@ est_cox <- function(
     }
   })()
 
+  # Nuisance function: v_2n
+  v_2n <- (function() {
+    .cache <- new.env()
+    function(st_i,z_i) { # st_i,d_i,t_j
+      key <- paste(c(st_i,z_i), collapse=" ")
+      val <- .cache[[key]]
+      if (is.null(val)) {
+        val <- (function(st_i,z_i) {
+          k_set <- which(ST==st_i)
+          if (length(k_set)>0) {
+            return(
+              (1/N) * (p1_n[st_i]-p_n[st_i]*z_i)/(p1_n[st_i])^2 * sum(
+                unlist(lapply(k_set, function(k) {
+                  ( D_[k] * In(Y_[k]<=t_0) ) / S_0n(Y_[k])
+                }))
+              )
+            )
+          } else { return(0) }
+        })(st_i,z_i)
+        .cache[[key]] <- val
+      }
+      return(val)
+    }
+  })()
+
   # Breslow estimator
   Lambda_n <- function(t) {
-    (1/N) * sum(unlist(lapply(y_ev, function(y_j) {
-      In(y_j<=t) / S_0n(y_j)
+    (1/N) * sum(unlist(lapply(i_ev, function(i) {
+      WT[i] * ( In(Y_[i]<=t) / S_0n(Y_[i]) )
     })))
   }
 
@@ -402,20 +429,21 @@ est_cox <- function(
       val <- .cache[[key]]
       if (is.null(val)) {
         val <- (function(v_i,z_i,d_i,y_i,wt_i,st_i) {
-          pc_4 <- (1/N) * sum(unlist(lapply(y_ev, function(y_j) {
-            ( In(y_j<=t_0) * v_n(st_i,z_i,y_j) ) / (S_0n(y_j))^2
+          pc_4 <- (1/N) * sum(unlist(lapply(i_ev, function(j) {
+            ( WT[j] * In(Y_[j]<=t_0) * v_1n(st_i,z_i,Y_[j]) ) / (S_0n(Y_[j]))^2
           })))
           pc_5 <- sum(mu_n*infl_fn_beta(v_i,z_i,d_i,y_i,wt_i,st_i))
+          pc_2 <- v_2n(st_i,z_i)
 
           if (z_i==1) {
-            pc_1 <- ( d_i * In(y_i<=t_0) ) / S_0n(y_i)
-            pc_3 <- (1/N) * sum(unlist(lapply(y_ev, function(y_j) {
-              (In(y_j<=t_0)*wt_i*In(y_i>=y_j)*exp(sum(beta_n*v_i))) /
-                (S_0n(y_j))^2
+            pc_1 <- ( wt_i * d_i * In(y_i<=t_0) ) / S_0n(y_i)
+            pc_3 <- (1/N) * sum(unlist(lapply(i_ev, function(j) {
+              (WT[j]*In(Y_[j]<=t_0)*wt_i*In(y_i>=Y_[j])*exp(sum(beta_n*v_i))) /
+                (S_0n(Y_[j]))^2
             })))
-            return(pc_1-pc_3-pc_4+pc_5)
+            return(pc_1+pc_2+pc_5-pc_3-pc_4)
           } else {
-            return(pc_5-pc_4)
+            return(pc_2+pc_5-pc_4)
           }
         })(v_i,z_i,d_i,y_i,wt_i,st_i)
         .cache[[key]] <- val
@@ -512,12 +540,12 @@ est_cox <- function(
   # Create results object
   res <- list(
     s = s_out,
-    # est = c(rep(NA,na_head), ests, rep(NA,na_tail)),
-    # ci_lo = c(rep(NA,na_head), ci_lo, rep(NA,na_tail)),
-    # ci_hi = c(rep(NA,na_head), ci_hi, rep(NA,na_tail))
-    est = ests, # !!!!!
-    ci_lo = ci_lo, # !!!!!
-    ci_hi = ci_hi # !!!!!
+    est = c(rep(NA,na_head), ests, rep(NA,na_tail)),
+    ci_lo = c(rep(NA,na_head), ci_lo, rep(NA,na_tail)),
+    ci_hi = c(rep(NA,na_head), ci_hi, rep(NA,na_tail))
+    # est = ests, # !!!!!
+    # ci_lo = ci_lo, # !!!!!
+    # ci_hi = ci_hi # !!!!!
   )
 
   # Return extras
