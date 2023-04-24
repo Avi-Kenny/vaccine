@@ -50,7 +50,7 @@
 est_cox <- function(
     dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$v$s), to=max(dat$v$s), l=101),
     ci_type="logit", grid_size=list(y=101, s=101, x=5), return_extras=F,
-    verbose=F, spline_df=NA, temp_boot=F # !!!!!
+    verbose=F, spline_df=NA, edge_ind=F # !!!!!
 ) {
 
   # !!!!! Testing
@@ -122,32 +122,62 @@ est_cox <- function(
     spl_basis <- splines::ns(
       x = dat$v$s,
       df = spline_df,
-      # knots = c(0.25,0.5,0.75),
       intercept = F,
-      # Boundary.knots = c(0,1)
       Boundary.knots = quantile(dat$v$s, c(0.05,0.95), na.rm=T)
     )
     spl_knots <- as.numeric(attr(spl_basis, "knots"))
     spl_bnd_knots <- as.numeric(attr(spl_basis, "Boundary.knots"))
-    s_to_spl <- function(s) {
-      as.numeric(splines::ns(
-        x = s,
-        df = spline_df,
-        knots = spl_knots,
-        intercept = F,
-        Boundary.knots = spl_bnd_knots
-      ))
-    }
 
     for (i in c(1:(dim(spl_basis)[2]))) {
       dat$v$spl[[paste0("s",i)]] <- spl_basis[,i]
     }
     dim_s <- dim(spl_basis)[2]
 
+    if (edge_ind) {
+
+      dim_s <- dim_s + 1
+      min_s <- min(dat$v$s, na.rm=T)
+      dat$v$spl[,paste0("s",dim_s)] <- In(dat$v$s==min_s)
+      s_to_spl <- function(s) {
+        spl <- as.numeric(splines::ns(
+          x = s,
+          df = spline_df,
+          knots = spl_knots,
+          intercept = F,
+          Boundary.knots = spl_bnd_knots
+        ))
+        return(c(spl, In(s==min_s)))
+      }
+
+    } else {
+
+      s_to_spl <- function(s) {
+        as.numeric(splines::ns(
+          x = s[c(1:(dim_s-1))],
+          df = spline_df,
+          knots = spl_knots,
+          intercept = F,
+          Boundary.knots = spl_bnd_knots
+        ))
+      }
+
+    }
+
   } else {
 
-    dim_s <- 1
-    s_to_spl <- function(s) { s }
+    if (edge_ind) {
+
+      dim_s <- 2
+      min_s <- min(dat$v$s, na.rm=T)
+      dat$v$spl[,paste0("s",dim_s)] <- In(dat$v$s==min_s)
+      s_to_spl <- function(s) { c(s, In(s==min_s)) }
+
+    } else {
+
+      dim_s <- 1
+      s_to_spl <- function(s) { s }
+
+    }
 
   }
 
