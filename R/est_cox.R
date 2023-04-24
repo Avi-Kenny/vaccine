@@ -190,9 +190,24 @@ est_cox <- function(
                              paste(names(SP),collapse="+"))),
     data = cbind(y=Y_, delta=D_, X, SP),
     weights = WT
-    # Note: scaling the weights affects the SEs but not the estimates; thus, this is only needed for debugging
-    # weights = dat_v_ph2$weights * (length(dat_v_ph2$weights)/sum(dat_v_ph2$weights))
   )
+  coeffs <- model$coefficients
+
+  if (any(is.na(coeffs))) {
+
+    if (any(is.na(coeffs[which(substr(names(coeffs),1,1)=="x")]))) {
+      print(summary(model))
+      stop(paste0("Some covariate coefficients were NA. Try removing these coe",
+                  "fficients."))
+    }
+
+    if (any(is.na(coeffs[which(substr(names(coeffs),1,1)=="x")]))) {
+      print(summary(model))
+      stop(paste0("Some spline coefficients were NA. Try reducing the number o",
+                  "f knots."))
+    }
+
+  }
 
   # !!!!!
   if (T) {
@@ -208,7 +223,7 @@ est_cox <- function(
     print(head(cbind(y=Y_, delta=D_, X, SP))) # !!!!!
 
   }
-  beta_n <- as.numeric(model$coefficients)
+  beta_n <- as.numeric(coeffs)
   LIN <- as.numeric(t(beta_n)%*%V_)
 
   # Intermediate functions
