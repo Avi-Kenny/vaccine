@@ -153,7 +153,7 @@ est_cox <- function(
 
       s_to_spl <- function(s) {
         as.numeric(splines::ns(
-          x = s[c(1:(dim_s-1))],
+          x = s,
           df = spline_df,
           knots = spl_knots,
           intercept = F,
@@ -222,6 +222,7 @@ est_cox <- function(
     weights = WT
   )
   coeffs <- model$coefficients
+  beta_n <- as.numeric(coeffs)
 
   if (any(is.na(coeffs))) {
 
@@ -229,19 +230,29 @@ est_cox <- function(
       print(summary(model))
       stop(paste0("Some covariate coefficients were NA. Try removing these coe",
                   "fficients."))
+      # !!!!! Automatically omit from the model, as is done for spline coeffs
     }
 
-    if (any(is.na(coeffs[which(substr(names(coeffs),1,1)=="x")]))) {
+    if (any(is.na(coeffs[which(substr(names(coeffs),1,1)=="s")]))) {
       print(summary(model))
-      stop(paste0("Some spline coefficients were NA. Try reducing the number o",
-                  "f knots."))
+      warning(paste0("Some spline coefficients were NA; these coefficients hav",
+                     "e been automatically omitted from the model"))
+      na_inds <- as.numeric(which(is.na(coeffs)))
+      s_na_inds <- which(is.na(coeffs[which(substr(names(coeffs),1,1)=="s")]))
+      s_na_inds <- as.numeric(s_na_inds)
+      beta_n <- beta_n[-na_inds]
+      SP <- SP[,-s_na_inds]
+      names(SP) <- paste0("s", c(1:length(SP)))
+      V_ <- t(as.matrix(cbind(X,SP)))
+      dim_v <- dim(V_)[1]
+      s_to_spl2 <- s_to_spl
+      s_to_spl <- function(s) { s_to_spl2(s)[-s_na_inds] }
+
     }
 
   }
 
-  # !!!!!
-  if (T) {
-
+  if (F) {
 
     bh <- basehaz(model, centered=FALSE)
     index <- max(which((bh$time<t_0)==T))
@@ -252,8 +263,8 @@ est_cox <- function(
     print("head(cbind(y=Y_, delta=D_, X, SP))") # !!!!!
     print(head(cbind(y=Y_, delta=D_, X, SP))) # !!!!!
 
-  }
-  beta_n <- as.numeric(coeffs)
+  } # !!!!!DEBUGGING
+
   LIN <- as.numeric(t(beta_n)%*%V_)
 
   # Intermediate functions
@@ -502,12 +513,12 @@ est_cox <- function(
   # Compute marginalized risk
   res_cox <- list()
   Lambda_n_t_0 <- Lambda_n(t_0)
-  print("beta_n") # !!!!!
-  print(beta_n) # !!!!!
-  print("Lambda_n_t_0") # !!!!!
-  print(Lambda_n_t_0) # !!!!!
-  print("est_bshz") # !!!!!
-  print(est_bshz) # !!!!!
+  # print("beta_n") # !!!!!
+  # print(beta_n) # !!!!!
+  # print("Lambda_n_t_0") # !!!!!
+  # print(Lambda_n_t_0) # !!!!!
+  # print("est_bshz") # !!!!!
+  # print(est_bshz) # !!!!!
   res_cox$est_marg <- unlist(lapply(s_out, function(s) {
     (1/N) * sum((apply(dat$v$x, 1, function(r) {
       x_i <- as.numeric(r[1:dim_x])
