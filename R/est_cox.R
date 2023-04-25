@@ -105,15 +105,6 @@ est_cox <- function(
     if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
   }
 
-  # # !!!!! Later, comment all of this out
-  # # Rescale S to lie in [0,1]
-  # s_min <- min(dat$v$s, na.rm=T)
-  # s_max <- max(dat$v$s, na.rm=T)
-  # s_shift <- -1 * s_min
-  # s_scale <- 1/(s_max-s_min)
-  # dat$v$s <- (dat$v$s+s_shift)*s_scale
-  # grid <- create_grid(dat$v, grid_size, t_0)
-
   # Create spline basis and function
   dat$v$spl <- data.frame("s1"=dat$v$s)
   if (!is.na(spline_df) && spline_df!=1) {
@@ -181,17 +172,6 @@ est_cox <- function(
 
   }
 
-  # # Rescale/round s_out and remove s_out points outside [0,1]
-  # # !!!!! Later, comment all of this out
-  # s_out_orig <- s_out
-  # s_out <- (s_out+s_shift)*s_scale
-  # na_head <- sum(s_out<0)
-  # na_tail <- sum(s_out>1)
-  # if (na_head>0) { s_out <- s_out[-c(1:na_head)] }
-  # len_p <- length(s_out)
-  # if (na_tail>0) { s_out <- s_out[-c((len_p-na_tail+1):len_p)] }
-  # # s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] }) # !!!!!
-
   # Create phase-two data object (unrounded)
   dat_v_ph2 <- ss(dat$v, which(dat$v$z==1))
 
@@ -251,19 +231,6 @@ est_cox <- function(
     }
 
   }
-
-  if (F) {
-
-    bh <- basehaz(model, centered=FALSE)
-    index <- max(which((bh$time<t_0)==T))
-    est_bshz <- bh$hazard[index]
-
-    print("summary(model)") # !!!!!
-    print(summary(model)) # !!!!!
-    print("head(cbind(y=Y_, delta=D_, X, SP))") # !!!!!
-    print(head(cbind(y=Y_, delta=D_, X, SP))) # !!!!!
-
-  } # !!!!!DEBUGGING
 
   LIN <- as.numeric(t(beta_n)%*%V_)
 
@@ -513,12 +480,6 @@ est_cox <- function(
   # Compute marginalized risk
   res_cox <- list()
   Lambda_n_t_0 <- Lambda_n(t_0)
-  # print("beta_n") # !!!!!
-  # print(beta_n) # !!!!!
-  # print("Lambda_n_t_0") # !!!!!
-  # print(Lambda_n_t_0) # !!!!!
-  # print("est_bshz") # !!!!!
-  # print(est_bshz) # !!!!!
   res_cox$est_marg <- unlist(lapply(s_out, function(s) {
     (1/N) * sum((apply(dat$v$x, 1, function(r) {
       x_i <- as.numeric(r[1:dim_x])
@@ -594,15 +555,7 @@ est_cox <- function(
   }
 
   # Create results object
-  res <- list(
-    s = s_out,
-    # est = c(rep(NA,na_head), ests, rep(NA,na_tail)),
-    # ci_lo = c(rep(NA,na_head), ci_lo, rep(NA,na_tail)),
-    # ci_hi = c(rep(NA,na_head), ci_hi, rep(NA,na_tail))
-    est = ests, # !!!!!
-    ci_lo = ci_lo, # !!!!!
-    ci_hi = ci_hi # !!!!!
-  )
+  res <- list(s=s_out, est=ests, ci_lo=ci_lo, ci_hi=ci_hi)
 
   # Return extras
   if (return_extras) { res$model <- model }
