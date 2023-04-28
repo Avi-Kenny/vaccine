@@ -63,8 +63,7 @@ est_cox <- function(
     attr(dat$v, "dim_x") <- 2
     t_0=200; cve=T; cr=T; s_out=round(seq(0,1,0.02),2); ci_type="logit";
     grid_size=list(y=101, s=101, x=5); return_extras=F; verbose=F; spline_df=4;
-    source("R/misc_functions.R");
-    s_out=round(seq(0,1,0.02),2) # !!!!!
+    source("R/misc_functions.R"); s_out=round(seq(0,1,0.02),2); edge_ind=F;
   }
 
   # !!!!! Implement this eventually

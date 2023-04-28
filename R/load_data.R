@@ -112,7 +112,7 @@ load_data <- function(
       "y" = time[.ind_v],
       "delta" = event[.ind_v],
       "s" = marker[.ind_v],
-      "x" = covariates[.ind_v,],
+      "x" = covariates[.ind_v,, drop=F],
       "weights" = ph2*weights[.ind_v],
       "strata" = as.integer(factor(ph2*weights[.ind_v])),
       "z" = ph2[.ind_v]
@@ -136,7 +136,7 @@ load_data <- function(
       "y" = time[.ind_p],
       "delta" = event[.ind_p],
       "s" = marker[.ind_p],
-      "x" = covariates[.ind_p,],
+      "x" = covariates[.ind_p,, drop=F],
       "weights" = ph2*weights[.ind_p],
       "strata" = as.integer(factor(ph2*weights[.ind_p])),
       "z" = ph2[.ind_p]
