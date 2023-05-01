@@ -28,10 +28,8 @@
 #' print("to do")
 #' @export
 load_data <- function(
-  time, event, vacc, marker, covariates, weights, ph2
+  time, event, vacc, marker, covariates, weights, ph2, strata=NA
 ) {
-
-  # !!!!! Add strata; this should be converted to an integer such that unique strata are numbered 1:(# strata)
 
   # Input checks: time
   n <- length(time)
@@ -106,15 +104,22 @@ load_data <- function(
 
   if (.groups %in% c("vaccine", "both")) {
 
-    # Create data object
+    # Create strata (if not given)
     .ind_v <- which(vacc==1)
+    if(is.na(strata[[1]])) {
+      .strata <- as.integer(factor(weights[.ind_v]))
+    } else {
+      .strata <- as.integer(factor(strata[.ind_v]))
+    }
+
+    # Create data object
     df_vc <- list(
       "y" = time[.ind_v],
       "delta" = event[.ind_v],
       "s" = marker[.ind_v],
       "x" = covariates[.ind_v,, drop=F],
       "weights" = ph2*weights[.ind_v],
-      "strata" = as.integer(factor(ph2*weights[.ind_v])),
+      "strata" = .strata,
       "z" = ph2[.ind_v]
     )
     attr(df_vc, "n_orig") <- length(df_vc$z)
@@ -130,15 +135,22 @@ load_data <- function(
 
   if (.groups %in% c("placebo", "both")) {
 
-    # Create data object
+    # Create strata (if not given)
     .ind_p <- which(vacc==1)
+    if(is.na(strata[[1]])) {
+      .strata <- as.integer(factor(weights[.ind_p]))
+    } else {
+      .strata <- as.integer(factor(strata[.ind_p]))
+    }
+
+    # Create data object
     df_pl <- list(
       "y" = time[.ind_p],
       "delta" = event[.ind_p],
       "s" = marker[.ind_p],
       "x" = covariates[.ind_p,, drop=F],
       "weights" = ph2*weights[.ind_p],
-      "strata" = as.integer(factor(ph2*weights[.ind_p])),
+      "strata" = .strata,
       "z" = ph2[.ind_p]
     )
     attr(df_vc, "n_orig") <- length(df_pl$z)
