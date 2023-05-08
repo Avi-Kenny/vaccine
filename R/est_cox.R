@@ -300,7 +300,7 @@ est_cox <- function(
   I_tilde_inv <- solve(I_tilde)
 
   # Score function (Cox model)
-  l_n <- function(v_i,d_i,y_i) { # z_i,ds_i,t_i
+  l_n <- function(v_i,d_i,y_i) {
     d_i*(v_i-m_n(y_i)) - (1/N)*Reduce("+", lapply(i_ev, function(j) {
       (WT[j]*exp(sum(v_i*beta_n))*In(Y_[j]<=y_i) * (v_i-m_n(Y_[j]))) /
         S_0n(Y_[j])
@@ -348,7 +348,7 @@ est_cox <- function(
       }
     }
 
-    function(v_i,z_i,d_i,y_i,wt_i,st_i) { # z_i,d_i,ds_i,t_i,wt_i,st_i
+    function(v_i,z_i,d_i,y_i,wt_i,st_i) {
       key <- paste(c(v_i,z_i,d_i,y_i,wt_i,st_i), collapse=" ")
       val <- .cache[[key]]
       if (is.null(val)) {
@@ -383,7 +383,7 @@ est_cox <- function(
   # Nuisance function: v_1n
   v_1n <- (function() {
     .cache <- new.env()
-    function(st_i,z_i,y_j) { # st_i,d_i,t_j
+    function(st_i,z_i,y_j) {
       key <- paste(c(st_i,z_i,y_j), collapse=" ")
       val <- .cache[[key]]
       if (is.null(val)) {
@@ -408,7 +408,7 @@ est_cox <- function(
   # Nuisance function: v_2n
   v_2n <- (function() {
     .cache <- new.env()
-    function(st_i,z_i) { # st_i,d_i,t_j
+    function(st_i,z_i) {
       key <- paste(c(st_i,z_i), collapse=" ")
       val <- .cache[[key]]
       if (is.null(val)) {
@@ -446,7 +446,7 @@ est_cox <- function(
   # Influence function: Breslow estimator (est. weights)
   infl_fn_Lambda <- (function() {
     .cache <- new.env()
-    function(v_i,z_i,d_i,y_i,wt_i,st_i) { # z_i,d_i,ds_i,t_i,wt_i,st_i
+    function(v_i,z_i,d_i,y_i,wt_i,st_i) {
       key <- paste(c(v_i,z_i,d_i,y_i,wt_i,st_i), collapse=" ")
       val <- .cache[[key]]
       if (is.null(val)) {
@@ -516,9 +516,9 @@ est_cox <- function(
       } else {
         s_i <- NA
       }
-      z_i <- r[["z"]] # d_i
-      d_i <- r[["delta"]] # ds_i
-      y_i <- r[["y"]] # t_i
+      z_i <- r[["z"]]
+      d_i <- r[["delta"]]
+      y_i <- r[["y"]]
       wt_i <- r[["weights"]]
       st_i <- r[["strata"]]
 
