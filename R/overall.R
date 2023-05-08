@@ -264,7 +264,7 @@ overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit", verbose=F) {
     }
 
     # Return results object
-    return(list(group=h, est=ests, ci_lo=ci_lo, ci_hi=ci_hi))
+    return(list(group=grp, est=est, ci_lo=ci_lo, ci_hi=ci_hi))
 
   })
 
