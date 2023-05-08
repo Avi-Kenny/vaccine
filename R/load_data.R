@@ -118,7 +118,7 @@ load_data <- function(
       "delta" = event[.ind_v],
       "s" = marker[.ind_v],
       "x" = covariates[.ind_v,, drop=F],
-      "weights" = ph2*weights[.ind_v],
+      "weights" = ph2[.ind_v]*weights[.ind_v],
       "strata" = .strata,
       "z" = ph2[.ind_v]
     )
@@ -149,7 +149,7 @@ load_data <- function(
       "delta" = event[.ind_p],
       "s" = marker[.ind_p],
       "x" = covariates[.ind_p,, drop=F],
-      "weights" = ph2*weights[.ind_p],
+      "weights" = ph2[.ind_p]*weights[.ind_p],
       "strata" = .strata,
       "z" = ph2[.ind_p]
     )
@@ -166,6 +166,7 @@ load_data <- function(
   # Create and return data object
   dat <- list("v"=df_vc, "p"=df_pl)
   class(dat) <- "dat_vaccine"
+  attr(dat, "groups") <- .groups
   return(dat)
 
 }
