@@ -442,8 +442,8 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       warning("f_sIx_n: Rsolnp::solnp did not converge")
     }
     prm_1 <- opt_1$pars
-    print("prm_1") # !!!!!
-    print(prm_1) # !!!!!
+    # print("prm_1") # !!!!!
+    # print(prm_1) # !!!!!
 
     # Filter out observations with s==0
     dat_1 <- ss(dat, which(dat$s!=0))
@@ -640,7 +640,8 @@ construct_Phi_n <- function (dat, type="linear (mid)") {
 
   # !!!!! re-stabilize weights?
 
-  n_orig <- attr(dat, "n_orig")
+  # n_orig <- attr(dat, "n_orig")
+  n_orig <- sum(dat$weights) # !!!!!
   df <- data.frame(s=dat$s, weights=dat$weights)
   df <- dplyr::arrange(df, s)
   vals_x <- unique(df$s)
@@ -909,7 +910,7 @@ construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n,
 
     model_sl <- SuperLearner::SuperLearner(
       Y = dat_df$po,
-      X = cbind(dat_df[,c(1:dim_x)],s=dat_df$s),
+      X = cbind(dat_df[,c(1:dim_x), drop=F],s=dat_df$s),
       newX = newX,
       family = "gaussian",
       SL.library = SL.library,

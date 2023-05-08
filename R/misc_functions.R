@@ -153,10 +153,12 @@ ss <- function(dat_orig, indices) {
     x = dat_orig$x[i,, drop=F],
     weights = dat_orig$weights[i],
     z = dat_orig$z[i]
-    # strata = dat_orig$strata[i] # !!!!!
   )
   if (!is.null(dat_orig$spl)) {
     dat$spl <- dat_orig$spl[i,, drop=F]
+  }
+  if (!is.null(dat_orig$strata)) {
+    dat$strata <- dat_orig$strata[i]
   }
   attr(dat, "n_orig") <- attr(dat_orig, "n_orig")
   attr(dat, "dim_x") <- attr(dat_orig, "dim_x")
