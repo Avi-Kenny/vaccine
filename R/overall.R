@@ -35,7 +35,17 @@ overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit", verbose=F) {
 
   if (.groups=="both") { .groups <- c("vaccine", "placebo") }
 
-  res <- lapply(.groups, function(grp) {
+  # Container for results
+  res <- data.frame(
+    "stat" = character(),
+    "group" = character(),
+    "est" = double(),
+    "se" = double(),
+    "ci_lo" = double(),
+    "ci_hi" = double()
+  )
+
+  for (grp in .groups) {
 
     g <- ifelse(grp=="vaccine", "v", "p")
 
@@ -263,13 +273,35 @@ overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit", verbose=F) {
       ci_hi <- expit(logit(est) + 1.96*deriv_logit(est)*se)
     }
 
-    # Return results object
-    return(list(group=grp, est=est, ci_lo=ci_lo, ci_hi=ci_hi))
+    # Update results dataframe
+    res[nrow(res)+1,] <- list(stat="risk", group=grp, est=est, se=se,
+                              ci_lo=ci_lo, ci_hi=ci_hi)
 
-  })
+  }
 
   if (ve) {
-    # !!!!!
+
+    est_v <- res[res$group=="vaccine","est"]
+    est_p <- res[res$group=="placebo","est"]
+    est_ve <- 1-(est_v/est_p)
+
+    # CIs on the log(1-VE) scale
+    se_v <- res[res$group=="vaccine","se"]
+    se_p <- res[res$group=="placebo","se"]
+    ci_lo <- 1 - exp(
+      log(est_v/est_p) + 1.96*sqrt(se_v^2/est_v^2 + se_p^2/est_p^2)
+    )
+    ci_hi <- 1 - exp(
+      log(est_v/est_p) - 1.96*sqrt(se_v^2/est_v^2 + se_p^2/est_p^2)
+    )
+
+    # Standard error on the VE scale
+    se_ve <- sqrt( se_v^2/est_p^2 + (se_p^2*est_v^2)/est_p^4 )
+
+    # Update results dataframe
+    res[nrow(res)+1,] <- list(stat="ve", group="both", est=est_ve, se=se_ve,
+                              ci_lo=ci_lo, ci_hi=ci_hi)
+
   }
 
 
