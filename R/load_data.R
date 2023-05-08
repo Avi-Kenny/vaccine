@@ -136,7 +136,7 @@ load_data <- function(
   if (.groups %in% c("placebo", "both")) {
 
     # Create strata (if not given)
-    .ind_p <- which(vacc==1)
+    .ind_p <- which(vacc==0)
     if(is.na(strata[[1]])) {
       .strata <- as.integer(factor(weights[.ind_p]))
     } else {
