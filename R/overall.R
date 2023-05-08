@@ -16,239 +16,262 @@
 #' @examples
 #' print("to do")
 #' @export
-overall <- function(dat, t_0, ve=T, risk=T, ci_type="logit", verbose=F) {
+overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit", verbose=F) {
 
   if (class(dat)!="dat_vaccine") {
     stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",
                 "ad_data()."))
   }
 
-  # Alias random variables
-  N <- length(dat$v$s)
-  X <- dat$v$x
-  V_ <- t(as.matrix(X))
-  Y_ <- dat$v$y
-  D_ <- dat$v$delta
-
-  # Get dimensions
-  dim_v <- dim(V_)[1]
-  dim_x <- dim_v
-
-  # Create set of event times
-  i_ev <- which(D_==1)
-
-  # Fit an unweighted Cox model
-  model <- survival::coxph(
-    formula = formula(paste0("survival::Surv(y,delta)~",
-                             paste(names(X),collapse="+"))),
-    data = cbind(y=Y_, delta=D_, X)
-  )
-  coeffs <- model$coefficients
-  beta_n <- as.numeric(coeffs)
-
-  if (any(is.na(coeffs))) {
-    print(summary(model))
-    stop(paste0("Some covariate coefficients were NA. Try removing these coe",
-                "fficients."))
-    # !!!!! Automatically omit from the model, as is done for spline coeffs
+  .groups <- attr(dat, "groups")
+  if (.groups=="vaccine" && ve) {
+    warning(paste0("Vaccine efficacy cannot be calculated because `dat` only c",
+                   "ontains data from the vaccine group."))
+  }
+  if (.groups=="placebo" && ve) {
+    warning(paste0("Vaccine efficacy cannot be calculated because `dat` only c",
+                   "ontains data from the placebo group."))
   }
 
-  LIN <- as.numeric(t(beta_n)%*%V_)
+  if (.groups=="both") { .groups <- c("vaccine", "placebo") }
 
-  # Intermediate functions
-  {
+  res <- lapply(.groups, function(grp) {
 
-    S_0n <- (function() {
-      .cache <- new.env()
-      function(x) {
-        val <- .cache[[as.character(x)]]
-        if (is.null(val)) {
-          val <- (function(x) {
-            (1/N) * sum(In(Y_>=x)*exp(LIN))
-          })(x)
-          .cache[[as.character(x)]] <- val
+    g <- ifelse(grp=="vaccine", "v", "p")
+
+    # Alias random variables
+    N <- length(dat[[g]]$s)
+    X <- dat[[g]]$x
+    V_ <- t(as.matrix(X))
+    Y_ <- dat[[g]]$y
+    D_ <- dat[[g]]$delta
+
+    # Get dimensions
+    dim_v <- dim(V_)[1]
+    dim_x <- dim_v
+
+    # Create set of event times
+    i_ev <- which(D_==1)
+
+    # Fit an unweighted Cox model
+    model <- survival::coxph(
+      formula = formula(paste0("survival::Surv(y,delta)~",
+                               paste(names(X),collapse="+"))),
+      data = cbind(y=Y_, delta=D_, X)
+    )
+    coeffs <- model$coefficients
+    beta_n <- as.numeric(coeffs)
+
+    if (any(is.na(coeffs))) {
+      print(summary(model))
+      stop(paste0("Some covariate coefficients were NA. Try removing these coe",
+                  "fficients."))
+      # !!!!! Automatically omit from the model, as is done for spline coeffs
+    }
+
+    LIN <- as.numeric(t(beta_n)%*%V_)
+
+    # Intermediate functions
+    {
+
+      S_0n <- (function() {
+        .cache <- new.env()
+        function(x) {
+          val <- .cache[[as.character(x)]]
+          if (is.null(val)) {
+            val <- (function(x) {
+              (1/N) * sum(In(Y_>=x)*exp(LIN))
+            })(x)
+            .cache[[as.character(x)]] <- val
+          }
+          return(val)
         }
-        return(val)
-      }
-    })()
+      })()
 
-    S_1n <- (function() {
-      .cache <- new.env()
-      function(x) {
-        val <- .cache[[as.character(x)]]
-        if (is.null(val)) {
-          val <- (function(x) {
-            (1/N) * as.numeric(V_ %*% (In(Y_>=x)*exp(LIN)))
-          })(x)
-          .cache[[as.character(x)]] <- val
+      S_1n <- (function() {
+        .cache <- new.env()
+        function(x) {
+          val <- .cache[[as.character(x)]]
+          if (is.null(val)) {
+            val <- (function(x) {
+              (1/N) * as.numeric(V_ %*% (In(Y_>=x)*exp(LIN)))
+            })(x)
+            .cache[[as.character(x)]] <- val
+          }
+          return(val)
         }
-        return(val)
-      }
-    })()
+      })()
 
-    S_2n <- (function() {
-      .cache <- new.env()
-      function(x) {
-        val <- .cache[[as.character(x)]]
-        if (is.null(val)) {
-          val <- (function(x) {
-            res <- matrix(NA, nrow=dim_v, ncol=dim_v)
-            for (i in c(1:dim_v)) {
-              for (j in c(1:dim_v)) {
-                if (!is.na(res[j,i])) {
-                  res[i,j] <- res[j,i]
-                } else {
-                  res[i,j] <- (1/N)*sum(In(Y_>=x)*V_[i,]*V_[j,]*exp(LIN))
+      S_2n <- (function() {
+        .cache <- new.env()
+        function(x) {
+          val <- .cache[[as.character(x)]]
+          if (is.null(val)) {
+            val <- (function(x) {
+              res <- matrix(NA, nrow=dim_v, ncol=dim_v)
+              for (i in c(1:dim_v)) {
+                for (j in c(1:dim_v)) {
+                  if (!is.na(res[j,i])) {
+                    res[i,j] <- res[j,i]
+                  } else {
+                    res[i,j] <- (1/N)*sum(In(Y_>=x)*V_[i,]*V_[j,]*exp(LIN))
+                  }
                 }
               }
-            }
-            return(res)
-          })(x)
-          .cache[[as.character(x)]] <- val
+              return(res)
+            })(x)
+            .cache[[as.character(x)]] <- val
+          }
+          return(val)
+        }
+      })()
+
+      m_n <- function(x) { S_1n(x) / S_0n(x) }
+
+    }
+
+    # Estimated information matrix (for an individual)
+    I_tilde <- Reduce("+", lapply(i_ev, function(i) {
+      (S_2n(Y_[i])/S_0n(Y_[i])) - m_n(Y_[i]) %*% t(m_n(Y_[i]))
+    }))
+    I_tilde <- (1/N)*I_tilde
+    I_tilde_inv <- solve(I_tilde)
+
+    # Score function (Cox model)
+    l_n <- function(v_i,d_i,y_i) {
+      d_i*(v_i-m_n(y_i)) - (1/N)*Reduce("+", lapply(i_ev, function(j) {
+        (exp(sum(v_i*beta_n))*In(Y_[j]<=y_i) * (v_i-m_n(Y_[j]))) / S_0n(Y_[j])
+      }))
+    }
+
+    # Influence function: beta_hat (regular Cox model)
+    l_tilde <- (function() {
+      .cache <- new.env()
+      function(v_i,d_i,y_i) {
+        key <- paste(c(v_i,d_i,y_i), collapse=" ")
+        val <- .cache[[key]]
+        if (is.null(val)) {
+          val <- (function(v_i,d_i,y_i) {
+            I_tilde_inv %*% l_n(v_i,d_i,y_i)
+          })(v_i,d_i,y_i)
+          .cache[[key]] <- val
         }
         return(val)
       }
     })()
 
-    m_n <- function(x) { S_1n(x) / S_0n(x) }
+    # Influence function: beta_hat (est. weights)
+    infl_fn_beta <- l_tilde
 
-  }
-
-  # Estimated information matrix (for an individual)
-  I_tilde <- Reduce("+", lapply(i_ev, function(i) {
-    (S_2n(Y_[i])/S_0n(Y_[i])) - m_n(Y_[i]) %*% t(m_n(Y_[i]))
-  }))
-  I_tilde <- (1/N)*I_tilde
-  I_tilde_inv <- solve(I_tilde)
-
-  # Score function (Cox model)
-  l_n <- function(v_i,d_i,y_i) {
-    d_i*(v_i-m_n(y_i)) - (1/N)*Reduce("+", lapply(i_ev, function(j) {
-      (exp(sum(v_i*beta_n))*In(Y_[j]<=y_i) * (v_i-m_n(Y_[j]))) / S_0n(Y_[j])
-    }))
-  }
-
-  # Influence function: beta_hat (regular Cox model)
-  l_tilde <- (function() {
-    .cache <- new.env()
-    function(v_i,d_i,y_i) {
-      key <- paste(c(v_i,d_i,y_i), collapse=" ")
-      val <- .cache[[key]]
-      if (is.null(val)) {
-        val <- (function(v_i,d_i,y_i) {
-          I_tilde_inv %*% l_n(v_i,d_i,y_i)
-        })(v_i,d_i,y_i)
-        .cache[[key]] <- val
-      }
-      return(val)
-    }
-  })()
-
-  # Influence function: beta_hat (est. weights)
-  infl_fn_beta <- l_tilde
-
-  # Nuisance constant: mu_n
-  mu_n <- -1 * (1/N) * as.numeric(Reduce("+", lapply(i_ev, function(j) {
-    (In(Y_[j]<=t_0) * m_n(Y_[j])) / S_0n(Y_[j])
-  })))
-
-  # Breslow estimator
-  Lambda_n <- function(t) {
-    (1/N) * sum(unlist(lapply(i_ev, function(i) {
-      In(Y_[i]<=t) / S_0n(Y_[i])
+    # Nuisance constant: mu_n
+    mu_n <- -1 * (1/N) * as.numeric(Reduce("+", lapply(i_ev, function(j) {
+      (In(Y_[j]<=t_0) * m_n(Y_[j])) / S_0n(Y_[j])
     })))
-  }
 
-  # Survival estimator (at a point)
-  Q_n <- (function() {
+    # Breslow estimator
+    Lambda_n <- function(t) {
+      (1/N) * sum(unlist(lapply(i_ev, function(i) {
+        In(Y_[i]<=t) / S_0n(Y_[i])
+      })))
+    }
+
+    # Survival estimator (at a point)
+    Q_n <- (function() {
+      Lambda_n_t_0 <- Lambda_n(t_0)
+      function(z) { exp(-exp(sum(z*beta_n))*Lambda_n_t_0) }
+    })()
+
+    # Influence function: Breslow estimator (est. weights)
+    infl_fn_Lambda <- (function() {
+      .cache <- new.env()
+      function(v_i,d_i,y_i) {
+        key <- paste(c(v_i,d_i,y_i), collapse=" ")
+        val <- .cache[[key]]
+        if (is.null(val)) {
+          val <- (function(v_i,d_i,y_i) {
+            pc_5 <- sum(mu_n*infl_fn_beta(v_i,d_i,y_i))
+            pc_1 <- ( d_i * In(y_i<=t_0) ) / S_0n(y_i)
+            pc_3 <- (1/N) * sum(unlist(lapply(i_ev, function(j) {
+              (In(Y_[j]<=t_0)*In(y_i>=Y_[j])*exp(sum(beta_n*v_i))) /
+                (S_0n(Y_[j]))^2
+            })))
+            return(pc_1+pc_5-pc_3)
+          })(v_i,d_i,y_i)
+          .cache[[key]] <- val
+        }
+        return(val)
+      }
+    })()
+
+    # Compute marginalized risk
+    res_cox <- list()
     Lambda_n_t_0 <- Lambda_n(t_0)
-    function(z) { exp(-exp(sum(z*beta_n))*Lambda_n_t_0) }
-  })()
-
-  # Influence function: Breslow estimator (est. weights)
-  infl_fn_Lambda <- (function() {
-    .cache <- new.env()
-    function(v_i,d_i,y_i) {
-      key <- paste(c(v_i,d_i,y_i), collapse=" ")
-      val <- .cache[[key]]
-      if (is.null(val)) {
-        val <- (function(v_i,d_i,y_i) {
-          pc_5 <- sum(mu_n*infl_fn_beta(v_i,d_i,y_i))
-          pc_1 <- ( d_i * In(y_i<=t_0) ) / S_0n(y_i)
-          pc_3 <- (1/N) * sum(unlist(lapply(i_ev, function(j) {
-            (In(Y_[j]<=t_0)*In(y_i>=Y_[j])*exp(sum(beta_n*v_i))) /
-              (S_0n(Y_[j]))^2
-          })))
-          return(pc_1+pc_5-pc_3)
-        })(v_i,d_i,y_i)
-        .cache[[key]] <- val
-      }
-      return(val)
-    }
-  })()
-
-  # Compute marginalized risk
-  res_cox <- list()
-  Lambda_n_t_0 <- Lambda_n(t_0)
-  res_cox$est_marg <- (1/N) * sum((apply(dat$v$x, 1, function(r) {
-    x_i <- as.numeric(r[1:dim_x])
-    exp(-1*exp(sum(beta_n*x_i))*Lambda_n_t_0)
-  })))
-
-  # Compute variance estimate
-  dat_v_df <- as_df(dat$v)
-  res_cox$var_est_marg <- (function() {
-
-    # Precalculate pieces dependent on s
-    K_n <- (1/N) * Reduce("+", apply2(dat_v_df, 1, function(r) {
+    res_cox$est_marg <- (1/N) * sum((apply(dat[[g]]$x, 1, function(r) {
       x_i <- as.numeric(r[1:dim_x])
-      Q <- Q_n(x_i)
-      explin <- exp(sum(x_i*beta_n))
-      K_n1 <- Q
-      K_n2 <- Q * explin
-      K_n3 <- Q * explin * x_i
-      return(c(K_n1,K_n2,K_n3))
-    }, simplify=F))
-    K_n1 <- K_n[1]
-    K_n2 <- K_n[2]
-    K_n3 <- K_n[3:length(K_n)]
-
-    (1/N^2) * sum((apply(dat_v_df, 1, function(r) {
-
-      x_i <- as.numeric(r[1:dim_x])
-      z_i <- r[["z"]]
-      d_i <- r[["delta"]]
-      y_i <- r[["y"]]
-
-      pc_1 <- Q_n(x_i)
-      pc_2 <- Lambda_n_t_0 * sum(K_n3*infl_fn_beta(x_i,d_i,y_i))
-      pc_3 <- K_n2 * infl_fn_Lambda(x_i,d_i,y_i)
-      pc_4 <- K_n1
-
-      return((pc_1-pc_2-pc_3-pc_4)^2)
-
+      exp(-1*exp(sum(beta_n*x_i))*Lambda_n_t_0)
     })))
 
-  })()
+    # Compute variance estimate
+    dat_v_df <- as_df(dat[[g]])
+    res_cox$var_est_marg <- (function() {
 
-  # Extract estimates and SEs
-  ests <- 1-res_cox$est_marg
-  ses <- sqrt(res_cox$var_est_marg)
+      # Precalculate pieces dependent on s
+      K_n <- (1/N) * Reduce("+", apply2(dat_v_df, 1, function(r) {
+        x_i <- as.numeric(r[1:dim_x])
+        Q <- Q_n(x_i)
+        explin <- exp(sum(x_i*beta_n))
+        K_n1 <- Q
+        K_n2 <- Q * explin
+        K_n3 <- Q * explin * x_i
+        return(c(K_n1,K_n2,K_n3))
+      }, simplify=F))
+      K_n1 <- K_n[1]
+      K_n2 <- K_n[2]
+      K_n3 <- K_n[3:length(K_n)]
 
-  # Generate confidence limits
-  if (ci_type=="none") {
-    ci_lo <- rep(NA, length(ests))
-    ci_hi <- rep(NA, length(ests))
-  } else if (ci_type=="regular") {
-    ci_lo <- (ests - 1.96*ses) %>% pmax(0) %>% pmin(1)
-    ci_hi <- (ests + 1.96*ses) %>% pmax(0) %>% pmin(1)
-  } else if (ci_type=="logit") {
-    ci_lo <- expit(logit(ests) - 1.96*deriv_logit(ests)*ses)
-    ci_hi <- expit(logit(ests) + 1.96*deriv_logit(ests)*ses)
+      (1/N^2) * sum((apply(dat_v_df, 1, function(r) {
+
+        x_i <- as.numeric(r[1:dim_x])
+        z_i <- r[["z"]]
+        d_i <- r[["delta"]]
+        y_i <- r[["y"]]
+
+        pc_1 <- Q_n(x_i)
+        pc_2 <- Lambda_n_t_0 * sum(K_n3*infl_fn_beta(x_i,d_i,y_i))
+        pc_3 <- K_n2 * infl_fn_Lambda(x_i,d_i,y_i)
+        pc_4 <- K_n1
+
+        return((pc_1-pc_2-pc_3-pc_4)^2)
+
+      })))
+
+    })()
+
+    # Extract estimates and SEs
+    est <- 1-res_cox$est_marg
+    se <- sqrt(res_cox$var_est_marg)
+
+    # Generate confidence limits
+    if (ci_type=="none") {
+      ci_lo <- NA
+      ci_hi <- NA
+    } else if (ci_type=="regular") {
+      ci_lo <- (est - 1.96*se) %>% pmax(0) %>% pmin(1)
+      ci_hi <- (est + 1.96*se) %>% pmax(0) %>% pmin(1)
+    } else if (ci_type=="logit") {
+      ci_lo <- expit(logit(est) - 1.96*deriv_logit(est)*se)
+      ci_hi <- expit(logit(est) + 1.96*deriv_logit(est)*se)
+    }
+
+    # Return results object
+    return(list(group=h, est=ests, ci_lo=ci_lo, ci_hi=ci_hi))
+
+  })
+
+  if (ve) {
+    # !!!!!
   }
 
-  # Create results object
-  res <- list(est=ests, ci_lo=ci_lo, ci_hi=ci_hi)
 
   # # Return extras
   # if (return_extras) { res$model <- model }
