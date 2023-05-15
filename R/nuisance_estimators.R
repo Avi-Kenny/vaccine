@@ -39,8 +39,8 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       if (t==0) {
         return(1)
       } else {
-        # Lambda_t <- bh_srv$hazard[which.min(abs(bh_srv$time-t))]
-        Lambda_t <- bh_srv$hazard[max(which((bh_srv$time<t)==T))]
+        Lambda_t <- bh_srv$hazard[which.min(abs(bh_srv$time-t))]
+        # Lambda_t <- bh_srv$hazard[max(which((bh_srv$time<t)==T))] # This version sometimes throws an error
         return(exp(-1*Lambda_t*exp(sum(coeffs_srv*as.numeric(c(x,s))))))
       }
     }
@@ -49,8 +49,8 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       if (t==0) {
         return(1)
       } else {
-        # Lambda_t <- bh_cens$hazard[which.min(abs(bh_cens$time-t))]
-        Lambda_t <- bh_cens$hazard[max(which((bh_cens$time<t)==T))]
+        Lambda_t <- bh_cens$hazard[which.min(abs(bh_cens$time-t))]
+        # Lambda_t <- bh_cens$hazard[max(which((bh_cens$time<t)==T))] # This version sometimes throws an error
         return(exp(-1*Lambda_t*exp(sum(coeffs_cens*as.numeric(c(x,s))))))
       }
     }
@@ -284,13 +284,6 @@ construct_omega_n <- function(Q_n, Qc_n, t_0, grid) {
     } else {
       return(sum(x_vals(x,s)[1:index]*y_vals(x,s)[1:index]))
     }
-    # if (k<grid$y[2]) {
-    #   integral <- 0
-    # } else {
-    #   index <- max(which(k>grid$y))
-    #   integral <- sum(x_vals(x,s)[1:index]*y_vals(x,s)[1:index])
-    # }
-    # return(integral)
   }
   # omega_integral <- memoise2(omega_integral) # !!!!! Maybe try un-memoising this
 

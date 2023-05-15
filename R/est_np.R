@@ -117,20 +117,18 @@ est_np <- function(
   s_shift <- -1 * s_min
   s_scale <- 1/(s_max-s_min)
   dat_orig$s <- (dat_orig$s+s_shift)*s_scale
-  # grid_size$y <- t_0+1 # !!!!!
   grid <- create_grid(dat_orig, grid_size, t_0)
   dat_orig_rounded <- round_dat(dat_orig, grid, grid_size)
-  # dat_orig_rounded$x$x1 <- round(dat_orig$x$x1) # !!!!!
 
   # Rescale/round s_out and remove s_out points outside [0,1]
   s_out_orig <- s_out
   s_out <- (s_out+s_shift)*s_scale
-  s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] }) # !!!!! Move this line down
   na_head <- sum(s_out<0)
   na_tail <- sum(s_out>1)
   if (na_head>0) { s_out <- s_out[-c(1:na_head)] }
   len_p <- length(s_out)
   if (na_tail>0) { s_out <- s_out[-c((len_p-na_tail+1):len_p)] }
+  s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] })
 
   # Prepare precomputation values for conditional survival estimator
   chk(2)
