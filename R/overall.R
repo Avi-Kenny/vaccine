@@ -136,7 +136,18 @@ overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit", verbose=F) {
         }
       })()
 
-      m_n <- function(x) { S_1n(x) / S_0n(x) }
+      m_n <- (function() {
+        .cache <- new.env()
+        function(x) {
+          val <- .cache[[as.character(x)]]
+          if (is.null(val)) {
+            val <- S_1n(x) / S_0n(x)
+            .cache[[as.character(x)]] <- val
+          }
+          return(val)
+        }
+      })()
+      # m_n <- function(x) { S_1n(x) / S_0n(x) }
 
     }
 
@@ -148,30 +159,24 @@ overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit", verbose=F) {
     I_tilde_inv <- solve(I_tilde)
 
     # Score function (Cox model)
-    l_n <- function(v_i,d_i,y_i) {
-      d_i*(v_i-m_n(y_i)) - (1/N)*Reduce("+", lapply(i_ev, function(j) {
-        (exp(sum(v_i*beta_n))*In(Y_[j]<=y_i) * (v_i-m_n(Y_[j]))) / S_0n(Y_[j])
-      }))
-    }
-
-    # Influence function: beta_hat (regular Cox model)
-    l_tilde <- (function() {
+    l_n <- (function() {
       .cache <- new.env()
       function(v_i,d_i,y_i) {
         key <- paste(c(v_i,d_i,y_i), collapse=" ")
         val <- .cache[[key]]
         if (is.null(val)) {
-          val <- (function(v_i,d_i,y_i) {
-            I_tilde_inv %*% l_n(v_i,d_i,y_i)
-          })(v_i,d_i,y_i)
+          explin_i <- exp(sum(v_i*beta_n))
+          val <- d_i*(v_i-m_n(y_i)) - (1/N)*Reduce("+", lapply(i_ev, function(j) {
+            (explin_i*In(Y_[j]<=y_i) * (v_i-m_n(Y_[j]))) / S_0n(Y_[j])
+          }))
           .cache[[key]] <- val
         }
         return(val)
       }
     })()
 
-    # Influence function: beta_hat (est. weights)
-    infl_fn_beta <- l_tilde
+    # Influence function: beta_hat (regular Cox model)
+    infl_fn_beta <- function(v_i,d_i,y_i) { I_tilde_inv %*% l_n(v_i,d_i,y_i) }
 
     # Nuisance constant: mu_n
     mu_n <- -1 * (1/N) * as.numeric(Reduce("+", lapply(i_ev, function(j) {
@@ -201,8 +206,9 @@ overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit", verbose=F) {
           val <- (function(v_i,d_i,y_i) {
             pc_5 <- sum(mu_n*infl_fn_beta(v_i,d_i,y_i))
             pc_1 <- ( d_i * In(y_i<=t_0) ) / S_0n(y_i)
+            explin_i <- exp(sum(beta_n*v_i))
             pc_3 <- (1/N) * sum(unlist(lapply(i_ev, function(j) {
-              (In(Y_[j]<=t_0)*In(y_i>=Y_[j])*exp(sum(beta_n*v_i))) /
+              (In(Y_[j]<=t_0)*In(y_i>=Y_[j])*explin_i) /
                 (S_0n(Y_[j]))^2
             })))
             return(pc_1+pc_5-pc_3)
