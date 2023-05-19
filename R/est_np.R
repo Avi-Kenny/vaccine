@@ -219,10 +219,7 @@ est_np <- function(
 
   # !!!!!
   n_orig <- attr(dat_orig, "n_orig")
-  p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
-  Phi_n <- memoise(function(x) {
-    (1/(n_orig*p_n)) * sum(dat$weights*In(dat$s!=0)*In(dat$s<=x))
-  })
+  Phi_n <- memoise(function(x) { (1/n_orig) * sum(dat$weights*In(dat$s<=x)) })
 
   # print("asdf revised Phi_n(0.2,0.5,0.8,0.99)")
   # print(Phi_n(0.2))
@@ -232,8 +229,7 @@ est_np <- function(
 
   chk(11)
   n_orig <- attr(dat_orig, "n_orig")
-  p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
-  eta_n <- construct_eta_n(dat, Q_n, p_n, t_0)
+  # eta_n <- construct_eta_n(dat, Q_n, t_0)
   # print("asdf eta_n(u=0.5,x=c(x_val,1,0))")
   # print(eta_n(u=0.5,x=c(x_val,1,0)))
   chk(12)
@@ -241,14 +237,14 @@ est_np <- function(
   # print("asdf r_tilde_Mn(s=0.5)")
   # print(r_tilde_Mn(s=0.5))
   chk(13)
-  Gamma_tilde_n <- construct_Gamma_tilde_n(dat, r_tilde_Mn, p_n)
+  # Gamma_tilde_n <- construct_Gamma_tilde_n(dat, r_tilde_Mn)
   # print("asdf Gamma_tilde_n(u=0.5)")
   # print(Gamma_tilde_n(u=0.5))
   chk(14)
   f_n_srv <- construct_f_n_srv(Q_n, Qc_n, grid)
   chk(15)
   q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
-                       Gamma_tilde_n, f_n_srv)
+                       f_n_srv)
   chk(16)
 
   # !!!!! Profiling q_n
@@ -257,7 +253,7 @@ est_np <- function(
     # p$q_n_type <- "zero"
     p$q_n_type <- "standard"
     q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
-                         Gamma_tilde_n, f_n_srv)
+                         f_n_srv)
     dat_orig_df <- as_df(dat_orig)
     u <- 0.5; dim_x <- 2;
 
@@ -268,8 +264,8 @@ est_np <- function(
 
   }
 
-  Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n, eta_n, p_n,
-                                     q_n, r_tilde_Mn, Gamma_tilde_n)
+  Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n,
+                                     q_n, r_tilde_Mn)
   # print("asdf Gamma_os_n(u=0.1,0.5,0.9)")
   # print(Gamma_os_n(u=0.1))
   # print(Gamma_os_n(u=0.5))
@@ -282,9 +278,9 @@ est_np <- function(
     # p$q_n_type <- "zero"
     p$q_n_type <- "standard"
     q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
-                         Gamma_tilde_n, f_n_srv)
-    Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n, eta_n, p_n,
-                                       q_n, r_tilde_Mn, Gamma_tilde_n)
+                         f_n_srv)
+    Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n, q_n,
+                                       r_tilde_Mn)
 
     microbenchmark({
       Gamma_os_n(0.6)
@@ -295,6 +291,9 @@ est_np <- function(
   # Compute edge-corrected estimator and standard error
   if (p$edge_corr) {
 
+    # !!!!! May need to update this section
+
+    p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
     g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
     r_Mn_edge_est <- r_Mn_edge(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0)
     # print("asdf r_Mn_edge_est")
@@ -462,12 +461,12 @@ est_np <- function(
     res$extras <- list(
       "Gamma_0.2" = Gamma_os_n(0.2),
       "Gamma_0.5" = Gamma_os_n(0.5),
-      "Gamma_tilde_0.2" = Gamma_tilde_n(0.2),
-      "Gamma_tilde_0.5" = Gamma_tilde_n(0.5),
+      # "Gamma_tilde_0.2" = Gamma_tilde_n(0.2),
+      # "Gamma_tilde_0.5" = Gamma_tilde_n(0.5),
       "r_tilde_0.2" = r_tilde_Mn(0.2),
       "r_tilde_0.5" = r_tilde_Mn(0.5),
-      "eta_0.2" = eta_n(u=0.2,x=c(0,0)),
-      "eta_0.5" = eta_n(u=0.5,x=c(1,1)),
+      # "eta_0.2" = eta_n(u=0.2,x=c(0,0)),
+      # "eta_0.5" = eta_n(u=0.5,x=c(1,1)),
       "g_n_0.2" = g_n(s=0.2,x=c(0,0)),
       "g_n_0.5" = g_n(s=0.5,x=c(1,1)),
       "omega_1" = omega_n(x=c(0,0),s=0.2,y=100,delta=0),

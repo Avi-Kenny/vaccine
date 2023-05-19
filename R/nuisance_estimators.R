@@ -667,14 +667,13 @@ construct_Phi_n <- function (dat, type="linear (mid)") {
 #' Construct nuisance estimator eta_n
 #'
 #' @noRd
-construct_eta_n <- function(dat, Q_n, p_n, t_0) {
+construct_eta_n <- function(dat, Q_n, t_0) {
 
   n_orig <- attr(dat, "n_orig")
-  piece_1 <- dat$weights * In(dat$s!=0)
 
   return(memoise2(function(u,x) {
-    (1/(n_orig*p_n)) * sum(
-      piece_1 * sapply(dat$s, function(s) { In(s<=u) * (1-Q_n(t_0,x,s)) })
+    (1/n_orig) * sum(
+      dat$weights * sapply(dat$s, function(s) { In(s<=u) * (1-Q_n(t_0,x,s)) })
     )
   }))
 
@@ -705,12 +704,12 @@ construct_r_tilde_Mn <- function(dat_orig, Q_n, t_0) {
 #' Construct nuisance estimator Gamma_tilde_n
 #'
 #' @noRd
-construct_Gamma_tilde_n <- function(dat, r_tilde_Mn, p_n) {
+construct_Gamma_tilde_n <- function(dat, r_tilde_Mn) {
 
   n_orig <- attr(dat, "n_orig")
-  piece_1 <- dat$weights * In(dat$s!=0) * sapply(dat$s, r_tilde_Mn)
+  piece_1 <- dat$weights * sapply(dat$s, r_tilde_Mn)
 
-  return(memoise2(function(u) { (1/(n_orig*p_n)) * sum(In(dat$s<=u)*piece_1) }))
+  return(memoise2(function(u) { (1/n_orig) * sum(In(dat$s<=u)*piece_1) }))
 
 }
 
@@ -768,24 +767,20 @@ construct_f_n_srv <- function(Q_n, Qc_n, grid) {
 #'
 #' @noRd
 construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
-                          Gamma_tilde_n, f_n_srv) {
+                          f_n_srv) {
 
   if (type=="standard") {
 
     # !!!!! Can this function be used elsewhere?
-    q_n_star_inner <- memoise2(function(y, delta, x, s) {
-      if (s==0) {
-        return(0)
-      } else {
-        return(omega_n(x,s,y,delta)/g_n(s,x)+r_tilde_Mn(s))
-      }
+    q_n_star_inner <- memoise2(function(x,y,delta,s) {
+      omega_n(x,s,y,delta)/g_n(s,x)+r_tilde_Mn(s)
     })
 
-    q_n_star <- memoise2(function(y, delta, x, s, u) {
-      if (s==0) {
+    q_n_star <- memoise2(function(y,delta,x,s,u) {
+      if (s>u) {
         return(0)
       } else {
-        return(In(s<=u)*q_n_star_inner(y, delta, x, s) - Gamma_tilde_n(u))
+        return(q_n_star_inner(x,y,delta,s))
       }
     })
 
