@@ -554,7 +554,7 @@ est_cox <- function(
   }
 
   # Create results object
-  res <- list(s=s_out, est=ests, ci_lo=ci_lo, ci_hi=ci_hi)
+  res <- list(s=s_out, est=ests, se=ses, ci_lo=ci_lo, ci_hi=ci_hi)
 
   # Return extras
   if (return_extras) { res$model <- model }
