@@ -76,17 +76,15 @@ est_np <- function(
   # !!!!! Validate other inputs; import error handling function from SimEngine
 
   # Alias variables
-  dat_orig <- dat$v # !!!!! Maybe change this later
+  dat_orig <- dat$v
   .v <- verbose
 
   # Fix s_out if needed
-  if (F) { # !!!!! if clause is temporary
-    if (any(is.na(dat_orig$s))) { # ?????
-      if (missing(s_out)) {
-        s_out <- seq(from=min(dat$s, na.rm=T), to=max(dat$s, na.rm=T), l=101)
-      } else {
-        stop("NA values not allowed in s_out.")
-      }
+  if (any(is.na(dat_orig$s))) {
+    if (missing(s_out)) {
+      s_out <- seq(from=min(dat$s, na.rm=T), to=max(dat$s, na.rm=T), l=101)
+    } else {
+      stop("NA values not allowed in s_out.")
     }
   }
 
@@ -145,17 +143,6 @@ est_np <- function(
     x = subset(vals_pre, select=-c(t,x_index,s)),
     s = vals_pre$s
   )
-  # print("asdf vlist")
-  # print("unique(vals$t)")
-  # print(unique(vals$t))
-  # print("unique(vals$x$x1)")
-  # print(unique(vals$x$x1))
-  # print("unique(vals$x$x2)")
-  # print(unique(vals$x$x2))
-  # print("unique(vals$x$x3)")
-  # print(unique(vals$x$x3))
-  # print("unique(vals$s)")
-  # print(unique(vals$s))
 
   # Create phase-two data object (unrounded)
   chk(3)
@@ -163,26 +150,10 @@ est_np <- function(
 
   # Fit conditional survival estimator
   chk(4)
-  # print("asdf dat")
-  # print(str(dat))
-  # print(sum(dat$delta))
-  # print(sum(dat$s, na.rm=T))
-  # print(sum(dat$x$x1))
-  # print(sum(dat$x$x2))
-  # print(sum(dat$x$x3))
-  # print(sum(dat$weights))
-  # print(sum(dat$strata))
-  # print(sum(dat$z))
   srvSL <- construct_Q_n(p$surv_type, dat, vals)
   Q_n <- srvSL$srv
   Qc_n <- srvSL$cens
   chk(5)
-  # print("asdf Q_n(t=t_val, x=c(x_val,1,0), s=0.5)")
-  # t_val <- vals$t[which.min(abs(vals$t-50))] # !!!!!
-  # x_val <- vals$x$x1[which.min(abs(vals$x$x1+3))] # !!!!!
-  # print(Q_n(t=t_val, x=c(x_val,1,0), s=0.5))
-  # print("asdf Qc_n(t=t_val, x=c(x_val,1,0), s=0.5)")
-  # print(Qc_n(t=t_val, x=c(x_val,1,0), s=0.5))
 
   # Use rounded data objects moving forward
   dat_orig <- dat_orig_rounded
@@ -193,53 +164,23 @@ est_np <- function(
   # Compute various nuisance functions
   chk(6)
   omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)
-  # print("asdf omega_n(x=c(x_val,1,0),s=0.5,y=100,delta=0)")
-  # print(omega_n(x=c(x_val,1,0),s=0.5,y=100,delta=0))
-  # print("asdf omega_n(x=c(x_val,1,0),s=0.5,y=100,delta=1)")
-  # print(omega_n(x=c(x_val,1,0),s=0.5,y=100,delta=1))
   chk(7)
   f_sIx_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins, z1=F)
-  # print("asdf f_sIx_n(s=0.5, x=c(x_val,1,0))")
-  # print(f_sIx_n(s=0.5, x=c(x_val,1,0)))
   chk(8)
   f_s_n <- construct_f_s_n(dat_orig, f_sIx_n)
-  # print("asdf f_s_n(s=0.5)")
-  # print(f_s_n(s=0.5))
   chk(9)
   g_n <- construct_g_n(f_sIx_n, f_s_n)
   chk(10)
-  # Phi_n <- construct_Phi_n(ss(dat, which(dat$s!=0)))
-  # print("asdf str(ss(dat, which(dat$s!=0)))")
-  # print(str(ss(dat, which(dat$s!=0))))
-  # print("asdf Phi_n(0.2,0.5,0.8,0.99)")
-  # print(Phi_n(0.2))
-  # print(Phi_n(0.5))
-  # print(Phi_n(0.8))
-  # print(Phi_n(0.99))
 
   # !!!!!
   n_orig <- attr(dat_orig, "n_orig")
   Phi_n <- memoise(function(x) { (1/n_orig) * sum(dat$weights*In(dat$s<=x)) })
 
-  # print("asdf revised Phi_n(0.2,0.5,0.8,0.99)")
-  # print(Phi_n(0.2))
-  # print(Phi_n(0.5))
-  # print(Phi_n(0.8))
-  # print(Phi_n(0.99))
-
   chk(11)
   n_orig <- attr(dat_orig, "n_orig")
-  # eta_n <- construct_eta_n(dat, Q_n, t_0)
-  # print("asdf eta_n(u=0.5,x=c(x_val,1,0))")
-  # print(eta_n(u=0.5,x=c(x_val,1,0)))
   chk(12)
   r_tilde_Mn <- construct_r_tilde_Mn(dat_orig, Q_n, t_0)
-  # print("asdf r_tilde_Mn(s=0.5)")
-  # print(r_tilde_Mn(s=0.5))
   chk(13)
-  # Gamma_tilde_n <- construct_Gamma_tilde_n(dat, r_tilde_Mn)
-  # print("asdf Gamma_tilde_n(u=0.5)")
-  # print(Gamma_tilde_n(u=0.5))
   chk(14)
   f_n_srv <- construct_f_n_srv(Q_n, Qc_n, grid)
   chk(15)
@@ -247,57 +188,15 @@ est_np <- function(
                        f_n_srv)
   chk(16)
 
-  # !!!!! Profiling q_n
-  if (F) {
-
-    # p$q_n_type <- "zero"
-    p$q_n_type <- "standard"
-    q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
-                         f_n_srv)
-    dat_orig_df <- as_df(dat_orig)
-    u <- 0.5; dim_x <- 2;
-
-    # Profile this line
-    q_n_do <- as.numeric(apply(dat_orig_df, 1, function(r) {
-      q_n(as.numeric(r[1:dim_x]), r[["y"]], r[["delta"]], u)
-    }))
-
-  }
-
   Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n,
                                      q_n, r_tilde_Mn)
-  # print("asdf Gamma_os_n(u=0.1,0.5,0.9)")
-  # print(Gamma_os_n(u=0.1))
-  # print(Gamma_os_n(u=0.5))
-  # print(Gamma_os_n(u=0.9))
   chk(17)
-
-  # !!!!! Profiling Gamma_os_n
-  if (F) {
-
-    # p$q_n_type <- "zero"
-    p$q_n_type <- "standard"
-    q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
-                         f_n_srv)
-    Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n, q_n,
-                                       r_tilde_Mn)
-
-    microbenchmark({
-      Gamma_os_n(0.6)
-    }, times=10L)
-
-  }
 
   # Compute edge-corrected estimator and standard error
   if (p$edge_corr) {
-
-    # !!!!! May need to update this section
-
     p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
     g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
     r_Mn_edge_est <- r_Mn_edge(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0)
-    # print("asdf r_Mn_edge_est")
-    # print(r_Mn_edge_est)
     infl_fn_r_Mn_edge <- construct_infl_fn_r_Mn_edge(Q_n, g_sn, omega_n, g_n,
                                                      r_Mn_edge_est, p_n, t_0)
     dat_orig_df <- as_df(dat_orig)
@@ -306,7 +205,6 @@ est_np <- function(
       (infl_fn_r_Mn_edge(r[["z"]], r[["weights"]], r[["s"]],
                          as.numeric(r[1:dim_x]), r[["y"]], r[["delta"]]))^2
     }))
-
   }
 
   # Compute GCM (or least squares line) and extract its derivative
@@ -348,10 +246,6 @@ est_np <- function(
 
   # Construct Grenander-based r_Mn estimator (and truncate to lie within [0,1])
   r_Mn_Gr <- function(u) { min(max(-1*dGCM(Phi_n(u)),0),1) }
-  # print("asdf r_Mn_Gr(u=0.1,0.5,0.9)")
-  # print(r_Mn_Gr(u=0.1))
-  # print(r_Mn_Gr(u=0.5))
-  # print(r_Mn_Gr(u=0.9))
 
   # Compute variance component nuisance estimators
   chk(20)
@@ -462,26 +356,6 @@ est_np <- function(
 
   # Compute CVE
   # !!!!! TO DO
-
-  if (F) {
-    res$extras <- list(
-      "Gamma_0.2" = Gamma_os_n(0.2),
-      "Gamma_0.5" = Gamma_os_n(0.5),
-      # "Gamma_tilde_0.2" = Gamma_tilde_n(0.2),
-      # "Gamma_tilde_0.5" = Gamma_tilde_n(0.5),
-      "r_tilde_0.2" = r_tilde_Mn(0.2),
-      "r_tilde_0.5" = r_tilde_Mn(0.5),
-      # "eta_0.2" = eta_n(u=0.2,x=c(0,0)),
-      # "eta_0.5" = eta_n(u=0.5,x=c(1,1)),
-      "g_n_0.2" = g_n(s=0.2,x=c(0,0)),
-      "g_n_0.5" = g_n(s=0.5,x=c(1,1)),
-      "omega_1" = omega_n(x=c(0,0),s=0.2,y=100,delta=0),
-      "omega_2" = omega_n(x=c(0,0),s=0.4,y=150,delta=1),
-      "omega_3" = omega_n(x=c(1,1),s=0.6,y=100,delta=0),
-      "omega_4" = omega_n(x=c(1,1),s=0.8,y=150,delta=1),
-      "p_n" = p_n
-    )
-  } # DEBUG (3 of 3): !!!!! figure out differences w vaccine package
 
   if (return_extras) {
 
