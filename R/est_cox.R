@@ -10,21 +10,9 @@
 #' @param s_out A numeric vector of s-values (on the biomarker scale) for which
 #'     cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points
 #'     between the min and max biomarker values.
-#' @param ci_type TO DO
-#' @param grid_size A list containing the following three keys: \itemize{
-#'     \item{\code{y}: grid size for time values}
-#'     \item{\code{s}: grid size for marker values}
-#'     \item{\code{x}: grid size for covariate values}
-#' }
-#'     This controls rounding of data values. Decreasing the grid size values
-#'     results in shorter computation times, and increasing the grid size values
-#'     results in more precise estimates. If grid_size$s=101, this means that a
-#'     grid of 101 equally-spaced points (defining 100 intervals) will be
-#'     created from min(S) to max(S), and each S value will be rounded to the
-#'     nearest grid point. For grid_size$y, a grid will be created from 0 to
-#'     t_0, and then extended to max(Y). For grid_size$x, a separate grid is
-#'     created for each covariate column (binary/categorical covariates are
-#'     ignored).
+#' @param spline_df TO DO
+#' @param edge_ind TO DO
+#' @param ci_type One of c("logit", "truncated", "none").
 #' @param return_extras Boolean. If set to TRUE, the following quantities (most
 #'     of which are mainly useful for debugging) are returned: \itemize{
 #'     \item{\code{one}: asdf}
@@ -34,12 +22,16 @@
 #' @param verbose A Boolean. If set to TRUE, intermediate output will be
 #'     displayed.
 #' @return A list containing the following: \itemize{
-#'     \item{\code{one}: asdf}
-#'     \item{\code{two}: asdf}
-#'     \item{\code{three}: asdf}
+#'     \item{\code{s}: A vector of points, corresponding to s_out}
+#'     \item{\code{est}: asdf}
+#'     \item{\code{se}: asdf}
+#'     \item{\code{ci_lo}: asdf}
+#'     \item{\code{ci_hi}: asdf}
 #' }
 #' @examples
 #' print("to do")
+#' print("load dummy dataset")
+#' print("generate estimates")
 #' @export
 #' @references Kenny, A., Gilbert P., and Carone, M. (2023). Inference for
 #'     controlled risk and controlled vaccine efficacy curves using a
@@ -49,9 +41,11 @@
 #' @export
 est_cox <- function(
     dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$v$s), to=max(dat$v$s), l=101),
-    ci_type="logit", grid_size=list(y=101, s=101, x=5), return_extras=F,
-    verbose=F, spline_df=NA, edge_ind=F # !!!!!
+    spline_df=NA, edge_ind=F, ci_type="logit", return_extras=F, verbose=F
 ) {
+
+  # s=s_out, est=ests, se=ses, ci_lo=ci_lo, ci_hi=ci_hi
+  # !!!!! Should be a named list corresponding to cr and cve
 
   # !!!!! Testing
   if (F) {
@@ -62,7 +56,7 @@ est_cox <- function(
     attr(dat$v, "n_orig") <- length(dat$v$z)
     attr(dat$v, "dim_x") <- 2
     t_0=200; cve=T; cr=T; s_out=round(seq(0,1,0.02),2); ci_type="logit";
-    grid_size=list(y=101, s=101, x=5); return_extras=F; verbose=F; spline_df=4;
+    return_extras=F; verbose=F; spline_df=4;
     source("R/misc_functions.R"); s_out=round(seq(0,1,0.02),2); edge_ind=F;
   }
 
@@ -538,23 +532,28 @@ est_cox <- function(
   # if (verbose) { print(paste("Check 5d (var est END: marg):", Sys.time())) }
 
   # Extract estimates and SEs
-  ests <- 1-res_cox$est_marg
-  ses <- sqrt(res_cox$var_est_marg)
+  ests_cr <- 1-res_cox$est_marg
+  ses_cr <- sqrt(res_cox$var_est_marg)
 
   # Generate confidence limits
   if (ci_type=="none") {
-    ci_lo <- rep(NA, length(ests))
-    ci_hi <- rep(NA, length(ests))
-  } else if (ci_type=="regular") {
-    ci_lo <- (ests - 1.96*ses) %>% pmax(0) %>% pmin(1)
-    ci_hi <- (ests + 1.96*ses) %>% pmax(0) %>% pmin(1)
+    ci_lo_cr <- rep(NA, length(ests_cr))
+    ci_hi_cr <- rep(NA, length(ests_cr))
+  } else if (ci_type=="truncated") {
+    ci_lo_cr <- (ests_cr - 1.96*ses_cr) %>% pmax(0) %>% pmin(1)
+    ci_hi_cr <- (ests_cr + 1.96*ses_cr) %>% pmax(0) %>% pmin(1)
   } else if (ci_type=="logit") {
-    ci_lo <- expit(logit(ests) - 1.96*deriv_logit(ests)*ses)
-    ci_hi <- expit(logit(ests) + 1.96*deriv_logit(ests)*ses)
+    ci_lo_cr <- expit(logit(ests_cr) - 1.96*deriv_logit(ests_cr)*ses_cr)
+    ci_hi_cr <- expit(logit(ests_cr) + 1.96*deriv_logit(ests_cr)*ses_cr)
   }
 
   # Create results object
-  res <- list(s=s_out, est=ests, se=ses, ci_lo=ci_lo, ci_hi=ci_hi)
+  res <- list("cr" = list(s=s_out, est=ests_cr, se=ses_cr, ci_lo=ci_lo_cr,
+                          ci_hi=ci_hi_cr),
+              "cve" = list(s=s_out))
+
+  # Compute CVE
+  # !!!!! TO DO
 
   # Return extras
   if (return_extras) { res$model <- model }

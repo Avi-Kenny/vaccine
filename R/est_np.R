@@ -385,7 +385,7 @@ est_np <- function(
 
   # Generate estimates for each point
   chk(25)
-  ests <- sapply(s_out, r_Mn)
+  ests_cr <- sapply(s_out, r_Mn)
   chk(26)
 
   # Construct variance scale factor
@@ -397,8 +397,8 @@ est_np <- function(
   # Generate confidence limits
   if (p$ci_type=="none") {
 
-    ci_lo <- rep(NA, length(ests))
-    ci_hi <- rep(NA, length(ests))
+    ci_lo_cr <- rep(NA, length(ests_cr))
+    ci_hi_cr <- rep(NA, length(ests_cr))
 
   } else {
 
@@ -409,27 +409,27 @@ est_np <- function(
     # The 0.975 quantile of the Chernoff distribution occurs at roughly 1.00
     qnt <- 1.00
     if (p$ci_type=="regular") {
-      ci_lo <- ests - (qnt*tau_ns)/(n_orig^(1/3))
-      ci_hi <- ests + (qnt*tau_ns)/(n_orig^(1/3))
+      ci_lo_cr <- ests_cr - (qnt*tau_ns)/(n_orig^(1/3))
+      ci_hi_cr <- ests_cr + (qnt*tau_ns)/(n_orig^(1/3))
     } else if (p$ci_type=="logit") {
-      ci_lo <- expit(
-        logit(ests) - (qnt*tau_ns*deriv_logit(ests))/(n_orig^(1/3))
+      ci_lo_cr <- expit(
+        logit(ests_cr) - (qnt*tau_ns*deriv_logit(ests_cr))/(n_orig^(1/3))
       )
-      ci_hi <- expit(
-        logit(ests) + (qnt*tau_ns*deriv_logit(ests))/(n_orig^(1/3))
+      ci_hi_cr <- expit(
+        logit(ests_cr) + (qnt*tau_ns*deriv_logit(ests_cr))/(n_orig^(1/3))
       )
     }
 
     # CI edge correction
     if (p$edge_corr) {
-      ci_lo2 <- ests[1] - 1.96*sqrt(sigma2_edge_est/n_orig)
-      ci_hi2 <- ests[1] + 1.96*sqrt(sigma2_edge_est/n_orig)
-      ci_lo <- In(r_Mn_edge_est<=ests)*pmin(ci_lo,ci_lo2) +
-        In(r_Mn_edge_est>ests)*ci_lo
-      ci_lo[1] <- ci_lo2
-      ci_hi <- In(r_Mn_edge_est<=ests)*pmin(ci_hi,ci_hi2) +
-        In(r_Mn_edge_est>ests)*ci_hi
-      ci_hi[1] <- ci_hi2
+      ci_lo_cr2 <- ests_cr[1] - 1.96*sqrt(sigma2_edge_est/n_orig)
+      ci_hi_cr2 <- ests_cr[1] + 1.96*sqrt(sigma2_edge_est/n_orig)
+      ci_lo_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_lo_cr,ci_lo_cr2) +
+        In(r_Mn_edge_est>ests_cr)*ci_lo_cr
+      ci_lo_cr[1] <- ci_lo_cr2
+      ci_hi_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_hi_cr,ci_hi_cr2) +
+        In(r_Mn_edge_est>ests_cr)*ci_hi_cr
+      ci_hi_cr[1] <- ci_hi_cr2
     }
 
   }
@@ -437,25 +437,31 @@ est_np <- function(
   # Monotone CI correction
   # !!!!! Make sure sims are re-run with this
   if (p$mono_cis) {
-    val <- ci_lo[1]
-    for (i in c(2:length(ci_lo))) {
-      if (!is.na(ci_lo[i]) && !is.na(val) && ci_lo[i]>val) { ci_lo[i] <- val }
-      val <- ci_lo[i]
+    val <- ci_lo_cr[1]
+    for (i in c(2:length(ci_lo_cr))) {
+      if (!is.na(ci_lo_cr[i]) && !is.na(val) && ci_lo_cr[i]>val) { ci_lo_cr[i] <- val }
+      val <- ci_lo_cr[i]
     }
-    val <- ci_hi[1]
-    for (i in c(2:length(ci_hi))) {
-      if (!is.na(ci_hi[i]) && !is.na(val) && ci_hi[i]>val) { ci_hi[i] <- val }
-      val <- ci_hi[i]
+    val <- ci_hi_cr[1]
+    for (i in c(2:length(ci_hi_cr))) {
+      if (!is.na(ci_hi_cr[i]) && !is.na(val) && ci_hi_cr[i]>val) { ci_hi_cr[i] <- val }
+      val <- ci_hi_cr[i]
     }
   }
 
   # Create results object
   res <- list(
-    s = s_out_orig,
-    est = c(rep(NA,na_head), ests, rep(NA,na_tail)),
-    ci_lo = c(rep(NA,na_head), ci_lo, rep(NA,na_tail)),
-    ci_hi = c(rep(NA,na_head), ci_hi, rep(NA,na_tail))
+    "cr" = list(
+      s = s_out_orig,
+      est = c(rep(NA,na_head), ests_cr, rep(NA,na_tail)),
+      ci_lo = c(rep(NA,na_head), ci_lo_cr, rep(NA,na_tail)),
+      ci_hi = c(rep(NA,na_head), ci_hi_cr, rep(NA,na_tail))
+    ),
+    "cve" = list(s=s_out)
   )
+
+  # Compute CVE
+  # !!!!! TO DO
 
   if (F) {
     res$extras <- list(
