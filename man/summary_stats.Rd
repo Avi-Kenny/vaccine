@@ -4,10 +4,12 @@
 \alias{summary_stats}
 \title{Calculate summary statistics}
 \usage{
-summary_stats(dat, print = F)
+summary_stats(dat, quietly = F)
 }
 \arguments{
-\item{dat}{A data object returned by `load_data`}
+\item{dat}{A data object returned by `load_data`.}
+
+\item{quietly}{Boolean. If true, output will not be printed.}
 }
 \value{
 A list containing the following: \itemize{

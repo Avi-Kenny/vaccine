@@ -64,8 +64,6 @@ Estimate controlled vaccine efficacy (CVE) and/or controlled
 }
 \examples{
 print("to do")
-print("load dummy dataset")
-print("generate estimates")
 }
 \references{
 Kenny, A., Gilbert P., and Carone, M. (2023). Inference for

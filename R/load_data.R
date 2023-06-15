@@ -19,6 +19,8 @@
 #' @param ph2 A vector of binary values corresponding to whether the individual
 #'     is in the phase-two cohort (1) or not (0). Accepts either integer (0/1)
 #'     or Boolean (T/F) values.
+#' @param strata A vector of strata identifiers (for two-phase sampling strata).
+#'     weights.
 #' @return A list containing the following: \itemize{
 #'     \item{\code{one}: asdf}
 #'     \item{\code{two}: asdf}
@@ -30,6 +32,8 @@
 load_data <- function(
   time, event, vacc, marker, covariates, weights, ph2, strata=NA
 ) {
+
+  # !!!!! Add ph1 indicator
 
   # Input checks: time
   n <- length(time)
@@ -72,7 +76,7 @@ load_data <- function(
   if (!is.numeric(marker)) { stop("`marker` vector must be numeric.") }
 
   # Input checks: covariates
-  if (class(covariates)!="data.frame") {
+  if (!methods::is(covariates,"data.frame")) {
     stop("`covariates` must be a data frame.")
   }
   if (nrow(covariates)!=n) {

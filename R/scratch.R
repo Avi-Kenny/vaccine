@@ -345,7 +345,7 @@ if (F) {
 
   ..p <<- list() # !!!!!
   model_srv <- survival::coxph(
-    formula = formula(paste0("survival::Surv(y,delta)~",
+    formula = stats::formula(paste0("survival::Surv(y,delta)~",
                              paste(names(dat$x),collapse="+"),"+s")),
     data = cbind(y=dat$y, delta=dat$delta, dat$x, s=dat$s),
     weights = dat$weights
@@ -359,7 +359,7 @@ if (F) {
   bh_srv <- survival::basehaz(model_srv, centered=FALSE)
 
   model_cens <- survival::coxph(
-    formula = formula(paste0("survival::Surv(y,delta)~",
+    formula = stats::formula(paste0("survival::Surv(y,delta)~",
                              paste(names(dat$x),collapse="+"),"+s")),
     data = cbind(y=dat$y, delta=1-dat$delta, dat$x, s=dat$s),
     weights = dat$weights
@@ -430,9 +430,9 @@ if (F) {
     }
     points_x <- c(points_x, grid$s[length(grid$s)])
     points_y <- c(points_y, r_Mns[length(grid$s)])
-    fnc_pre <- approxfun(x=points_x, y=points_y, method="linear", rule=2)
+    fnc_pre <- stats::approxfun(x=points_x, y=points_y, method="linear", rule=2)
     fnc_pre_lin <- fnc_pre # !!!!!
-    fnc_pre <- splinefun(x=points_x, y=points_y, method="monoH.FC")
+    fnc_pre <- stats::splinefun(x=points_x, y=points_y, method="monoH.FC")
     fnc_pre_spl <- fnc_pre # !!!!!
     fnc_lin <- function(s) {
       width <- 0.1 # !!!!! Changed from 0.2

@@ -32,8 +32,6 @@
 #' }
 #' @examples
 #' print("to do")
-#' print("load dummy dataset")
-#' print("generate estimates")
 #' @export
 #' @references Kenny, A., Gilbert P., and Carone, M. (2023). Inference for
 #'     controlled risk and controlled vaccine efficacy curves using a
@@ -80,7 +78,7 @@ est_cox <- function(
   #   cl <- NULL
   # }
 
-  if (class(dat)!="dat_vaccine") {
+  if (!methods::is(dat,"dat_vaccine")) {
     stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",
                 "ad_data()."))
   }

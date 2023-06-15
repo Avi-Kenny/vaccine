@@ -70,7 +70,7 @@ est_np <- function(
   grid_size=list(y=101, s=101, x=5), return_extras=F
 ) {
 
-  if (class(dat)!="dat_vaccine") {
+  if (!methods::is(dat,"dat_vaccine")) {
     stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",
                 "ad_data()."))
   }
@@ -135,7 +135,8 @@ est_np <- function(
   vals_pre <- dplyr::inner_join(vals_pre, x_distinct, by="x_index")
   vals <- list(
     t = vals_pre$t,
-    x = subset(vals_pre, select=-c(t,x_index,s)),
+    # x = subset(vals_pre, select=-c(t,x_index,s)),
+    x = subset(vals_pre, select=names(dat_orig_rounded$x)), # !!!!! New code (to avoid R CMD CHECK error)
     s = vals_pre$s
   )
 
@@ -205,7 +206,7 @@ est_np <- function(
     gcm <- function(x) { 1 } # Ignored
     fit <- simest::cvx.lse.reg(t=gcm_x_vals, z=gcm_y_vals)
     pred_x <- round(seq(0,1,0.001),3)
-    pred_y <- predict(fit, newdata=pred_x)
+    pred_y <- stats::predict(fit, newdata=pred_x)
     dGCM <- function(u) {
       width <- 0.05
       u1 <- u - width/2; u2 <- u + width/2;

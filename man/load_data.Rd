@@ -28,6 +28,9 @@ weights.}
 \item{ph2}{A vector of binary values corresponding to whether the individual
 is in the phase-two cohort (1) or not (0). Accepts either integer (0/1)
 or Boolean (T/F) values.}
+
+\item{strata}{A vector of strata identifiers (for two-phase sampling strata).
+weights.}
 }
 \value{
 A list containing the following: \itemize{

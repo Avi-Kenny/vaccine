@@ -18,7 +18,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
   if (type=="Cox") {
 
     model_srv <- survival::coxph(
-      formula = formula(paste0("survival::Surv(y,delta)~",
+      formula = stats::formula(paste0("survival::Surv(y,delta)~",
                                paste(names(dat$x),collapse="+"),"+s")),
       data = cbind(y=dat$y, delta=dat$delta, dat$x, s=dat$s),
       weights = dat$weights
@@ -27,7 +27,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
     bh_srv <- survival::basehaz(model_srv, centered=F)
 
     model_cens <- survival::coxph(
-      formula = formula(paste0("survival::Surv(y,delta)~",
+      formula = stats::formula(paste0("survival::Surv(y,delta)~",
                                paste(names(dat$x),collapse="+"),"+s")),
       data = cbind(y=dat$y, delta=1-dat$delta, dat$x, s=dat$s),
       weights = dat$weights
@@ -90,10 +90,10 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       cat("------------------------------\n\n")
       cat("event.coef\n")
       cat("----------\n")
-      print(sort(srv$event.coef, decr=T))
+      print(sort(srv$event.coef, decreasing=T))
       cat("\ncens.coef\n")
       cat("---------\n")
-      print(sort(srv$cens.coef, decr=T))
+      print(sort(srv$cens.coef, decreasing=T))
       cat("\n------------------------------\n")
     }
 
@@ -107,7 +107,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       for (i in 1:length(x)) {
         r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
       }
-      if (class(newX[["s"]][1])=="factor") {
+      if (methods::is(newX[["s"]][1],"factor")) {
         r[[length(x)+1]] <- which(s==newX[["s"]])
       } else {
         r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
@@ -130,7 +130,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       for (i in 1:length(x)) {
         r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
       }
-      if (class(newX[["s"]][1])=="factor") {
+      if (methods::is(newX[["s"]][1],"factor")) {
         r[[length(x)+1]] <- which(s==newX[["s"]])
       } else {
         r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
@@ -194,7 +194,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
   #     for (i in 1:length(x)) {
   #       r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
   #     }
-  #     if (class(newX[["s"]][1])=="factor") {
+  #     if (methods::is(newX[["s"]][1],"factor")) {
   #       r[[length(x)+1]] <- which(s==newX[["s"]])
   #     } else {
   #       r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
@@ -217,7 +217,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
   #     for (i in 1:length(x)) {
   #       r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
   #     }
-  #     if (class(newX[["s"]][1])=="factor") {
+  #     if (methods::is(newX[["s"]][1],"factor")) {
   #       r[[length(x)+1]] <- which(s==newX[["s"]])
   #     } else {
   #       r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
@@ -663,7 +663,7 @@ construct_Phi_n <- function (dat_orig, dat, type="linear (mid)") {
   #   method <- "linear"
   # }
   #
-  # return(approxfun(vals_x, vals_y, method=method, yleft=0, yright=1, f=0,
+  # return(stats::approxfun(vals_x, vals_y, method=method, yleft=0, yright=1, f=0,
   #                  ties="ordered"))
 
 }
@@ -882,7 +882,8 @@ construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n,
 
   # Filter out infinite values
   if (sum(!is.finite(dat_df$po))!=0) {
-    dat_df <- dplyr::filter(dat_df, is.finite(po))
+    # dat_df <- dplyr::filter(dat_df, is.finite(po))
+    dat_df <- dat_df[which(is.finite(dat_df$po)),] # !!!!! New code (to avoid R CMD CHECK error)
     warning(paste("gamma_n:", sum(!is.finite(dat_df$po)),
                   "non-finite pseudo-outcome values"))
   }
@@ -1030,11 +1031,11 @@ construct_deriv_r_Mn <- function(type="m-spline", r_Mn, grid) {
     points_y <- c(points_y, r_Mns[length(grid$s)])
 
     if (type=="linear") {
-      fnc_pre <- approxfun(x=points_x, y=points_y, method="linear", rule=2)
+      fnc_pre <- stats::approxfun(x=points_x, y=points_y, method="linear", rule=2)
     }
 
     if (type=="m-spline") {
-      fnc_pre <- splinefun(x=points_x, y=points_y, method="monoH.FC")
+      fnc_pre <- stats::splinefun(x=points_x, y=points_y, method="monoH.FC")
     }
 
     # Construct numerical derivative

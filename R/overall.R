@@ -16,7 +16,7 @@
 #' @export
 overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit") {
 
-  if (class(dat)!="dat_vaccine") {
+  if (!methods::is(dat,"dat_vaccine")) {
     stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",
                 "ad_data()."))
   }
@@ -63,7 +63,7 @@ overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit") {
 
     # Fit an unweighted Cox model
     model <- survival::coxph(
-      formula = formula(paste0("survival::Surv(y,delta)~",
+      formula = stats::formula(paste0("survival::Surv(y,delta)~",
                                paste(names(X),collapse="+"))),
       data = cbind(y=Y_, delta=D_, X)
     )
