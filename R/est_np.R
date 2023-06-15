@@ -12,6 +12,10 @@
 #'     cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points
 #'     between the min and max biomarker values.
 #' @param ci_type TO DO
+#' @param placebo_risk_method One of c("KM", "Cox"). Method for estimating
+#'     overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
+#'     and "Cox" computes an estimate based on a marginalized Cox model survival
+#'     curve. Only relevant if cve=TRUE.
 #' @param cf_folds An integer representing the number of cross-fitting folds to
 #'     use. If cf_folds=1, cross-fitting will not be done.
 #' @param edge_corr Boolean. If TRUE, the edge correction is performed. It is
@@ -62,7 +66,7 @@
 #' @export
 est_np <- function(
   dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$v$s), to=max(dat$v$s), l=101),
-  ci_type="logit", cf_folds=1, edge_corr=F, params=list(),
+  ci_type="logit", placebo_risk_method="KM", cf_folds=1, edge_corr=F, params=list(),
   grid_size=list(y=101, s=101, x=5), return_extras=F
 ) {
 
@@ -154,8 +158,7 @@ est_np <- function(
   f_sIx_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins, z1=F)
   f_s_n <- construct_f_s_n(dat_orig, f_sIx_n)
   g_n <- construct_g_n(f_sIx_n, f_s_n)
-  n_orig <- attr(dat_orig, "n_orig")
-  Phi_n <- memoise(function(x) { (1/n_orig) * sum(dat$weights*In(dat$s<=x)) })
+  Phi_n <- construct_Phi_n(dat_orig, dat)
   r_tilde_Mn <- construct_r_tilde_Mn(dat_orig, Q_n, t_0)
   f_n_srv <- construct_f_n_srv(Q_n, Qc_n, grid)
   q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
@@ -165,6 +168,7 @@ est_np <- function(
                                      q_n, r_tilde_Mn)
 
   # Compute edge-corrected estimator and standard error
+  n_orig <- attr(dat_orig, "n_orig")
   if (p$edge_corr) {
     p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
     g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
@@ -190,7 +194,7 @@ est_np <- function(
   }
   if (p$convex_type=="GCM") {
     gcm <- fdrtool::gcmlcm(x=gcm_x_vals, y=gcm_y_vals, type="gcm")
-    dGCM <- approxfun(
+    dGCM <- stats::approxfun(
       x = gcm$x.knots[-length(gcm$x.knots)],
       y = gcm$slope.knots,
       method = "constant",
@@ -199,7 +203,7 @@ est_np <- function(
     )
   } else if (p$convex_type=="CLS") {
     gcm <- function(x) { 1 } # Ignored
-    fit <- cvx.lse.reg(t=gcm_x_vals, z=gcm_y_vals)
+    fit <- simest::cvx.lse.reg(t=gcm_x_vals, z=gcm_y_vals)
     pred_x <- round(seq(0,1,0.001),3)
     pred_y <- predict(fit, newdata=pred_x)
     dGCM <- function(u) {
@@ -215,7 +219,7 @@ est_np <- function(
   }
 
   # Construct Grenander-based r_Mn estimator (and truncate to lie within [0,1])
-  r_Mn_Gr <- function(u) { min(max(-1*dGCM(Phi_n(u)),0),1) }
+  r_Mn_Gr <- function(u) { min(max(-1*dGCM(Phi_n(u)), 0), 1) }
 
   # Compute variance component nuisance estimators
   f_sIx_z1_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins,
@@ -315,7 +319,7 @@ est_np <- function(
   )
 
   # Compute CVE
-  # !!!!! TO DO
+  # !!!!! TO DO; use placebo_risk_method argument and call overall()
 
   if (return_extras) {
 

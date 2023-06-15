@@ -270,8 +270,8 @@ overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit") {
       ci_lo <- NA
       ci_hi <- NA
     } else if (ci_type=="regular") {
-      ci_lo <- (est - 1.96*se) %>% pmax(0) %>% pmin(1)
-      ci_hi <- (est + 1.96*se) %>% pmax(0) %>% pmin(1)
+      ci_lo <- pmin(pmax(est - 1.96*se, 0), 1)
+      ci_hi <- pmin(pmax(est + 1.96*se, 0), 1)
     } else if (ci_type=="logit") {
       ci_lo <- expit(logit(est) - 1.96*deriv_logit(est)*se)
       ci_hi <- expit(logit(est) + 1.96*deriv_logit(est)*se)

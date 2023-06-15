@@ -6,3 +6,4 @@
 #' @docType package
 #' @name vaccine
 NULL
+

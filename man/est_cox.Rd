@@ -13,6 +13,7 @@ est_cox(
   spline_df = NA,
   edge_ind = F,
   ci_type = "logit",
+  placebo_risk_method = "Cox",
   return_extras = F
 )
 }
@@ -35,6 +36,11 @@ between the min and max biomarker values.}
 \item{edge_ind}{TO DO}
 
 \item{ci_type}{One of c("logit", "truncated", "none").}
+
+\item{placebo_risk_method}{One of c("KM", "Cox"). Method for estimating
+overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
+and "Cox" computes an estimate based on a marginalized Cox model survival
+curve. Only relevant if cve=TRUE.}
 
 \item{return_extras}{Boolean. If set to TRUE, the following quantities (most
     of which are mainly useful for debugging) are returned: \itemize{

@@ -622,43 +622,49 @@ construct_g_n <- function(f_sIx_n, f_s_n) {
 
 #' Construct Phi_n
 #'
+#' @param dat_orig Dataset returned by `generate_data`
 #' @param dat Subsample of dataset returned by `ss` for which z==1
-#' @param which One of c("ecdf", "inverse")
 #' @param type One of c("step", "linear (mid)")
-#' @return CDF or inverse CDF estimator function
-#' @note
-#'   - Adaptation of stats::ecdf source code
+#' @return IPS-weighted CDF estimator function
 #' @noRd
-construct_Phi_n <- function (dat, type="linear (mid)") {
+construct_Phi_n <- function (dat_orig, dat, type="linear (mid)") {
 
-  # !!!!! re-stabilize weights?
+  # !!!!! type currently ignored
 
-  # n_orig <- attr(dat, "n_orig")
-  n_orig <- sum(dat$weights) # !!!!!
-  df <- data.frame(s=dat$s, weights=dat$weights)
-  df <- dplyr::arrange(df, s)
-  vals_x <- unique(df$s)
-  vals_y <- c()
+  n_orig <- attr(dat_orig, "n_orig")
 
-  for (j in 1:length(vals_x)) {
-    indices <- which(df$s==vals_x[j])
-    weights_j <- df$weights[indices]
-    new_y_val <- (1/n_orig) * sum(weights_j)
-    vals_y <- c(vals_y, new_y_val)
-  }
-  vals_y <- cumsum(vals_y)
+  fn <- memoise::memoise(function(x) {
+    (1/n_orig) * sum(dat$weights*In(dat$s<=x))
+  })
 
-  if (type=="step") {
-    method <- "constant"
-  } else if (type=="linear (mid)") {
-    vals_x <- c(vals_x[1], vals_x[1:(length(vals_x)-1)]+diff(vals_x)/2,
-                vals_x[length(vals_x)])
-    vals_y <- c(0, vals_y[1:(length(vals_y)-1)], 1)
-    method <- "linear"
-  }
+  return(fn)
 
-  return(approxfun(vals_x, vals_y, method=method, yleft=0, yright=1, f=0,
-                   ties="ordered"))
+  # # n_orig <- attr(dat, "n_orig")
+  # n_orig <- sum(dat$weights) # !!!!!
+  # df <- data.frame(s=dat$s, weights=dat$weights)
+  # df <- dplyr::arrange(df, s)
+  # vals_x <- unique(df$s)
+  # vals_y <- c()
+  #
+  # for (j in 1:length(vals_x)) {
+  #   indices <- which(df$s==vals_x[j])
+  #   weights_j <- df$weights[indices]
+  #   new_y_val <- (1/n_orig) * sum(weights_j)
+  #   vals_y <- c(vals_y, new_y_val)
+  # }
+  # vals_y <- cumsum(vals_y)
+  #
+  # if (type=="step") {
+  #   method <- "constant"
+  # } else if (type=="linear (mid)") {
+  #   vals_x <- c(vals_x[1], vals_x[1:(length(vals_x)-1)]+diff(vals_x)/2,
+  #               vals_x[length(vals_x)])
+  #   vals_y <- c(0, vals_y[1:(length(vals_y)-1)], 1)
+  #   method <- "linear"
+  # }
+  #
+  # return(approxfun(vals_x, vals_y, method=method, yleft=0, yright=1, f=0,
+  #                  ties="ordered"))
 
 }
 

@@ -11,6 +11,7 @@ est_np(
   cr = T,
   s_out = seq(from = min(dat$v$s), to = max(dat$v$s), l = 101),
   ci_type = "logit",
+  placebo_risk_method = "KM",
   cf_folds = 1,
   edge_corr = F,
   params = list(),
@@ -33,6 +34,11 @@ cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points
 between the min and max biomarker values.}
 
 \item{ci_type}{TO DO}
+
+\item{placebo_risk_method}{One of c("KM", "Cox"). Method for estimating
+overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
+and "Cox" computes an estimate based on a marginalized Cox model survival
+curve. Only relevant if cve=TRUE.}
 
 \item{cf_folds}{An integer representing the number of cross-fitting folds to
 use. If cf_folds=1, cross-fitting will not be done.}

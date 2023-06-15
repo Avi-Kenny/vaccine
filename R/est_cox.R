@@ -13,6 +13,10 @@
 #' @param spline_df TO DO
 #' @param edge_ind TO DO
 #' @param ci_type One of c("logit", "truncated", "none").
+#' @param placebo_risk_method One of c("KM", "Cox"). Method for estimating
+#'     overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
+#'     and "Cox" computes an estimate based on a marginalized Cox model survival
+#'     curve. Only relevant if cve=TRUE.
 #' @param return_extras Boolean. If set to TRUE, the following quantities (most
 #'     of which are mainly useful for debugging) are returned: \itemize{
 #'     \item{\code{one}: asdf}
@@ -39,7 +43,8 @@
 #' @export
 est_cox <- function(
     dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$v$s), to=max(dat$v$s), l=101),
-    spline_df=NA, edge_ind=F, ci_type="logit", return_extras=F
+    spline_df=NA, edge_ind=F, ci_type="logit", placebo_risk_method="Cox",
+    return_extras=F
 ) {
 
   # s=s_out, est=ests, se=ses, ci_lo=ci_lo, ci_hi=ci_hi
@@ -100,7 +105,7 @@ est_cox <- function(
       x = dat$v$s,
       df = spline_df,
       intercept = F,
-      Boundary.knots = quantile(dat$v$s, c(0.05,0.95), na.rm=T)
+      Boundary.knots = stats::quantile(dat$v$s, c(0.05,0.95), na.rm=T)
     )
     spl_knots <- as.numeric(attr(spl_basis, "knots"))
     spl_bnd_knots <- as.numeric(attr(spl_basis, "Boundary.knots"))
@@ -181,7 +186,7 @@ est_cox <- function(
 
   # Fit an IPS-weighted Cox model
   model <- survival::coxph(
-    formula = formula(paste0("survival::Surv(y,delta)~",
+    formula = stats::formula(paste0("survival::Surv(y,delta)~",
                              paste(names(X),collapse="+"), "+",
                              paste(names(SP),collapse="+"))),
     data = cbind(y=Y_, delta=D_, X, SP),
@@ -527,8 +532,8 @@ est_cox <- function(
     ci_lo_cr <- rep(NA, length(ests_cr))
     ci_hi_cr <- rep(NA, length(ests_cr))
   } else if (ci_type=="truncated") {
-    ci_lo_cr <- (ests_cr - 1.96*ses_cr) %>% pmax(0) %>% pmin(1)
-    ci_hi_cr <- (ests_cr + 1.96*ses_cr) %>% pmax(0) %>% pmin(1)
+    ci_lo_cr <- pmin(pmax(ests_cr - 1.96*ses_cr, 0), 1)
+    ci_hi_cr <- pmin(pmax(ests_cr + 1.96*ses_cr, 0), 1)
   } else if (ci_type=="logit") {
     ci_lo_cr <- expit(logit(ests_cr) - 1.96*deriv_logit(ests_cr)*ses_cr)
     ci_hi_cr <- expit(logit(ests_cr) + 1.96*deriv_logit(ests_cr)*ses_cr)
@@ -540,7 +545,7 @@ est_cox <- function(
               "cve" = list(s=s_out))
 
   # Compute CVE
-  # !!!!! TO DO
+  # !!!!! TO DO; use placebo_risk_method argument and call overall()
 
   # Return extras
   if (return_extras) { res$model <- model }
