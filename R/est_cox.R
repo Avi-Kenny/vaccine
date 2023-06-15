@@ -19,8 +19,6 @@
 #'     \item{\code{two}: asdf}
 #'     \item{\code{three}: asdf}
 #' }
-#' @param verbose A Boolean. If set to TRUE, intermediate output will be
-#'     displayed.
 #' @return A list containing the following: \itemize{
 #'     \item{\code{s}: A vector of points, corresponding to s_out}
 #'     \item{\code{est}: asdf}
@@ -41,7 +39,7 @@
 #' @export
 est_cox <- function(
     dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$v$s), to=max(dat$v$s), l=101),
-    spline_df=NA, edge_ind=F, ci_type="logit", return_extras=F, verbose=F
+    spline_df=NA, edge_ind=F, ci_type="logit", return_extras=F
 ) {
 
   # s=s_out, est=ests, se=ses, ci_lo=ci_lo, ci_hi=ci_hi
@@ -56,11 +54,10 @@ est_cox <- function(
     attr(dat$v, "n_orig") <- length(dat$v$z)
     attr(dat$v, "dim_x") <- 2
     t_0=200; cve=T; cr=T; s_out=round(seq(0,1,0.02),2); ci_type="logit";
-    return_extras=F; verbose=F; spline_df=4;
+    return_extras=F; spline_df=4;
     source("R/misc_functions.R"); s_out=round(seq(0,1,0.02),2); edge_ind=F;
   }
 
-  # !!!!! Implement this eventually
   # # Setup
   # if (verbose) {
   #   print(paste("Check 0 (start):", Sys.time()))
@@ -78,16 +75,12 @@ est_cox <- function(
   #   cl <- NULL
   # }
 
-
   if (class(dat)!="dat_vaccine") {
     stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",
                 "ad_data()."))
   }
 
   # !!!!! Validate other inputs; import error handling function from SimEngine
-
-  # Alias variables
-  .v <- verbose
 
   # Fix s_out if needed
   if (missing(s_out)) {
@@ -468,8 +461,6 @@ est_cox <- function(
     }
   })()
 
-  # if (verbose) { print(paste("Check 2 (functions declared):", Sys.time())) }
-
   # Compute marginalized risk
   res_cox <- list()
   Lambda_n_t_0 <- Lambda_n(t_0)
@@ -480,8 +471,6 @@ est_cox <- function(
       exp(-1*exp(sum(beta_n*c(x_i,s_spl)))*Lambda_n_t_0)
     })))
   }))
-
-  # if (verbose) { print(paste("Check 3d (var est START: marg):", Sys.time())) }
 
   # Compute variance estimate
   dat_v_df <- as_df(dat$v, strata=T)
@@ -528,8 +517,6 @@ est_cox <- function(
     })))
 
   }))
-
-  # if (verbose) { print(paste("Check 5d (var est END: marg):", Sys.time())) }
 
   # Extract estimates and SEs
   ests_cr <- 1-res_cox$est_marg

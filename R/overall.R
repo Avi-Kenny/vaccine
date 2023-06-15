@@ -6,8 +6,6 @@
 #' @param ve TO DO
 #' @param risk TO DO
 #' @param ci_type TO DO
-#' @param verbose A Boolean. If set to TRUE, intermediate output will be
-#'     displayed.
 #' @return A list containing the following: \itemize{
 #'     \item{\code{one}: asdf}
 #'     \item{\code{two}: asdf}
@@ -16,7 +14,7 @@
 #' @examples
 #' print("to do")
 #' @export
-overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit", verbose=F) {
+overall <- function(dat, t_0, risk=T, ve=T, ci_type="logit") {
 
   if (class(dat)!="dat_vaccine") {
     stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",

@@ -43,8 +43,6 @@
 #'     \item{\code{two}: asdf}
 #'     \item{\code{three}: asdf}
 #' }
-#' @param verbose A Boolean. If set to TRUE, intermediate output will be
-#'     displayed.
 #' @return A list containing the following: \itemize{
 #'     \item{\code{one}: asdf}
 #'     \item{\code{two}: asdf}
@@ -65,7 +63,7 @@
 est_np <- function(
   dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$v$s), to=max(dat$v$s), l=101),
   ci_type="logit", cf_folds=1, edge_corr=F, params=list(),
-  grid_size=list(y=101, s=101, x=5), return_extras=F, verbose=F
+  grid_size=list(y=101, s=101, x=5), return_extras=F
 ) {
 
   if (class(dat)!="dat_vaccine") {
@@ -77,7 +75,6 @@ est_np <- function(
 
   # Alias variables
   dat_orig <- dat$v
-  .v <- verbose
 
   # Fix s_out if needed
   if (any(is.na(dat_orig$s))) {
@@ -289,16 +286,19 @@ est_np <- function(
   }
 
   # Monotone CI correction
-  # !!!!! Make sure sims are re-run with this
   if (p$mono_cis) {
     val <- ci_lo_cr[1]
     for (i in c(2:length(ci_lo_cr))) {
-      if (!is.na(ci_lo_cr[i]) && !is.na(val) && ci_lo_cr[i]>val) { ci_lo_cr[i] <- val }
+      if (!is.na(ci_lo_cr[i]) && !is.na(val) && ci_lo_cr[i]>val) {
+        ci_lo_cr[i] <- val
+      }
       val <- ci_lo_cr[i]
     }
     val <- ci_hi_cr[1]
     for (i in c(2:length(ci_hi_cr))) {
-      if (!is.na(ci_hi_cr[i]) && !is.na(val) && ci_hi_cr[i]>val) { ci_hi_cr[i] <- val }
+      if (!is.na(ci_hi_cr[i]) && !is.na(val) && ci_hi_cr[i]>val) {
+        ci_hi_cr[i] <- val
+      }
       val <- ci_hi_cr[i]
     }
   }
