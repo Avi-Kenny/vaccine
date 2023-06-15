@@ -109,7 +109,6 @@ est_np <- function(
   p$edge_corr <- edge_corr
 
   # Rescale S to lie in [0,1] and create rounded data object
-  chk(1)
   s_min <- min(dat_orig$s, na.rm=T)
   s_max <- max(dat_orig$s, na.rm=T)
   s_shift <- -1 * s_min
@@ -129,15 +128,10 @@ est_np <- function(
   s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] })
 
   # Prepare precomputation values for conditional survival estimator
-  chk(2)
   x_distinct <- dplyr::distinct(dat_orig_rounded$x)
-  chk(2.1)
   x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
-  chk(2.2)
   vals_pre <- expand.grid(t=grid$y, x_index=x_distinct$x_index, s=grid$s)
-  chk(2.3)
   vals_pre <- dplyr::inner_join(vals_pre, x_distinct, by="x_index")
-  chk(2.4)
   vals <- list(
     t = vals_pre$t,
     x = subset(vals_pre, select=-c(t,x_index,s)),
@@ -145,15 +139,12 @@ est_np <- function(
   )
 
   # Create phase-two data object (unrounded)
-  chk(3)
   dat <- ss(dat_orig_rounded, which(dat_orig_rounded$z==1)) # !!!!!
 
   # Fit conditional survival estimator
-  chk(4)
   srvSL <- construct_Q_n(p$surv_type, dat, vals)
   Q_n <- srvSL$srv
   Qc_n <- srvSL$cens
-  chk(5)
 
   # Use rounded data objects moving forward
   dat_orig <- dat_orig_rounded
@@ -162,35 +153,19 @@ est_np <- function(
   if (p$edge_corr) { s_min2 <- min(dat_orig$s[dat_orig$s!=0], na.rm=T) }
 
   # Compute various nuisance functions
-  chk(6)
   omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)
-  chk(7)
   f_sIx_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins, z1=F)
-  chk(8)
   f_s_n <- construct_f_s_n(dat_orig, f_sIx_n)
-  chk(9)
   g_n <- construct_g_n(f_sIx_n, f_s_n)
-  chk(10)
-
-  # !!!!!
   n_orig <- attr(dat_orig, "n_orig")
   Phi_n <- memoise(function(x) { (1/n_orig) * sum(dat$weights*In(dat$s<=x)) })
-
-  chk(11)
-  n_orig <- attr(dat_orig, "n_orig")
-  chk(12)
   r_tilde_Mn <- construct_r_tilde_Mn(dat_orig, Q_n, t_0)
-  chk(13)
-  chk(14)
   f_n_srv <- construct_f_n_srv(Q_n, Qc_n, grid)
-  chk(15)
   q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
                        f_n_srv)
-  chk(16)
 
   Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n,
                                      q_n, r_tilde_Mn)
-  chk(17)
 
   # Compute edge-corrected estimator and standard error
   if (p$edge_corr) {
@@ -212,7 +187,6 @@ est_np <- function(
   indices_to_keep <- !base::duplicated(gcm_x_vals)
   gcm_x_vals <- gcm_x_vals[indices_to_keep]
   gcm_y_vals <- -1 * sapply(sort(unique(dat$s))[indices_to_keep], Gamma_os_n)
-  chk(18)
   if (!any(gcm_x_vals==0)) {
     gcm_x_vals <- c(0, gcm_x_vals)
     gcm_y_vals <- c(0, gcm_y_vals)
@@ -242,27 +216,20 @@ est_np <- function(
       return((y2-y1)/width)
     }
   }
-  chk(19)
 
   # Construct Grenander-based r_Mn estimator (and truncate to lie within [0,1])
   r_Mn_Gr <- function(u) { min(max(-1*dGCM(Phi_n(u)),0),1) }
 
   # Compute variance component nuisance estimators
-  chk(20)
   f_sIx_z1_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins,
                                   z1=T)
-  chk(21)
   f_s_z1_n <- construct_f_s_n(dat_orig, f_sIx_z1_n)
-  chk(22)
   gamma_n <- construct_gamma_n(dat_orig, dat, type="Super Learner", omega_n,
                                grid)
-  chk(23)
   g_zn <- construct_g_zn(dat_orig, type="Super Learner", f_sIx_n, f_sIx_z1_n)
-  chk(24)
 
   # Create either regular or edge-corrected r_Mn estimator
   if (p$edge_corr) {
-
     r_Mn <- function(u) {
       if(u==0 || u<s_min2) {
         return(r_Mn_edge_est)
@@ -270,23 +237,16 @@ est_np <- function(
         return(min(r_Mn_edge_est, r_Mn_Gr(u)))
       }
     }
-
   } else {
-
     r_Mn <- r_Mn_Gr
-
   }
 
   # Generate estimates for each point
-  chk(25)
   ests_cr <- sapply(s_out, r_Mn)
-  chk(26)
 
   # Construct variance scale factor
   deriv_r_Mn <- construct_deriv_r_Mn(type=p$deriv_type, r_Mn, grid)
-  chk(27)
   tau_n <- construct_tau_n(deriv_r_Mn, gamma_n, f_sIx_n, g_zn, dat_orig)
-  chk(28)
 
   # Generate confidence limits
   if (p$ci_type=="none") {
