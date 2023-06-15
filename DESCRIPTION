@@ -25,3 +25,6 @@ Imports:
     SuperLearner (>= 2.0.28),
     survival (>= 3.4.0),
     truncnorm (>= 1.0.8)
+Suggests: 
+    knitr,
+    rmarkdown
