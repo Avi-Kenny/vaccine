@@ -3,5 +3,5 @@
 export(est_cox)
 export(est_np)
 export(load_data)
-export(summary_stats)
 export(overall)
+export(summary_stats)

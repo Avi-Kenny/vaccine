@@ -4,13 +4,17 @@
 \alias{load_data}
 \title{Load and format data object}
 \usage{
-load_data(time, event, marker, covariates, weights, strata, ph2)
+load_data(time, event, vacc, marker, covariates, weights, ph2, strata = NA)
 }
 \arguments{
 \item{time}{A numeric vector of observed event or censoring times.}
 
 \item{event}{A vector of binary values corresponding to whether the observed
 time represents an event time (1) or a censoring time (0). Accepts either
+integer (0/1) or Boolean (T/F) values.}
+
+\item{vacc}{A vector of binary values corresponding to whether the individual
+is in the vaccine group (1) or the placebo group (0). Accepts either
 integer (0/1) or Boolean (T/F) values.}
 
 \item{marker}{A numeric vector of biomarker values.}
@@ -21,15 +25,9 @@ binary, or factors. Character columns will be converted into factors.}
 \item{weights}{A numeric vector of inverse-probability-of-sampling (IPS)
 weights.}
 
-\item{strata}{!!!!! TO DO}
-
 \item{ph2}{A vector of binary values corresponding to whether the individual
 is in the phase-two cohort (1) or not (0). Accepts either integer (0/1)
 or Boolean (T/F) values.}
-
-\item{vacc}{A vector of binary values corresponding to whether the individual
-is in the vaccine group (1) or the placebo group (0). Accepts either
-integer (0/1) or Boolean (T/F) values.}
 }
 \value{
 A list containing the following: \itemize{

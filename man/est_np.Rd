@@ -15,8 +15,7 @@ est_np(
   edge_corr = F,
   params = list(),
   grid_size = list(y = 101, s = 101, x = 5),
-  return_extras = F,
-  verbose = F
+  return_extras = F
 )
 }
 \arguments{
@@ -70,9 +69,6 @@ at least 10 events corresponding to the marker lower limit}
     \item{\code{two}: asdf}
     \item{\code{three}: asdf}
 }}
-
-\item{verbose}{A Boolean. If set to TRUE, intermediate output will be
-displayed.}
 }
 \value{
 A list containing the following: \itemize{

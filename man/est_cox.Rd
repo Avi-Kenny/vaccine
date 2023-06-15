@@ -10,10 +10,10 @@ est_cox(
   cve = T,
   cr = T,
   s_out = seq(from = min(dat$v$s), to = max(dat$v$s), l = 101),
+  spline_df = NA,
+  edge_ind = F,
   ci_type = "logit",
-  grid_size = list(y = 101, s = 101, x = 5),
-  return_extras = F,
-  verbose = F
+  return_extras = F
 )
 }
 \arguments{
@@ -30,22 +30,11 @@ computed.}
 cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points
 between the min and max biomarker values.}
 
-\item{ci_type}{TO DO}
+\item{spline_df}{TO DO}
 
-\item{grid_size}{A list containing the following three keys: \itemize{
-    \item{\code{y}: grid size for time values}
-    \item{\code{s}: grid size for marker values}
-    \item{\code{x}: grid size for covariate values}
-}
-    This controls rounding of data values. Decreasing the grid size values
-    results in shorter computation times, and increasing the grid size values
-    results in more precise estimates. If grid_size$s=101, this means that a
-    grid of 101 equally-spaced points (defining 100 intervals) will be
-    created from min(S) to max(S), and each S value will be rounded to the
-    nearest grid point. For grid_size$y, a grid will be created from 0 to
-    t_0, and then extended to max(Y). For grid_size$x, a separate grid is
-    created for each covariate column (binary/categorical covariates are
-    ignored).}
+\item{edge_ind}{TO DO}
+
+\item{ci_type}{One of c("logit", "truncated", "none").}
 
 \item{return_extras}{Boolean. If set to TRUE, the following quantities (most
     of which are mainly useful for debugging) are returned: \itemize{
@@ -53,15 +42,14 @@ between the min and max biomarker values.}
     \item{\code{two}: asdf}
     \item{\code{three}: asdf}
 }}
-
-\item{verbose}{A Boolean. If set to TRUE, intermediate output will be
-displayed.}
 }
 \value{
 A list containing the following: \itemize{
-    \item{\code{one}: asdf}
-    \item{\code{two}: asdf}
-    \item{\code{three}: asdf}
+    \item{\code{s}: A vector of points, corresponding to s_out}
+    \item{\code{est}: asdf}
+    \item{\code{se}: asdf}
+    \item{\code{ci_lo}: asdf}
+    \item{\code{ci_hi}: asdf}
 }
 }
 \description{
@@ -70,6 +58,8 @@ Estimate controlled vaccine efficacy (CVE) and/or controlled
 }
 \examples{
 print("to do")
+print("load dummy dataset")
+print("generate estimates")
 }
 \references{
 Kenny, A., Gilbert P., and Carone, M. (2023). Inference for
