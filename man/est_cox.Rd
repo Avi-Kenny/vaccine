@@ -7,9 +7,9 @@
 est_cox(
   dat,
   t_0,
-  cve = T,
   cr = T,
-  s_out = seq(from = min(dat$v$s), to = max(dat$v$s), l = 101),
+  cve = T,
+  s_out = seq(from = min(dat$v$s, na.rm = T), to = max(dat$v$s, na.rm = T), l = 101),
   spline_df = NA,
   edge_ind = F,
   ci_type = "logit",
@@ -22,10 +22,10 @@ est_cox(
 
 \item{t_0}{Time point of interest}
 
+\item{cr}{Boolean. If TRUE, the controlled risk (CR) curve is computed.}
+
 \item{cve}{Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
 computed.}
-
-\item{cr}{Boolean. If TRUE, the controlled risk (CR) curve is computed.}
 
 \item{s_out}{A numeric vector of s-values (on the biomarker scale) for which
 cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points

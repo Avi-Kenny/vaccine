@@ -5,9 +5,9 @@
 #'     et al. 2023.
 #' @param dat A data object returned by load_data
 #' @param t_0 Time point of interest
+#' @param cr Boolean. If TRUE, the controlled risk (CR) curve is computed.
 #' @param cve Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
 #'     computed.
-#' @param cr Boolean. If TRUE, the controlled risk (CR) curve is computed.
 #' @param s_out A numeric vector of s-values (on the biomarker scale) for which
 #'     cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points
 #'     between the min and max biomarker values.
@@ -65,7 +65,8 @@
 #'     Controlled Effects Approach to Assessing Immune Correlates of Protection.
 #' @export
 est_np <- function(
-  dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$v$s), to=max(dat$v$s), l=101),
+  dat, t_0, cr=T, cve=T,
+  s_out=seq(from=min(dat$v$s, na.rm=T), to=max(dat$v$s, na.rm=T), l=101),
   ci_type="logit", placebo_risk_method="KM", cf_folds=1, edge_corr=F, params=list(),
   grid_size=list(y=101, s=101, x=5), return_extras=F
 ) {
@@ -80,14 +81,7 @@ est_np <- function(
   # Alias variables
   dat_orig <- dat$v
 
-  # Fix s_out if needed
-  if (any(is.na(dat_orig$s))) {
-    if (missing(s_out)) {
-      s_out <- seq(from=min(dat$s, na.rm=T), to=max(dat$s, na.rm=T), l=101)
-    } else {
-      stop("NA values not allowed in s_out.")
-    }
-  }
+  if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
 
   # Set params
   .default_params <- list(

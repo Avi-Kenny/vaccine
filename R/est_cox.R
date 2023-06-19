@@ -4,9 +4,9 @@
 #'     risk (CR) using a marginalized Cox proportional hazards model
 #' @param dat A data object returned by load_data
 #' @param t_0 Time point of interest
+#' @param cr Boolean. If TRUE, the controlled risk (CR) curve is computed.
 #' @param cve Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
 #'     computed.
-#' @param cr Boolean. If TRUE, the controlled risk (CR) curve is computed.
 #' @param s_out A numeric vector of s-values (on the biomarker scale) for which
 #'     cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points
 #'     between the min and max biomarker values.
@@ -40,7 +40,8 @@
 #'     Controlled Effects Approach to Assessing Immune Correlates of Protection.
 #' @export
 est_cox <- function(
-    dat, t_0, cve=T, cr=T, s_out=seq(from=min(dat$v$s), to=max(dat$v$s), l=101),
+    dat, t_0, cr=T, cve=T,
+    s_out=seq(from=min(dat$v$s, na.rm=T), to=max(dat$v$s, na.rm=T), l=101),
     spline_df=NA, edge_ind=F, ci_type="logit", placebo_risk_method="Cox",
     return_extras=F
 ) {
@@ -85,14 +86,7 @@ est_cox <- function(
 
   # !!!!! Validate other inputs; import error handling function from SimEngine
 
-  # Fix s_out if needed
-  if (missing(s_out)) {
-    s_out <- seq(from=min(dat$v$s, na.rm=T),
-                 to=max(dat$v$s, na.rm=T),
-                 l=101)
-  } else {
-    if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
-  }
+  if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
 
   # Create spline basis and function
   dat$v$spl <- data.frame("s1"=dat$v$s)
