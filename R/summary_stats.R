@@ -20,6 +20,8 @@ summary_stats <- function(dat, quietly=F) {
                 "ad_data()."))
   }
 
+  # Checks based on identical(dat$v,list()) and identical(dat$p,list())
+
   ss <- list(
     "num_ph1_events_v" = sum(dat$v$delta==1),
     "num_ph1_events_p" = sum(dat$p$delta==1),
