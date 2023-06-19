@@ -4,14 +4,25 @@
 \alias{load_data}
 \title{Load and format data object}
 \usage{
-load_data(time, event, vacc, marker, covariates, weights, ph2, strata = NA)
+load_data(
+  time,
+  event,
+  vacc,
+  marker,
+  covariates,
+  weights,
+  ph2,
+  strata = NA,
+  data
+)
 }
 \arguments{
-\item{time}{A numeric vector of observed event or censoring times.}
+\item{time}{The name of the numeric variable representing observed event or
+censoring times.}
 
-\item{event}{A vector of binary values corresponding to whether the observed
-time represents an event time (1) or a censoring time (0). Accepts either
-integer (0/1) or Boolean (T/F) values.}
+\item{event}{The name of the binary variable corresponding to whether the
+observed time represents an event time (1) or a censoring time (0).
+Either integer (0/1) or Boolean (T/F) values are allowed.}
 
 \item{vacc}{A vector of binary values corresponding to whether the individual
 is in the vaccine group (1) or the placebo group (0). Accepts either
@@ -33,17 +44,14 @@ or Boolean (T/F) values.}
 weights.}
 }
 \value{
-A list containing the following: \itemize{
-    \item{\code{one}: asdf}
-    \item{\code{two}: asdf}
-    \item{\code{three}: asdf}
-}
+An object of class \code{dat_vaccine}.
 }
 \description{
 This function takes in user-supplied data and returns a data
-    object that can be read in by \code{est_np()}, \code{est_cox()},
-    and \code{hyptest_np()}. Data is expected to come from a case-cohort
-    sampling design and be filtered to include all phase-one individuals.
+    object that can be read in by \code{est_np()}, \code{est_cox()}, and
+    other estimation functions. Data is expected to come from a two-phase
+    sampling design and should be filtered to include all phase-one
+    individuals.
 }
 \examples{
 print("to do")

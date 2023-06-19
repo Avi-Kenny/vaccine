@@ -1,13 +1,15 @@
-#' Load and format data object
+##' Load and format data object
 #'
 #' @description This function takes in user-supplied data and returns a data
-#'     object that can be read in by \code{est_np()}, \code{est_cox()},
-#'     and \code{hyptest_np()}. Data is expected to come from a case-cohort
-#'     sampling design and be filtered to include all phase-one individuals.
-#' @param time A numeric vector of observed event or censoring times.
-#' @param event A vector of binary values corresponding to whether the observed
-#'     time represents an event time (1) or a censoring time (0). Accepts either
-#'     integer (0/1) or Boolean (T/F) values.
+#'     object that can be read in by \code{est_np()}, \code{est_cox()}, and
+#'     other estimation functions. Data is expected to come from a two-phase
+#'     sampling design and should be filtered to include all phase-one
+#'     individuals.
+#' @param time The name of the numeric variable representing observed event or
+#'     censoring times.
+#' @param event The name of the binary variable corresponding to whether the
+#'     observed time represents an event time (1) or a censoring time (0).
+#'     Either integer (0/1) or Boolean (T/F) values are allowed.
 #' @param vacc A vector of binary values corresponding to whether the individual
 #'     is in the vaccine group (1) or the placebo group (0). Accepts either
 #'     integer (0/1) or Boolean (T/F) values.
@@ -21,156 +23,161 @@
 #'     or Boolean (T/F) values.
 #' @param strata A vector of strata identifiers (for two-phase sampling strata).
 #'     weights.
-#' @return A list containing the following: \itemize{
-#'     \item{\code{one}: asdf}
-#'     \item{\code{two}: asdf}
-#'     \item{\code{three}: asdf}
-#' }
+#' @param strata A vector of strata identifiers (for two-phase sampling strata).
+#'     weights.
+#' @return An object of class \code{dat_vaccine}.
 #' @examples
 #' print("to do")
 #' @export
 load_data <- function(
-  time, event, vacc, marker, covariates, weights, ph2, strata=NA
+  time, event, vacc, marker, covariates, weights, ph2, strata=NA, data
 ) {
 
-  # !!!!! Add ph1 indicator
+  # Input validation
+  {
 
-  # Input checks: time
-  n <- length(time)
-  if (n==0) { stop("`time` vector cannot be of length zero.") }
-  if (any(is.na(event))) {
-    stop("NA values not allowed in `time` vector.")
-  }
-  if (!is.numeric(event)) { stop("`time` vector must be numeric.") }
+    if (!methods::is(data,"data.frame")) { stop("`data` must be a data frame.") }
+    if (nrow(data)==0) { stop("`data` is an empty data frame.") }
 
-  # Input checks: event
-  if (length(event)!=n) {
-    stop("`time` and `event` vectors must be of the same length.")
-  }
-  if (any(is.na(event))) {
-    stop("NA values not allowed in `event` vector.")
-  }
-  if (any(!(event %in% c(0,1,F,T)))) {
-    stop("`time` vector must only contain binary values (either F/T or 0/1).")
-  }
-  event <- as.integer(event)
+    for (arg in c("time", "event", "vacc", "marker", "covariates", "weights",
+                  "ph2", "strata")) {
 
-  # Input checks: vacc
-  if (length(vacc)!=n) {
-    stop("`time` and `vacc` vectors must be of the same length.")
-  }
-  if (any(is.na(vacc))) {
-    stop("NA values not allowed in `vacc` vector.")
-  }
-  if (any(!(vacc %in% c(0,1,F,T)))) {
-    stop("`time` vector must only contain binary values (either F/T or 0/1).")
-  }
-  vacc <- as.integer(vacc)
-  .groups <- ifelse(any(vacc==0) && any(vacc==1), "both",
-                    ifelse(any(vacc==1), "vaccine", "placebo"))
+      var <- get(arg)
+      if (!(arg=="strata" && missing(strata))) {
 
-  # Input checks: marker
-  if (length(marker)!=n) {
-    stop("`time` and `event` vectors must be of the same length.")
-  }
-  if (!is.numeric(marker)) { stop("`marker` vector must be numeric.") }
+        # Variable is a character string specifying variable(s) in `data`
+        is_string <- methods::is(var,"character")
+        length_one <- as.logical(length(var)==1)
+        in_df <- all(as.logical(var %in% names(data)))
+        if (arg=="covariates") {
+          if (!(is_string&&in_df)) {
+            stop(paste0("`", arg, "` must be a vector of character strings spe",
+                        "cifying one or more variables in `data`."))
+          }
+        } else {
+          if (!(is_string&&length_one&&in_df)) {
+            stop(paste0("`", arg, "` must be a character string specifying a s",
+                        "ingle variable in `data`."))
+          }
+        }
 
-  # Input checks: covariates
-  if (!methods::is(covariates,"data.frame")) {
-    stop("`covariates` must be a data frame.")
-  }
-  if (nrow(covariates)!=n) {
-    stop(paste0("Length of `time` vector must equal the number of rows in the ",
-                "`covariates` dataframe.")) }
-  if (any(is.na(covariates))) {
-    stop("NA values not allowed in `covariates` dataframe.")
-  }
-  names(covariates) <- paste0("x", c(1:length(covariates)))
-  # !!!!! convert factors to dummy columns
+        # Assign column(s) to val
+        if (arg=="covariates") {
+          val <- data[,var, drop=F]
+        } else {
+          val <- data[,var]
+        }
 
-  # Input checks: weights
-  if (length(weights)!=n) {
-    stop("`time` and `weights` vectors must be of the same length.")
-  }
-  if (!is.numeric(weights)) { stop("`weights` vector must be numeric.") }
+        # No missing values allowed (except marker)
+        if (!(arg %in% c("marker", "weights"))) {
+          if (any(is.na(val))) { stop("NA values not allowed in `", arg, "`.") }
+        }
 
-  # Input checks: ph2
-  if (length(ph2)!=n) {
-    stop("`time` and `ph2` vectors must be of the same length.")
+        # Validate: `time`, `marker`, `weights`
+        if (arg %in% c("time", "marker", "weights")) {
+          if (!is.numeric(val)) { stop(paste0("`", arg, "` must be numeric.")) }
+        }
+
+        # Validate: `event`, `vacc`, `ph2`
+        if (arg %in% c("event", "vacc", "ph2")) {
+          if (any(!(val %in% c(0,1,F,T)))) {
+            stop(paste0("`", arg, "` must only contain binary values (either T",
+                        "/F or 1/0)."))
+          }
+        }
+
+      }
+
+      assign(x=paste0(".",arg), value=val)
+
+    }
+
   }
-  if (any(is.na(ph2))) {
-    stop("NA values not allowed in `ph2` vector")
-  }
-  if (any(!(ph2 %in% c(0,1,F,T)))) {
-    stop("`ph2` vector must only contain binary values (either F/T or 0/1).")
-  }
-  ph2 <- as.integer(ph2)
+
+  # Convert binary variables to integers (if specified as boolean)
+  .event <- as.integer(.event)
+  .vacc <- as.integer(.vacc)
+  .ph2 <- as.integer(.ph2)
+
+  .groups <- ifelse(any(.vacc==0) && any(.vacc==1), "both",
+                    ifelse(any(.vacc==1), "vaccine", "placebo"))
+
+  .weights <- ifelse(is.na(.weights), 0, .weights)
+
+  # !!!!! convert factors to dummy columns; import code from VaxCurve
+  # !!!!! Check what processing we have to do to strata (e.g. convert to integers)
+  # !!!!! Store two copies of covariates; one for Cox model and one for NPCVE etc.
+  # !!!!! Also maybe store a combined version of the dataset (or have a helper function to combine)?
+  # Change n_orig to n or n_ph1
 
   if (.groups %in% c("vaccine", "both")) {
 
     # Create strata (if not given)
-    .ind_v <- which(vacc==1)
-    if(is.na(strata[[1]])) {
-      .strata <- as.integer(factor(weights[.ind_v]))
+    .ind_v <- which(.vacc==1)
+    if(is.na(.strata[[1]])) {
+      .strata <- as.integer(factor(.weights[.ind_v]))
     } else {
-      .strata <- as.integer(factor(strata[.ind_v]))
+      .strata <- as.integer(factor(.strata[.ind_v]))
     }
 
     # Create data object
     df_vc <- list(
-      "y" = time[.ind_v],
-      "delta" = event[.ind_v],
-      "s" = marker[.ind_v],
-      "x" = covariates[.ind_v,, drop=F],
-      "weights" = ph2[.ind_v]*weights[.ind_v],
+      "y" = .time[.ind_v],
+      "delta" = .event[.ind_v],
+      "s" = .marker[.ind_v],
+      "x" = .covariates[.ind_v,, drop=F],
+      "weights" = .ph2[.ind_v]*.weights[.ind_v],
       "strata" = .strata,
-      "z" = ph2[.ind_v]
+      "z" = .ph2[.ind_v]
     )
+    names(df_vc$x) <- paste0("x", c(1:length(df_vc$x)))
     attr(df_vc, "n_orig") <- length(df_vc$z)
-    attr(df_vc, "dim_x") <- length(covariates)
+    attr(df_vc, "dim_x") <- length(.covariates)
 
     # Stabilize weights (rescale to sum to sample size)
     .stb_v <- sum(df_vc$weights) / length(df_vc$z)
     df_vc$weights <- df_vc$weights / .stb_v
 
   } else {
-    df_vc <- NA
+    df_vc <- list()
   }
 
   if (.groups %in% c("placebo", "both")) {
 
     # Create strata (if not given)
-    .ind_p <- which(vacc==0)
-    if(is.na(strata[[1]])) {
-      .strata <- as.integer(factor(weights[.ind_p]))
+    .ind_p <- which(.vacc==0)
+    if(is.na(.strata[[1]])) {
+      .strata <- as.integer(factor(.weights[.ind_p]))
     } else {
-      .strata <- as.integer(factor(strata[.ind_p]))
+      .strata <- as.integer(factor(.strata[.ind_p]))
     }
 
     # Create data object
     df_pl <- list(
-      "y" = time[.ind_p],
-      "delta" = event[.ind_p],
-      "s" = marker[.ind_p],
-      "x" = covariates[.ind_p,, drop=F],
-      "weights" = ph2[.ind_p]*weights[.ind_p],
+      "y" = .time[.ind_p],
+      "delta" = .event[.ind_p],
+      "s" = .marker[.ind_p],
+      "x" = .covariates[.ind_p,, drop=F],
+      "weights" = .ph2[.ind_p]*.weights[.ind_p],
       "strata" = .strata,
-      "z" = ph2[.ind_p]
+      "z" = .ph2[.ind_p]
     )
-    attr(df_vc, "n_orig") <- length(df_pl$z)
+    names(df_pl$x) <- paste0("x", c(1:length(df_pl$x)))
+    attr(df_pl, "n_orig") <- length(df_pl$z)
 
     # Stabilize weights (rescale to sum to sample size)
     .stb_p <- sum(df_pl$weights) / length(df_pl$z)
     df_pl$weights <- df_pl$weights / .stb_p
 
   } else {
-    df_pl <- NA
+    df_pl <- list()
   }
 
   # Create and return data object
   dat <- list("v"=df_vc, "p"=df_pl)
   class(dat) <- "dat_vaccine"
   attr(dat, "groups") <- .groups
+  attr(dat, "covariate_names") <- covariates
   return(dat)
 
 }
