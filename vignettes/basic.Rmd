@@ -22,44 +22,33 @@ First, we'll load and process a (fake) sample dataset
 
 ```{r}
 
-# # !!!!! Temp
-# load_data2 <- function (y, x, data=NA) {
-#   if(missing(data)) {
-#     res <- list(which=1, y2=y, x2=x)
-#   } else {
-#     res <- list(which=2, y2=data[,y], x2=data[,x])
-#   }
-#   return(res)
-# }
-# 
-# y <- runif(100)
-# x1 <- runif(100)
-# x2 <- runif(100)
-# dat <- data.frame(y=y, x1=x1, x2=x2)
-# d1 <- load_data2(y=y, x=data.frame(x1=x1,x2=x2))
-# d2 <- load_data2(y="y", x=c("x1","x2"), data=dat)
-# identical(d1,d2)
-# str(d1)
-# str(d2)
-# 
-# x1 <- runif(100)
-# y <- x1 + rnorm(100)
-# df1 <- data.frame(x1=x1, y=y)
-# summary(lm(y~x1))
-# summary(lm(y~x1, data=df1))
-# 
-# data(sample_data)
-# 
-# dat <- load_data(
-#   time = "ev_time",
-#   event = "ev_ind",
-#   vacc = "group",
-#   marker = "antibody_level",
-#   covariates = c("bmi", "sex", "age"),
-#   weights = "tps_weights",
-#   ph2 = "ph2_ind",
-#   strata = "str_index",
-#   data = sample_data
-# )
+data(hvtn505)
+
+dat <- load_data(
+  time = "HIVwk28fu", # HIVwk28preunblfu
+  event = "HIVwk28preunbl", # HIVwk28preunbl
+  vacc = "trt",
+  marker = "logpctpos_scaled",
+  covariates = c("age", "BMI", "bhvrisk"),
+  weights = "wt",
+  ph2 = "casecontrol",
+  data = hvtn505
+)
+
+```
+
+The `summary_stats` function gives us some useful summaries of the dataset
+
+```{r}
+
+ss <- summary_stats(dat)
+
+```
+
+The `overall` function allows us to calculate overall risk and vaccine efficacy using either a nonparametric Kaplan-Meier estimator or a marginalized Cox model.
+
+```{r}
+
+overall(dat=dat, t_0=578)
 
 ```
