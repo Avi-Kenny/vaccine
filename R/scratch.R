@@ -1,4 +1,55 @@
 
+# Assembling HVTN 505 dataset
+if (F) {
+
+  # load("C:/Users/avike/Downloads/HVTN505/data/dat.505.rda")
+  # # dat.505, score.505, var.505, var.super
+
+  # load("C:/Users/avike/Downloads/HVTN505/data/master.505.rda")
+  # # antigen.name.description, cc.505
+
+  library(dplyr)
+  library(magrittr)
+  library(vaccine)
+
+  d505_full <- read.csv("C:/Users/avike/OneDrive/Desktop/Janes et al. (2017, JID)/primary505_for_sharing.csv")
+  d505_full %<>% filter(perprot==1)
+  d505_full %<>% subset(
+    select=c(pub_id, HIVwk28fu, HIVwk28preunbl, trt, age, BMI, bhvrisk, casecontrol)
+  )
+
+  d505_cc <- read.csv("C:/Users/avike/OneDrive/Desktop/Janes et al. (2017, JID)/v505_tcell_correlates_data_for_sharing.csv")
+  d505_cc2 <- filter(d505_cc, cytokine=="IL2/ifngamma" &
+                       antigen=="ANY VRC ENV" &
+                       tcellsub=="CD4+")
+  d505_cc2 %<>% subset(
+    select=c(pub_id, wt, logpctpos_scaled) # HIVwk28preunblfu
+  )
+  # length(d505_cc2$pub_id)
+  # length(unique(d505_cc2$pub_id))
+
+  hvtn505 <- dplyr::left_join(d505_full, d505_cc2, by="pub_id")
+  hvtn505 %<>% filter(!is.na(BMI))
+  usethis::use_data(hvtn505, overwrite=T)
+  # nrow(d505_full)
+  # nrow(d505)
+
+  nrow(hvtn505)
+  sum(is.na(hvtn505$HIVwk28fu))
+  sum(is.na(hvtn505$HIVwk28preunbl))
+  sum(is.na(hvtn505$trt))
+  sum(is.na(hvtn505$logpctpos_scaled))
+  sum(is.na(hvtn505$age))
+  sum(is.na(hvtn505$BMI))
+  sum(is.na(hvtn505$bhvrisk))
+  sum(is.na(hvtn505$wt))
+  sum(is.na(hvtn505$casecontrol))
+
+  # print() method for dat
+
+}
+
+
 # Misc profiling
 if (F) {
 
