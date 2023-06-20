@@ -67,8 +67,8 @@
 est_np <- function(
   dat, t_0, cr=T, cve=T,
   s_out=seq(from=min(dat$v$s, na.rm=T), to=max(dat$v$s, na.rm=T), l=101),
-  ci_type="logit", placebo_risk_method="KM", cf_folds=1, edge_corr=F, params=list(),
-  grid_size=list(y=101, s=101, x=5), return_extras=F
+  ci_type="logit", placebo_risk_method="KM", cf_folds=1, edge_corr=F,
+  params=list(), grid_size=list(y=101, s=101, x=5), return_extras=F
 ) {
 
   if (!methods::is(dat,"dat_vaccine")) {
@@ -314,7 +314,16 @@ est_np <- function(
   )
 
   # Compute CVE
-  # !!!!! TO DO; use placebo_risk_method argument and call overall()
+  if (cve) {
+    ov <- overall(dat=dat, t_0=t_0, method=placebo_risk_method, ve=F)
+    risk_p <- ov[ov$group=="placebo","est"]
+    se_p <- ov[ov$group=="placebo","se"]
+    res$cve$est <- 1 - res$cr$est/risk_p
+    res$cve$ci_lo <- 1 - res$cr$ci_hi/risk_p
+    res$cve$ci_hi <- 1 - res$cr$ci_lo/risk_p
+  }
+
+  # !!!!! TO DO: perform finite sample variance correction for CVE
 
   if (return_extras) {
 

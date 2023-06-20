@@ -537,7 +537,15 @@ est_cox <- function(
               "cve" = list(s=s_out))
 
   # Compute CVE
-  # !!!!! TO DO; use placebo_risk_method argument and call overall()
+  if (cve) {
+    ov <- overall(dat=dat, t_0=t_0, method=placebo_risk_method, ve=F)
+    risk_p <- ov[ov$group=="placebo","est"]
+    se_p <- ov[ov$group=="placebo","se"]
+    res$cve$est <- 1 - res$cr$est/risk_p
+    res$cve$se <- 999
+    res$cve$ci_lo <- 1 - res$cr$ci_hi/risk_p # !!!!! TEMP
+    res$cve$ci_hi <- 1 - res$cr$ci_lo/risk_p # !!!!! TEMP
+  }
 
   # Return extras
   if (return_extras) { res$model <- model }
