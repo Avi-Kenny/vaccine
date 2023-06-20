@@ -23,7 +23,6 @@ Imports:
     simest (>= 0.4),
     splines (>= 4.2.2),
     stats (>= 4.2.2),
-    SuperLearner (>= 2.0.28),
     survival (>= 3.4.0),
     survSuperLearner (>= 0.1.0),
     truncnorm (>= 1.0.8)
@@ -35,4 +34,5 @@ Remotes:
     tedwestling/survSuperLearner
 Config/testthat/edition: 3
 Depends: 
-    R (>= 2.10)
+    R (>= 2.10),
+    SuperLearner (>= 2.0.28)

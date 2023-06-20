@@ -51,9 +51,9 @@ summary_stats <- function(dat, quietly=F) {
                   ss$num_ph1_subj_v))
     message(paste("Number of subjects (placebo group, phase-1):",
                   ss$num_ph1_subj_p))
-    message(paste("Number of subjects (vaccine group, phase-1):",
+    message(paste("Number of subjects (vaccine group, phase-2):",
                   ss$num_ph2_subj_v))
-    message(paste("Number of subjects (placebo group, phase-1):",
+    message(paste("Number of subjects (placebo group, phase-2):",
                   ss$num_ph2_subj_p))
 
     # Number of events
