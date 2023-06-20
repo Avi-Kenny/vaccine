@@ -2,6 +2,10 @@
 # Assembling HVTN 505 dataset
 if (F) {
 
+  # https://academic.oup.com/jid/article/217/8/1280/4792964 (Fong et al.)
+  # https://academic.oup.com/jid/article/215/9/1376/2990220 (Janes et al.)
+  # https://www.nejm.org/doi/full/10.1056/NEJMoa1310566 (Hammer et al.)
+
   # load("C:/Users/avike/Downloads/HVTN505/data/dat.505.rda")
   # # dat.505, score.505, var.505, var.super
 

@@ -4,16 +4,17 @@
 \alias{overall}
 \title{Estimate overall risk and VE using Cox model}
 \usage{
-overall(dat, t_0, risk = T, ve = T, ci_type = "logit")
+overall(dat, t_0, method = "Cox", risk = T, ve = T, ci_type = "logit")
 }
 \arguments{
 \item{dat}{A data object returned by load_data}
 
 \item{t_0}{Time point of interest}
 
-\item{risk}{TO DO}
+\item{risk}{Boolean. If TRUE, the controlled risk (CR) curve is computed.}
 
-\item{ve}{TO DO}
+\item{ve}{Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
+computed.}
 
 \item{ci_type}{TO DO}
 }

@@ -41,7 +41,7 @@ The `summary_stats` function gives us some useful summaries of the dataset
 
 ```{r}
 
-ss <- summary_stats(dat)
+summary_stats(dat)
 
 ```
 
@@ -49,6 +49,7 @@ The `overall` function allows us to calculate overall risk and vaccine efficacy 
 
 ```{r}
 
-overall(dat=dat, t_0=578)
+overall(dat=dat, t_0=578, method="KM")
+overall(dat=dat, t_0=578, method="Cox")
 
 ```
