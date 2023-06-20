@@ -84,6 +84,10 @@ est_cox <- function(
                 "ad_data()."))
   }
 
+  if (!(attr(dat, "groups") %in% c("vaccine", "both"))) {
+    stop("Vaccine group data not detected.")
+  }
+
   # !!!!! Validate other inputs; import error handling function from SimEngine
 
   if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
@@ -538,6 +542,9 @@ est_cox <- function(
 
   # Compute CVE
   if (cve) {
+    if (attr(dat, "groups")!="both") {
+      stop("Placebo group data not detected.")
+    }
     ov <- overall(dat=dat, t_0=t_0, method=placebo_risk_method, ve=F)
     risk_p <- ov[ov$group=="placebo","est"]
     se_p <- ov[ov$group=="placebo","se"]
