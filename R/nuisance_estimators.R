@@ -1037,13 +1037,7 @@ construct_deriv_r_Mn <- function(type="m-spline", r_Mn, dir, grid) {
     }
 
     if (type=="m-spline") {
-      if (dir=="decr") {
-        fnc_pre <- stats::splinefun(x=points_x, y=points_y, method="monoH.FC")
-      } else {
-        points_y2 <- -1 * points_y
-        fnc_pre1 <- stats::splinefun(x=points_x, y=points_y2, method="monoH.FC")
-        fnc_pre <- Vectorize(function(x) { -1 * fnc_pre1(x) })
-      }
+      fnc_pre <- stats::splinefun(x=points_x, y=points_y, method="monoH.FC")
     }
 
     # Construct numerical derivative
@@ -1055,7 +1049,11 @@ construct_deriv_r_Mn <- function(type="m-spline", r_Mn, dir, grid) {
       if (x1<0) { x2<-width; x1<-0; }
       if (x2>1) { x1<-1-width; x2<-1; }
 
-      return(min((fnc_pre(x2)-fnc_pre(x1))/width,0))
+      if (dir=="decr") {
+        return(min((fnc_pre(x2)-fnc_pre(x1))/width,0))
+      } else {
+        return(max((fnc_pre(x2)-fnc_pre(x1))/width,0))
+      }
 
     }
 
