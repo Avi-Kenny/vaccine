@@ -143,13 +143,12 @@ est_np <- function(
   vals_pre <- dplyr::inner_join(vals_pre, x_distinct, by="x_index")
   vals <- list(
     t = vals_pre$t,
-    # x = subset(vals_pre, select=-c(t,x_index,s)),
-    x = subset(vals_pre, select=names(dat_orig_rounded$x)), # !!!!! New code (to avoid R CMD CHECK error)
+    x = subset(vals_pre, select=names(dat_orig_rounded$x)),
     s = vals_pre$s
   )
 
   # Create phase-two data object (unrounded)
-  dat <- ss(dat_orig_rounded, which(dat_orig_rounded$z==1)) # !!!!!
+  dat <- ss(dat_orig_rounded, which(dat_orig_rounded$z==1)) # !!!!! uses the `dat` name again; change???
 
   # Fit conditional survival estimator
   srvSL <- construct_Q_n(p$surv_type, dat, vals)
@@ -202,6 +201,8 @@ est_np <- function(
     gcm_x_vals <- c(0, gcm_x_vals)
     gcm_y_vals <- c(0, gcm_y_vals)
   }
+  gcm_x_vals <<- gcm_x_vals # !!!!! TEMP DEBUGGING
+  gcm_y_vals <<- gcm_y_vals # !!!!! TEMP DEBUGGING
   if (p$convex_type=="GCM") {
     gcm <- fdrtool::gcmlcm(x=gcm_x_vals, y=gcm_y_vals, type="gcm")
     dGCM <- stats::approxfun(
@@ -212,6 +213,7 @@ est_np <- function(
       f = 0
     )
   } else if (p$convex_type=="CLS") {
+    # !!!!! This section is experimental; theory not yet developed
     gcm <- function(x) { 1 } # Ignored
     fit <- simest::cvx.lse.reg(t=gcm_x_vals, z=gcm_y_vals)
     pred_x <- round(seq(0,1,0.001),3)
@@ -239,13 +241,17 @@ est_np <- function(
                                grid)
   g_zn <- construct_g_zn(dat_orig, type="Super Learner", f_sIx_n, f_sIx_z1_n)
 
-  # Create either regular or edge-corrected r_Mn estimator
+  # Create edge-corrected r_Mn estimator
   if (p$edge_corr) {
     r_Mn <- function(u) {
       if(u==0 || u<s_min2) {
         return(r_Mn_edge_est)
       } else {
-        return(min(r_Mn_edge_est, r_Mn_Gr(u)))
+        if (dir=="decr") {
+          return(min(r_Mn_edge_est, r_Mn_Gr(u)))
+        } else {
+          return(max(r_Mn_edge_est, r_Mn_Gr(u)))
+        }
       }
     }
   } else {
@@ -289,12 +295,21 @@ est_np <- function(
     if (p$edge_corr) {
       ci_lo_cr2 <- ests_cr[1] - 1.96*sqrt(sigma2_edge_est/n_orig)
       ci_hi_cr2 <- ests_cr[1] + 1.96*sqrt(sigma2_edge_est/n_orig)
-      ci_lo_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_lo_cr,ci_lo_cr2) +
-        In(r_Mn_edge_est>ests_cr)*ci_lo_cr
-      ci_lo_cr[1] <- ci_lo_cr2
-      ci_hi_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_hi_cr,ci_hi_cr2) +
-        In(r_Mn_edge_est>ests_cr)*ci_hi_cr
-      ci_hi_cr[1] <- ci_hi_cr2
+      if (dir=="decr") {
+        ci_lo_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_lo_cr,ci_lo_cr2) +
+          In(r_Mn_edge_est>ests_cr)*ci_lo_cr
+        ci_lo_cr[1] <- ci_lo_cr2
+        ci_hi_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_hi_cr,ci_hi_cr2) +
+          In(r_Mn_edge_est>ests_cr)*ci_hi_cr
+        ci_hi_cr[1] <- ci_hi_cr2
+      } else {
+        ci_lo_cr <- In(r_Mn_edge_est>=ests_cr)*pmax(ci_lo_cr,ci_lo_cr2) +
+          In(r_Mn_edge_est<ests_cr)*ci_lo_cr
+        ci_lo_cr[1] <- ci_lo_cr2
+        ci_hi_cr <- In(r_Mn_edge_est>=ests_cr)*pmax(ci_hi_cr,ci_hi_cr2) +
+          In(r_Mn_edge_est<ests_cr)*ci_hi_cr
+        ci_hi_cr[1] <- ci_hi_cr2
+      }
     }
 
   }
