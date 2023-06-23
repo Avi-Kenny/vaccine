@@ -12,6 +12,7 @@ est_np(
   s_out = seq(from = min(dat$v$s, na.rm = T), to = max(dat$v$s, na.rm = T), l = 101),
   ci_type = "logit",
   placebo_risk_method = "KM",
+  dir = "decr",
   cf_folds = 1,
   edge_corr = F,
   params = list(),
@@ -39,6 +40,10 @@ between the min and max biomarker values.}
 overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
 and "Cox" computes an estimate based on a marginalized Cox model survival
 curve. Only relevant if cve=TRUE.}
+
+\item{dir}{Direction of monotonicity; one of c("decr", "incr"). If
+dir="decr", it is assumed that CR decreases as a function of
+the marker, and the opposite for dir="incr".}
 
 \item{cf_folds}{An integer representing the number of cross-fitting folds to
 use. If cf_folds=1, cross-fitting will not be done.}

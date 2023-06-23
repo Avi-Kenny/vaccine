@@ -16,6 +16,9 @@
 #'     overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
 #'     and "Cox" computes an estimate based on a marginalized Cox model survival
 #'     curve. Only relevant if cve=TRUE.
+#' @param dir Direction of monotonicity; one of c("decr", "incr"). If
+#'     dir="decr", it is assumed that CR decreases as a function of
+#'     the marker, and the opposite for dir="incr".
 #' @param cf_folds An integer representing the number of cross-fitting folds to
 #'     use. If cf_folds=1, cross-fitting will not be done.
 #' @param edge_corr Boolean. If TRUE, the edge correction is performed. It is
@@ -67,7 +70,7 @@
 est_np <- function(
   dat, t_0, cr=T, cve=T,
   s_out=seq(from=min(dat$v$s, na.rm=T), to=max(dat$v$s, na.rm=T), l=101),
-  ci_type="logit", placebo_risk_method="KM", cf_folds=1, edge_corr=F,
+  ci_type="logit", placebo_risk_method="KM", dir="decr", cf_folds=1, edge_corr=F,
   params=list(), grid_size=list(y=101, s=101, x=5), return_extras=F
 ) {
 
@@ -78,6 +81,12 @@ est_np <- function(
 
   if (!(attr(dat, "groups") %in% c("vaccine", "both"))) {
     stop("Vaccine group data not detected.")
+  }
+
+  if (!(dir %in% c("decr", "incr"))) {
+    stop("`dir` must equal one of c('decr','incr').")
+  } else {
+    dir_factor <- ifelse(dir=="decr", -1, 1)
   }
 
   # !!!!! Validate other inputs; import error handling function from SimEngine
@@ -187,7 +196,8 @@ est_np <- function(
   gcm_x_vals <- sapply(sort(unique(dat$s)), Phi_n)
   indices_to_keep <- !base::duplicated(gcm_x_vals)
   gcm_x_vals <- gcm_x_vals[indices_to_keep]
-  gcm_y_vals <- -1 * sapply(sort(unique(dat$s))[indices_to_keep], Gamma_os_n)
+  gcm_y_vals <- dir_factor *
+    sapply(sort(unique(dat$s))[indices_to_keep], Gamma_os_n)
   if (!any(gcm_x_vals==0)) {
     gcm_x_vals <- c(0, gcm_x_vals)
     gcm_y_vals <- c(0, gcm_y_vals)
@@ -219,7 +229,7 @@ est_np <- function(
   }
 
   # Construct Grenander-based r_Mn estimator (and truncate to lie within [0,1])
-  r_Mn_Gr <- function(u) { min(max(-1*dGCM(Phi_n(u)), 0), 1) }
+  r_Mn_Gr <- function(u) { min(max(dir_factor*dGCM(Phi_n(u)), 0), 1) }
 
   # Compute variance component nuisance estimators
   f_sIx_z1_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins,
@@ -293,15 +303,27 @@ est_np <- function(
   if (p$mono_cis) {
     val <- ci_lo_cr[1]
     for (i in c(2:length(ci_lo_cr))) {
-      if (!is.na(ci_lo_cr[i]) && !is.na(val) && ci_lo_cr[i]>val) {
-        ci_lo_cr[i] <- val
+      if (dir=="decr") {
+        if (!is.na(ci_lo_cr[i]) && !is.na(val) && ci_lo_cr[i]>val) {
+          ci_lo_cr[i] <- val
+        }
+      } else {
+        if (!is.na(ci_lo_cr[i]) && !is.na(val) && ci_lo_cr[i]<val) {
+          ci_lo_cr[i] <- val
+        }
       }
       val <- ci_lo_cr[i]
     }
     val <- ci_hi_cr[1]
     for (i in c(2:length(ci_hi_cr))) {
-      if (!is.na(ci_hi_cr[i]) && !is.na(val) && ci_hi_cr[i]>val) {
-        ci_hi_cr[i] <- val
+      if (dir=="decr") {
+        if (!is.na(ci_hi_cr[i]) && !is.na(val) && ci_hi_cr[i]>val) {
+          ci_hi_cr[i] <- val
+        }
+      } else {
+        if (!is.na(ci_hi_cr[i]) && !is.na(val) && ci_hi_cr[i]<val) {
+          ci_hi_cr[i] <- val
+        }
       }
       val <- ci_hi_cr[i]
     }
