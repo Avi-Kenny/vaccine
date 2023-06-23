@@ -201,8 +201,6 @@ est_np <- function(
     gcm_x_vals <- c(0, gcm_x_vals)
     gcm_y_vals <- c(0, gcm_y_vals)
   }
-  gcm_x_vals <<- gcm_x_vals # !!!!! TEMP DEBUGGING
-  gcm_y_vals <<- gcm_y_vals # !!!!! TEMP DEBUGGING
   if (p$convex_type=="GCM") {
     gcm <- fdrtool::gcmlcm(x=gcm_x_vals, y=gcm_y_vals, type="gcm")
     dGCM <- stats::approxfun(
@@ -262,7 +260,7 @@ est_np <- function(
   ests_cr <- sapply(s_out, r_Mn)
 
   # Construct variance scale factor
-  deriv_r_Mn <- construct_deriv_r_Mn(type=p$deriv_type, r_Mn, grid)
+  deriv_r_Mn <- construct_deriv_r_Mn(type=p$deriv_type, r_Mn, dir, grid)
   tau_n <- construct_tau_n(deriv_r_Mn, gamma_n, f_sIx_n, g_zn, dat_orig)
 
   # Generate confidence limits

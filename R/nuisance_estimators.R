@@ -1001,8 +1001,10 @@ construct_g_zn <- function(dat_orig, type="Super Learner", f_sIx_n,
 #'
 #' @param r_Mn An estimator of r_M0
 #' @param type One of c("m-spline", "linear", "line")
+#' @param dir One of c("decr", "incr")
+#' @param grid TO DO
 #' @noRd
-construct_deriv_r_Mn <- function(type="m-spline", r_Mn, grid) {
+construct_deriv_r_Mn <- function(type="m-spline", r_Mn, dir, grid) {
 
   if (type=="line") {
 
@@ -1035,7 +1037,13 @@ construct_deriv_r_Mn <- function(type="m-spline", r_Mn, grid) {
     }
 
     if (type=="m-spline") {
-      fnc_pre <- stats::splinefun(x=points_x, y=points_y, method="monoH.FC")
+      if (dir=="decr") {
+        fnc_pre <- stats::splinefun(x=points_x, y=points_y, method="monoH.FC")
+      } else {
+        points_y2 <- -1 * points_y
+        fnc_pre1 <- stats::splinefun(x=points_x, y=points_y2, method="monoH.FC")
+        fnc_pre <- Vectorize(function(x) { -1 * fnc_pre1(x) })
+      }
     }
 
     # Construct numerical derivative
