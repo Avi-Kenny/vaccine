@@ -1,4 +1,4 @@
-#' Estimate overall risk and VE using Cox model
+#' Estimate overall risk and vaccine efficacy
 #'
 #' @description TO DO
 #' @param dat A data object returned by load_data
@@ -18,7 +18,7 @@
 #' @examples
 #' print("to do")
 #' @export
-overall <- function(dat, t_0, method="Cox", risk=T, ve=T, ci_type="logit") {
+est_overall <- function(dat, t_0, method="Cox", risk=T, ve=T, ci_type="logit") {
 
   if (!(method %in% c("Cox", "KM")) || length(method)>1) {
     stop("`method` must equal either 'Cox' or 'KM'.")

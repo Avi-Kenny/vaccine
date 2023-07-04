@@ -295,7 +295,7 @@ est_np <- function(
     if (attr(dat_copy, "groups")!="both") {
       stop("Placebo group data not detected.")
     }
-    ov <- overall(dat=dat_copy, t_0=t_0, method=placebo_risk_method, ve=F)
+    ov <- est_overall(dat=dat_copy, t_0=t_0, method=placebo_risk_method, ve=F)
     risk_p <- ov[ov$group=="placebo","est"]
     se_p <- ov[ov$group=="placebo","se"]
     res$cve$est <- 1 - res$cr$est/risk_p
