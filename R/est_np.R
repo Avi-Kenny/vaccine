@@ -1,81 +1,17 @@
 #' Estimate CVE/CR nonparametrically
 #'
-#' @description Estimate controlled vaccine efficacy (CVE) and/or controlled
-#'     risk (CR) using the monotone-constrainted nonparametric method of Kenny
-#'     et al. 2023.
-#' @param dat A data object returned by load_data
-#' @param t_0 Time point of interest
-#' @param cr Boolean. If TRUE, the controlled risk (CR) curve is computed.
-#' @param cve Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
-#'     computed.
-#' @param s_out A numeric vector of s-values (on the biomarker scale) for which
-#'     cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points
-#'     between the min and max biomarker values.
-#' @param ci_type TO DO
-#' @param placebo_risk_method One of c("KM", "Cox"). Method for estimating
-#'     overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
-#'     and "Cox" computes an estimate based on a marginalized Cox model survival
-#'     curve. Only relevant if cve=TRUE.
-#' @param dir Direction of monotonicity; one of c("decr", "incr"). If
-#'     dir="decr", it is assumed that CR decreases as a function of
-#'     the marker, and the opposite for dir="incr".
-#' @param cf_folds An integer representing the number of cross-fitting folds to
-#'     use. If cf_folds=1, cross-fitting will not be done.
-#' @param edge_corr Boolean. If TRUE, the edge correction is performed. It is
-#'     not recommended that the edge correction is performed unless there are
-#'     at least 10 events corresponding to the marker lower limit
-#' @param params A list of key value pairs that can be used to select or tune
-#'     various nuisance estimators. See examples. These include: \itemize{
-#'     \item{\code{one}: asdf}
-#'     \item{\code{two}: asdf}
-#'     \item{\code{three}: asdf}
-#' }
-#' @param grid_size A list containing the following three keys: \itemize{
-#'     \item{\code{y}: grid size for time values}
-#'     \item{\code{s}: grid size for marker values}
-#'     \item{\code{x}: grid size for covariate values}
-#' }
-#'     This controls rounding of data values. Decreasing the grid size values
-#'     results in shorter computation times, and increasing the grid size values
-#'     results in more precise estimates. If grid_size$s=101, this means that a
-#'     grid of 101 equally-spaced points (defining 100 intervals) will be
-#'     created from min(S) to max(S), and each S value will be rounded to the
-#'     nearest grid point. For grid_size$y, a grid will be created from 0 to
-#'     t_0, and then extended to max(Y). For grid_size$x, a separate grid is
-#'     created for each covariate column (binary/categorical covariates are
-#'     ignored).
-#' @param return_extras Boolean. If set to TRUE, the following quantities (most
-#'     of which are mainly useful for debugging) are returned: \itemize{
-#'     \item{\code{one}: asdf}
-#'     \item{\code{two}: asdf}
-#'     \item{\code{three}: asdf}
-#' }
-#' @return A list containing the following: \itemize{
-#'     \item{\code{one}: asdf}
-#'     \item{\code{two}: asdf}
-#'     \item{\code{three}: asdf}
-#' }
-#' @examples
-#' print("to do")
-#' @export
-#' @note
-#'   - This method assumes that risk decreases as the biomarker increases. If it
-#'     is assumed that risk increases as the biomarker increases, reverse the
-#'     scale of the biomarker.
-#' @references Kenny, A., Gilbert P., and Carone, M. (2023). Nonparametric
-#'     inference for the controlled risk and controlled vaccine efficacy curves.
-#' @references Gilbert P., Fong Y., Kenny A., and Carone, M. (2022). A
-#'     Controlled Effects Approach to Assessing Immune Correlates of Protection.
-#' @export
+#' @description See docs for est_ce and params_ce_cox
+#' @noRd
 est_np <- function(
-  dat, t_0, cr=T, cve=T,
-  s_out=seq(from=min(dat$v$s, na.rm=T), to=max(dat$v$s, na.rm=T), l=101),
-  ci_type="logit", placebo_risk_method="KM", dir="decr", cf_folds=1, edge_corr=F,
-  params=list(), grid_size=list(y=101, s=101, x=5), return_extras=F
+    dat, t_0, cr=T, cve=F,
+    s_out=seq(from=min(dat$v$s, na.rm=T), to=max(dat$v$s, na.rm=T), l=101),
+    ci_type="transformed", placebo_risk_method="KM", return_extras=F,
+    dir="decr", edge_corr=F, params=list(), grid_size=list(y=101, s=101, x=5),
+    cf_folds=1
 ) {
 
-  if (!methods::is(dat,"dat_vaccine")) {
-    stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",
+  if (!methods::is(dat,"vaccine_dat")) {
+    stop(paste0("`dat` must be an object of class 'vaccine_dat' returned by lo",
                 "ad_data()."))
   }
 
@@ -104,7 +40,7 @@ est_np <- function(
     density_bins = 15,
     deriv_type = "m-spline",
     gamma_type = "Super Learner",
-    q_n_type = "standard",
+    q_n_type = "zero", # standard
     convex_type = "GCM",
     mono_cis = T
   )
@@ -181,6 +117,7 @@ est_np <- function(
     p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
     g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
     r_Mn_edge_est <- r_Mn_edge(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0)
+    r_Mn_edge_est <- min(max(r_Mn_edge_est, 0), 1)
     infl_fn_r_Mn_edge <- construct_infl_fn_r_Mn_edge(Q_n, g_sn, omega_n, g_n,
                                                      r_Mn_edge_est, p_n, t_0)
     dat_orig_df <- as_df(dat_orig)
@@ -280,7 +217,7 @@ est_np <- function(
     if (p$ci_type=="regular") {
       ci_lo_cr <- ests_cr - (qnt*tau_ns)/(n_orig^(1/3))
       ci_hi_cr <- ests_cr + (qnt*tau_ns)/(n_orig^(1/3))
-    } else if (p$ci_type=="logit") {
+    } else if (p$ci_type=="transformed") {
       ci_lo_cr <- expit(
         logit(ests_cr) - (qnt*tau_ns*deriv_logit(ests_cr))/(n_orig^(1/3))
       )

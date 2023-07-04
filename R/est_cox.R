@@ -1,66 +1,11 @@
 #' Estimate CVE/CR using Cox model
 #'
-#' @description Estimate controlled vaccine efficacy (CVE) and/or controlled
-#'     risk (CR) using a marginalized Cox proportional hazards model
-#' @param dat A data object returned by load_data
-#' @param t_0 Time point of interest
-#' @param cr Boolean. If TRUE, the controlled risk (CR) curve is computed.
-#' @param cve Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
-#'     computed.
-#' @param s_out A numeric vector of s-values (on the biomarker scale) for which
-#'     cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points
-#'     between the min and max biomarker values.
-#' @param spline_df TO DO
-#' @param edge_ind TO DO
-#' @param ci_type One of c("logit", "truncated", "none").
-#' @param placebo_risk_method One of c("KM", "Cox"). Method for estimating
-#'     overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
-#'     and "Cox" computes an estimate based on a marginalized Cox model survival
-#'     curve. Only relevant if cve=TRUE.
-#' @param return_extras Boolean. If set to TRUE, the following quantities (most
-#'     of which are mainly useful for debugging) are returned: \itemize{
-#'     \item{\code{one}: asdf}
-#'     \item{\code{two}: asdf}
-#'     \item{\code{three}: asdf}
-#' }
-#' @return A list containing the following: \itemize{
-#'     \item{\code{s}: A vector of points, corresponding to s_out}
-#'     \item{\code{est}: asdf}
-#'     \item{\code{se}: asdf}
-#'     \item{\code{ci_lo}: asdf}
-#'     \item{\code{ci_hi}: asdf}
-#' }
-#' @examples
-#' print("to do")
-#' @export
-#' @references Kenny, A., Gilbert P., and Carone, M. (2023). Inference for
-#'     controlled risk and controlled vaccine efficacy curves using a
-#'     marginalized Cox proportional hazards model
-#' @references Gilbert P., Fong Y., Kenny A., and Carone, M. (2022). A
-#'     Controlled Effects Approach to Assessing Immune Correlates of Protection.
-#' @export
+#' @description See docs for est_ce and params_ce_cox
+#' @noRd
 est_cox <- function(
-    dat, t_0, cr=T, cve=T,
-    s_out=seq(from=min(dat$v$s, na.rm=T), to=max(dat$v$s, na.rm=T), l=101),
-    spline_df=NA, edge_ind=F, ci_type="logit", placebo_risk_method="Cox",
-    return_extras=F
+    dat, t_0, cr, cve, s_out, ci_type, placebo_risk_method, return_extras,
+    spline_df, spline_knots, edge_ind
 ) {
-
-  # s=s_out, est=ests, se=ses, ci_lo=ci_lo, ci_hi=ci_hi
-  # !!!!! Should be a named list corresponding to cr and cve
-
-  # !!!!! Testing
-  if (F) {
-    # dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_200.rds"));
-    dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_400.rds"));
-    # dat=list(v=readRDS("C:/Users/avike/OneDrive/Desktop/dat_orig/dat_orig_800.rds"));
-    class(dat)="dat_vaccine";
-    attr(dat$v, "n_orig") <- length(dat$v$z)
-    attr(dat$v, "dim_x") <- 2
-    t_0=200; cve=T; cr=T; s_out=round(seq(0,1,0.02),2); ci_type="logit";
-    return_extras=F; spline_df=4;
-    source("R/misc_functions.R"); s_out=round(seq(0,1,0.02),2); edge_ind=F;
-  }
 
   # # Setup
   # if (verbose) {
@@ -79,8 +24,8 @@ est_cox <- function(
   #   cl <- NULL
   # }
 
-  if (!methods::is(dat,"dat_vaccine")) {
-    stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",
+  if (!methods::is(dat,"vaccine_dat")) {
+    stop(paste0("`dat` must be an object of class 'vaccine_dat' returned by lo",
                 "ad_data()."))
   }
 
@@ -94,17 +39,44 @@ est_cox <- function(
 
   # Create spline basis and function
   dat$v$spl <- data.frame("s1"=dat$v$s)
-  if (!is.na(spline_df) && spline_df!=1) {
+  if ((!is.na(spline_df) && spline_df!=1) || !is.na(spline_knots[[1]])) {
+
+    if (!is.na(spline_df) && !is.na(spline_knots)) {
+      stop("Specify either `spline_df` or `spline_knots`, but not both.")
+    }
+
+    if (!is.na(spline_knots) && length(spline_knots)<3) {
+      stop("`spline_knots` must be a numeric vector of at least length 3.")
+    }
+
+    # # Create spline basis
+    # Note: this method uses quantiles of the observed marker; however, we have
+    #   seen that this leads to improper variance estimation, and so we do not
+    #   use it.
+    # spl_basis <- splines::ns(
+    #   x = dat$v$s,
+    #   df = spline_df,
+    #   intercept = F,
+    #   Boundary.knots = stats::quantile(dat$v$s, c(0.05,0.95), na.rm=T)
+    # )
+    # spl_knots <- as.numeric(attr(spl_basis, "knots"))
+    # spl_bnd_knots <- as.numeric(attr(spl_basis, "Boundary.knots"))
 
     # Create spline basis
+    if (!is.na(spline_df)) {
+      spl_bnd_knots <- as.numeric(stats::quantile(dat$v$s, c(0.05,0.95), na.rm=T))
+      spl_knots <- seq(spl_bnd_knots[1], spl_bnd_knots[2],
+                       length.out=spline_df+1)[c(2:spline_df)]
+    } else {
+      spl_bnd_knots <- spline_knots[c(1,length(spline_knots))]
+      spl_knots <- spline_knots[c(2:(length(spline_knots)-1))]
+    }
     spl_basis <- splines::ns(
       x = dat$v$s,
-      df = spline_df,
+      knots = spl_knots,
       intercept = F,
-      Boundary.knots = stats::quantile(dat$v$s, c(0.05,0.95), na.rm=T)
+      Boundary.knots = spl_bnd_knots
     )
-    spl_knots <- as.numeric(attr(spl_basis, "knots"))
-    spl_bnd_knots <- as.numeric(attr(spl_basis, "Boundary.knots"))
 
     for (i in c(1:(dim(spl_basis)[2]))) {
       dat$v$spl[[paste0("s",i)]] <- spl_basis[,i]
@@ -119,7 +91,7 @@ est_cox <- function(
       s_to_spl <- function(s) {
         spl <- as.numeric(splines::ns(
           x = s,
-          df = spline_df,
+          # df = spline_df, # !!!!! Confirm that this is ignored
           knots = spl_knots,
           intercept = F,
           Boundary.knots = spl_bnd_knots
@@ -132,7 +104,7 @@ est_cox <- function(
       s_to_spl <- function(s) {
         as.numeric(splines::ns(
           x = s,
-          df = spline_df,
+          # df = spline_df, # !!!!! Confirm that this is ignored
           knots = spl_knots,
           intercept = F,
           Boundary.knots = spl_bnd_knots
@@ -194,14 +166,14 @@ est_cox <- function(
   if (any(is.na(coeffs))) {
 
     if (any(is.na(coeffs[which(substr(names(coeffs),1,1)=="x")]))) {
-      print(summary(model))
+      print(summary(model)) # !!!!!
       stop(paste0("Some covariate coefficients were NA. Try removing these coe",
                   "fficients."))
       # !!!!! Automatically omit from the model, as is done for spline coeffs
     }
 
     if (any(is.na(coeffs[which(substr(names(coeffs),1,1)=="s")]))) {
-      print(summary(model))
+      print(summary(model)) # !!!!!
       warning(paste0("Some spline coefficients were NA; these coefficients hav",
                      "e been automatically omitted from the model"))
       na_inds <- as.numeric(which(is.na(coeffs)))
@@ -530,7 +502,7 @@ est_cox <- function(
   } else if (ci_type=="truncated") {
     ci_lo_cr <- pmin(pmax(ests_cr - 1.96*ses_cr, 0), 1)
     ci_hi_cr <- pmin(pmax(ests_cr + 1.96*ses_cr, 0), 1)
-  } else if (ci_type=="logit") {
+  } else if (ci_type=="transformed") {
     ci_lo_cr <- expit(logit(ests_cr) - 1.96*deriv_logit(ests_cr)*ses_cr)
     ci_hi_cr <- expit(logit(ests_cr) + 1.96*deriv_logit(ests_cr)*ses_cr)
   }
