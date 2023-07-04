@@ -17,17 +17,30 @@ if (F) {
   library(vaccine)
 
   d505_full <- read.csv("C:/Users/avike/OneDrive/Desktop/Janes et al. (2017, JID)/primary505_for_sharing.csv")
-  d505_full %<>% filter(perprot==1)
+  nrow(d505_full)
+  # d505_full %<>% filter(perprot==1 & week28==1)
+  d505_full %<>% filter(week28==1)
+  nrow(d505_full)
+  # d505_full %<>% filter(cc_cohort==1 | trt==0)
+  # nrow(d505_full)
   d505_full %<>% subset(
-    select=c(pub_id, HIVwk28fu, HIVwk28preunbl, trt, age, BMI, bhvrisk, casecontrol)
+    select=c(pub_id, enrdt, HIVwk28fu, HIVwk28preunbl, trt, age, BMI, bhvrisk, casecontrol)
   )
+
+  # Code from Peter
+  # .max_futime_unbl <- as.Date("22Apr2013", "%d%b%Y") - as.Date(d505_full$enrdt, "%d%b%Y")
+  .max_futime_unbl <- as.Date("22-Apr-13", "%d-%B-%y") - as.Date(d505_full$enrdt, "%d-%B-%y")
+  .max_wk28futime_unbl <- pmax( 0, .max_futime_unbl - 195)
+  .wk28futime_unbl <- pmin( d505_full$HIVwk28fu, .max_wk28futime_unbl)
+  d505_full$HIVwk28preunblfu <- .wk28futime_unbl
+  d505_full %<>% subset(select=-c(enrdt, HIVwk28fu))
 
   d505_cc <- read.csv("C:/Users/avike/OneDrive/Desktop/Janes et al. (2017, JID)/v505_tcell_correlates_data_for_sharing.csv")
   d505_cc2 <- filter(d505_cc, cytokine=="IL2/ifngamma" &
                        antigen=="ANY VRC ENV" &
                        tcellsub=="CD4+")
   d505_cc2 %<>% subset(
-    select=c(pub_id, wt, logpctpos_scaled) # HIVwk28preunblfu
+    select=c(pub_id, wt, logpctpos_scaled)
   )
   # length(d505_cc2$pub_id)
   # length(unique(d505_cc2$pub_id))
@@ -35,14 +48,45 @@ if (F) {
   hvtn505 <- dplyr::left_join(d505_full, d505_cc2, by="pub_id")
   hvtn505 %<>% filter(!is.na(BMI))
   usethis::use_data(hvtn505, overwrite=T)
+
+
+
+  # !!!!!
+  {
+
+    library(survival)
+    library(ggfortify)
+    df_v_ph1 <- dplyr::filter(hvtn505, trt==1)
+    df_v_ph2 <- dplyr::filter(df_v_ph1, casecontrol==1)
+    df_p_ph1 <- dplyr::filter(hvtn505, trt==0)
+    df_p_ph2 <- dplyr::filter(df_p_ph1, casecontrol==1)
+
+    # Vaccine group
+    df_test1 <- data.frame(y=df_v_ph1$HIVwk28preunblfu, delta=df_v_ph1$HIVwk28preunbl)
+    survfit(Surv(y, delta)~1, data=df_test1) %>% autoplot()
+    df_test2 <- data.frame(y=df_v_ph2$HIVwk28preunblfu, delta=df_v_ph2$HIVwk28preunbl, wts=df_v_ph2$wt)
+    survfit(Surv(y, delta)~1, data=df_test2, weights=wts) %>% autoplot()
+
+    # Placebo group
+    df_test3 <- data.frame(y=df_p_ph1$HIVwk28preunblfu, delta=df_p_ph1$HIVwk28preunbl)
+    survfit(Surv(y, delta)~1, data=df_test3) %>% autoplot()
+    df_test4 <- data.frame(y=df_p_ph2$HIVwk28preunblfu, delta=df_p_ph2$HIVwk28preunbl, wts=df_p_ph2$wt)
+    survfit(Surv(y, delta)~1, data=df_test4, weights=wts) %>% autoplot()
+
+  }
+
+
+  xtabs(~trt+HIVwk28preunbl, data=hvtn505)
+  xtabs(~trt+HIVwk28preunbl, data=hvtn505_cc)
+
   # nrow(d505_full)
   # nrow(d505)
 
   nrow(hvtn505)
-  sum(is.na(hvtn505$HIVwk28fu))
   sum(is.na(hvtn505$HIVwk28preunbl))
+  sum(is.na(hvtn505$HIVwk28preunblfu))
   sum(is.na(hvtn505$trt))
-  sum(is.na(hvtn505$logpctpos_scaled))
+  sum(!is.na(hvtn505$logpctpos_scaled))
   sum(is.na(hvtn505$age))
   sum(is.na(hvtn505$BMI))
   sum(is.na(hvtn505$bhvrisk))
@@ -84,7 +128,7 @@ if (F) {
   attr(df_v, "n_orig") <- length(df_v$z)
   attr(df_v, "dim_x") <- 2 # !!!!!
   dat=list(v=df_v);
-  class(dat) <- "dat_vaccine"
+  class(dat) <- "vaccine_dat"
   library(vaccine)
   res_cox <- est_cox(dat=dat, t_0=200, cve=F)
   # s_out <- seq(min(dat$v$s,na.rm=T),max(dat$v$s,na.rm=T), l=11)
@@ -185,7 +229,7 @@ if (F) {
     dat_orig$s <- round(dat_orig$s, -log10(C2$appx$s))
     dat_orig$y <- round(dat_orig$y, -log10(C2$appx$t_0))
 
-    class(dat_orig) <- "dat_vaccine"
+    class(dat_orig) <- "vaccine_dat"
     attr(dat_orig, "n_orig") <- C2$n
     attr(dat_orig, "dim_x") <- 2
   }
@@ -760,7 +804,7 @@ if (F) {
     dat_orig$s <- round(dat_orig$s, -log10(C2$appx$s))
     dat_orig$y <- round(dat_orig$y, -log10(C2$appx$t_0))
 
-    class(dat_orig) <- "dat_vaccine"
+    class(dat_orig) <- "vaccine_dat"
     attr(dat_orig, "n_orig") <- C2$n
     attr(dat_orig, "dim_x") <- 2
   }
