@@ -40,8 +40,6 @@
 #' }
 #' @examples
 #' print("to do")
-#' @references Kenny, A., Gilbert P., and Carone, M. (2023). Nonparametric
-#'     inference for the controlled risk and controlled vaccine efficacy curves.
 #' @references Gilbert P., Fong Y., Kenny A., and Carone, M. (2022). A
 #'     Controlled Effects Approach to Assessing Immune Correlates of Protection.
 #' @references Kenny, A., Gilbert P., and Carone, M. (2023). Nonparametric

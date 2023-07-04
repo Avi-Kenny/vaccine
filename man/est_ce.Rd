@@ -13,8 +13,8 @@ est_ce(
   s_out = seq(from = min(dat$v$s, na.rm = T), to = max(dat$v$s, na.rm = T), l = 101),
   ci_type = "transformed",
   placebo_risk_method = "KM",
-  params_ce_cox = params_ce_cox(),
-  params_ce_np = params_ce_np()
+  params_cox = params_ce_cox(),
+  params_np = params_ce_np()
 )
 }
 \arguments{
@@ -74,9 +74,6 @@ Estimate controlled risk (CR) curves and/or controlled vaccine
 print("to do")
 }
 \references{
-Kenny, A., Gilbert P., and Carone, M. (2023). Nonparametric
-    inference for the controlled risk and controlled vaccine efficacy curves.
-
 Gilbert P., Fong Y., Kenny A., and Carone, M. (2022). A
     Controlled Effects Approach to Assessing Immune Correlates of Protection.
 
