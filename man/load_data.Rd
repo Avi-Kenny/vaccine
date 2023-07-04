@@ -44,7 +44,7 @@ or Boolean (T/F) values.}
 weights.}
 }
 \value{
-An object of class \code{dat_vaccine}.
+An object of class \code{vaccine_dat}.
 }
 \description{
 This function takes in user-supplied data and returns a data

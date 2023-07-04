@@ -13,8 +13,8 @@
 #' @export
 summary_stats <- function(dat, quietly=F) {
 
-  if (!methods::is(dat,"dat_vaccine")) {
-    stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",
+  if (!methods::is(dat,"vaccine_dat")) {
+    stop(paste0("`dat` must be an object of class 'vaccine_dat' returned by lo",
                 "ad_data()."))
   }
 

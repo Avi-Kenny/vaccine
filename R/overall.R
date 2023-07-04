@@ -24,8 +24,8 @@ overall <- function(dat, t_0, method="Cox", risk=T, ve=T, ci_type="logit") {
     stop("`method` must equal either 'Cox' or 'KM'.")
   }
 
-  if (!methods::is(dat,"dat_vaccine")) {
-    stop(paste0("`dat` must be an object of class 'dat_vaccine' returned by lo",
+  if (!methods::is(dat,"vaccine_dat")) {
+    stop(paste0("`dat` must be an object of class 'vaccine_dat' returned by lo",
                 "ad_data()."))
   }
 

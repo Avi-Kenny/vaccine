@@ -11,6 +11,10 @@ overall(dat, t_0, method = "Cox", risk = T, ve = T, ci_type = "logit")
 
 \item{t_0}{Time point of interest}
 
+\item{method}{One of c("KM", "Cox"), corresponding to either a Kaplan-Meier
+estimator ("KM") or a marginalized Cox proportional hazards model
+("Cox").}
+
 \item{risk}{Boolean. If TRUE, the controlled risk (CR) curve is computed.}
 
 \item{ve}{Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is

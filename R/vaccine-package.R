@@ -18,7 +18,7 @@
 #'   \item{wt}{inverse-sampling weights, for the case-control cohort}
 #'   \item{logpctpos_scaled}{TO DO}
 #' }
-#' @source \url{https://atlas.scharp.org/cpas/project/HVTN%20Public%20Data/HVTN%20505/begin.view}
+#' @source \url{https://atlas.scharp.org/cpas/project/HVTN\%20Public\%20Data/HVTN\%20505/begin.view}
 #' @docType data
 #' @keywords datasets
 #' @name hvtn505

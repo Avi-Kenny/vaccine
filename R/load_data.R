@@ -25,7 +25,7 @@
 #'     weights.
 #' @param strata A vector of strata identifiers (for two-phase sampling strata).
 #'     weights.
-#' @return An object of class \code{dat_vaccine}.
+#' @return An object of class \code{vaccine_dat}.
 #' @examples
 #' print("to do")
 #' @export
@@ -175,7 +175,7 @@ load_data <- function(
 
   # Create and return data object
   dat <- list("v"=df_vc, "p"=df_pl)
-  class(dat) <- "dat_vaccine"
+  class(dat) <- "vaccine_dat"
   attr(dat, "groups") <- .groups
   attr(dat, "covariate_names") <- covariates
   return(dat)

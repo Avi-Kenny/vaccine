@@ -1,4 +1,6 @@
 
 .onAttach <- function(libname, pkgname) {
-  packageStartupMessage("vaccine v.0.1.\nType ?vaccine to get started.")
+  packageStartupMessage(
+    "vaccine (version 0.1.0).\nType ?vaccine to get started."
+  )
 }
