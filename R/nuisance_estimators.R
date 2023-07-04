@@ -72,6 +72,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 
     newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
     new.times <- unique(vals$t)
+
     srv <- survSuperLearner::survSuperLearner(
       time = dat$y,
       event = dat$delta,
@@ -151,91 +152,98 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
   }
 
   # if (type=="survML") {
-  #
-  #   newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
-  #   new.times <- unique(vals$t)
-  #
-  #   fit <- survML::survMLc(
-  #     time = dat$y,
-  #     event = dat$delta,
-  #     X = cbind(dat$x, s=dat$s),
-  #     newX = newX,
-  #     newtimes = new.times,
-  #     bin_size = 0.025,
-  #     time_basis = "continuous",
-  #     time_grid_approx = sort(unique(dat$y)),
-  #     surv_form = "exp",
-  #     SL.library = rep(c("SL.mean", "SL.glm", "SL.gam", "SL.earth"),2),
-  #     V = 5,
-  #     obsWeights = dat$weights
-  #   )
-  #
-  #   srv_pred <- fit$S_T_preds
-  #   cens_pred <- fit$S_C_preds
-  #
-  #   if (print_coeffs && type=="Super Learner") {
-  #     cat("\n-------------------------------------\n")
-  #     cat("survML SuperLearner algorithm weights\n")
-  #     cat("\n-------------------------------------\n")
-  #     cat("P_Delta coeffs\n")
-  #     cat("--------------\n")
-  #     fit$fits$P_Delta$reg.object$coef
-  #     cat("S_Y_1 coeffs\n")
-  #     cat("------------\n")
-  #     fit$fits$S_Y_1$reg.object$coef
-  #     cat("S_Y_0 coeffs\n")
-  #     cat("------------\n")
-  #     fit$fits$S_Y_0$reg.object$coef
-  #     cat("\n-------------------------------------\n")
-  #   }
-  #
-  #   fnc_srv <- function(t, x, s) {
-  #     r <- list()
-  #     for (i in 1:length(x)) {
-  #       r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
-  #     }
-  #     if (methods::is(newX[["s"]][1],"factor")) {
-  #       r[[length(x)+1]] <- which(s==newX[["s"]])
-  #     } else {
-  #       r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
-  #     }
-  #     row <- Reduce(intersect, r)
-  #     col <- which.min(abs(t-new.times))
-  #     if (length(row)!=1) {
-  #       stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
-  #                   paste(x,collapse=","),"),s=",s,""))
-  #     }
-  #     if (length(col)!=1) {
-  #       stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
-  #                   paste(x,collapse=","),"),s=",s,""))
-  #     }
-  #     return(srv_pred[row,col])
-  #   }
-  #
-  #   fnc_cens <- function(t, x, s) {
-  #     r <- list()
-  #     for (i in 1:length(x)) {
-  #       r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
-  #     }
-  #     if (methods::is(newX[["s"]][1],"factor")) {
-  #       r[[length(x)+1]] <- which(s==newX[["s"]])
-  #     } else {
-  #       r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
-  #     }
-  #     row <- Reduce(intersect, r)
-  #     col <- which.min(abs(t-new.times))
-  #     if (length(row)!=1) {
-  #       stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
-  #                   paste(x,collapse=","),"),s=",s,""))
-  #     }
-  #     if (length(col)!=1) {
-  #       stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
-  #                   paste(x,collapse=","),"),s=",s,""))
-  #     }
-  #     return(cens_pred[row,col])
-  #   }
-  #
-  # }
+  if (substr(type, 1, 6)=="survML") {
+
+    newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
+    new.times <- unique(vals$t)
+
+    survML_args <- list(
+      time = dat$y,
+      event = dat$delta,
+      X = cbind(dat$x, s=dat$s),
+      newX = newX,
+      newtimes = new.times,
+      bin_size = 0.02,
+      time_basis = "continuous",
+      SL_control = list(
+        # SL.library = rep(c("SL.mean", "SL.glm", "SL.gam", "SL.earth"),2), # Note: rep() is to avoid a SuperLearner bug
+        SL.library = rep(c("SL.mean", "SL.glm", "SL.gam"),2), # Note: rep() is to avoid a SuperLearner bug
+        V = 5,
+        obsWeights = dat$weights
+      )
+    )
+    if (type=="survML-G") {
+      fit <- do.call(survML::stackG, survML_args)
+    } else if (type=="survML-L") {
+      fit <- do.call(survML::stackL, survML_args)
+    }
+
+    srv_pred <- fit$S_T_preds
+    cens_pred <- fit$S_C_preds
+
+    if (print_coeffs && type=="Super Learner") {
+      cat("\n-------------------------------------\n")
+      cat("survML SuperLearner algorithm weights\n")
+      cat("\n-------------------------------------\n")
+      cat("P_Delta coeffs\n")
+      cat("--------------\n")
+      fit$fits$P_Delta$reg.object$coef
+      cat("S_Y_1 coeffs\n")
+      cat("------------\n")
+      fit$fits$S_Y_1$reg.object$coef
+      cat("S_Y_0 coeffs\n")
+      cat("------------\n")
+      fit$fits$S_Y_0$reg.object$coef
+      cat("\n-------------------------------------\n")
+    }
+
+    fnc_srv <- function(t, x, s) {
+      r <- list()
+      for (i in 1:length(x)) {
+        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
+      }
+      if (methods::is(newX[["s"]][1],"factor")) {
+        r[[length(x)+1]] <- which(s==newX[["s"]])
+      } else {
+        r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
+      }
+      row <- Reduce(intersect, r)
+      col <- which.min(abs(t-new.times))
+      if (length(row)!=1) {
+        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
+                    paste(x,collapse=","),"),s=",s,""))
+      }
+      if (length(col)!=1) {
+        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
+                    paste(x,collapse=","),"),s=",s,""))
+      }
+      return(srv_pred[row,col])
+    }
+
+    fnc_cens <- function(t, x, s) {
+      r <- list()
+      for (i in 1:length(x)) {
+        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
+      }
+      if (methods::is(newX[["s"]][1],"factor")) {
+        r[[length(x)+1]] <- which(s==newX[["s"]])
+      } else {
+        r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
+      }
+      row <- Reduce(intersect, r)
+      col <- which.min(abs(t-new.times))
+      if (length(row)!=1) {
+        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
+                    paste(x,collapse=","),"),s=",s,""))
+      }
+      if (length(col)!=1) {
+        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
+                    paste(x,collapse=","),"),s=",s,""))
+      }
+      return(cens_pred[row,col])
+    }
+
+  }
 
   if (type=="Cox") {
     sfnc_srv <- fnc_srv
