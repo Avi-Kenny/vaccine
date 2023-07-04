@@ -204,7 +204,7 @@ est_np <- function(
   if (p$ci_type=="none") {
 
     ci_lo_cr <- rep(NA, length(ests_cr))
-    ci_hi_cr <- rep(NA, length(ests_cr))
+    ci_up_cr <- rep(NA, length(ests_cr))
 
   } else {
 
@@ -216,12 +216,12 @@ est_np <- function(
     qnt <- 1.00
     if (p$ci_type=="regular") {
       ci_lo_cr <- ests_cr - (qnt*tau_ns)/(n_orig^(1/3))
-      ci_hi_cr <- ests_cr + (qnt*tau_ns)/(n_orig^(1/3))
+      ci_up_cr <- ests_cr + (qnt*tau_ns)/(n_orig^(1/3))
     } else if (p$ci_type=="transformed") {
       ci_lo_cr <- expit(
         logit(ests_cr) - (qnt*tau_ns*deriv_logit(ests_cr))/(n_orig^(1/3))
       )
-      ci_hi_cr <- expit(
+      ci_up_cr <- expit(
         logit(ests_cr) + (qnt*tau_ns*deriv_logit(ests_cr))/(n_orig^(1/3))
       )
     }
@@ -229,21 +229,21 @@ est_np <- function(
     # CI edge correction
     if (p$edge_corr) {
       ci_lo_cr2 <- ests_cr[1] - 1.96*sqrt(sigma2_edge_est/n_orig)
-      ci_hi_cr2 <- ests_cr[1] + 1.96*sqrt(sigma2_edge_est/n_orig)
+      ci_up_cr2 <- ests_cr[1] + 1.96*sqrt(sigma2_edge_est/n_orig)
       if (dir=="decr") {
         ci_lo_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_lo_cr,ci_lo_cr2) +
           In(r_Mn_edge_est>ests_cr)*ci_lo_cr
         ci_lo_cr[1] <- ci_lo_cr2
-        ci_hi_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_hi_cr,ci_hi_cr2) +
-          In(r_Mn_edge_est>ests_cr)*ci_hi_cr
-        ci_hi_cr[1] <- ci_hi_cr2
+        ci_up_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_up_cr,ci_up_cr2) +
+          In(r_Mn_edge_est>ests_cr)*ci_up_cr
+        ci_up_cr[1] <- ci_up_cr2
       } else {
         ci_lo_cr <- In(r_Mn_edge_est>=ests_cr)*pmax(ci_lo_cr,ci_lo_cr2) +
           In(r_Mn_edge_est<ests_cr)*ci_lo_cr
         ci_lo_cr[1] <- ci_lo_cr2
-        ci_hi_cr <- In(r_Mn_edge_est>=ests_cr)*pmax(ci_hi_cr,ci_hi_cr2) +
-          In(r_Mn_edge_est<ests_cr)*ci_hi_cr
-        ci_hi_cr[1] <- ci_hi_cr2
+        ci_up_cr <- In(r_Mn_edge_est>=ests_cr)*pmax(ci_up_cr,ci_up_cr2) +
+          In(r_Mn_edge_est<ests_cr)*ci_up_cr
+        ci_up_cr[1] <- ci_up_cr2
       }
     }
 
@@ -264,18 +264,18 @@ est_np <- function(
       }
       val <- ci_lo_cr[i]
     }
-    val <- ci_hi_cr[1]
-    for (i in c(2:length(ci_hi_cr))) {
+    val <- ci_up_cr[1]
+    for (i in c(2:length(ci_up_cr))) {
       if (dir=="decr") {
-        if (!is.na(ci_hi_cr[i]) && !is.na(val) && ci_hi_cr[i]>val) {
-          ci_hi_cr[i] <- val
+        if (!is.na(ci_up_cr[i]) && !is.na(val) && ci_up_cr[i]>val) {
+          ci_up_cr[i] <- val
         }
       } else {
-        if (!is.na(ci_hi_cr[i]) && !is.na(val) && ci_hi_cr[i]<val) {
-          ci_hi_cr[i] <- val
+        if (!is.na(ci_up_cr[i]) && !is.na(val) && ci_up_cr[i]<val) {
+          ci_up_cr[i] <- val
         }
       }
-      val <- ci_hi_cr[i]
+      val <- ci_up_cr[i]
     }
   }
 
@@ -284,8 +284,8 @@ est_np <- function(
     "cr" = list(
       s = s_out_orig,
       est = c(rep(NA,na_head), ests_cr, rep(NA,na_tail)),
-      ci_lo = c(rep(NA,na_head), ci_lo_cr, rep(NA,na_tail)),
-      ci_hi = c(rep(NA,na_head), ci_hi_cr, rep(NA,na_tail))
+      ci_lower = c(rep(NA,na_head), ci_lo_cr, rep(NA,na_tail)),
+      ci_upper = c(rep(NA,na_head), ci_up_cr, rep(NA,na_tail))
     ),
     "cve" = list(s=s_out)
   )
@@ -299,8 +299,8 @@ est_np <- function(
     risk_p <- ov[ov$group=="placebo","est"]
     se_p <- ov[ov$group=="placebo","se"]
     res$cve$est <- 1 - res$cr$est/risk_p
-    res$cve$ci_lo <- 1 - res$cr$ci_hi/risk_p
-    res$cve$ci_hi <- 1 - res$cr$ci_lo/risk_p
+    res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p
+    res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p
   }
 
   # !!!!! TO DO: perform finite sample variance correction for CVE

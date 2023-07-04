@@ -47,8 +47,8 @@ overall <- function(dat, t_0, method="Cox", risk=T, ve=T, ci_type="logit") {
     "group" = character(),
     "est" = double(),
     "se" = double(),
-    "ci_lo" = double(),
-    "ci_hi" = double()
+    "ci_lower" = double(),
+    "ci_upper" = double()
   )
 
   for (grp in .groups) {
@@ -277,13 +277,13 @@ overall <- function(dat, t_0, method="Cox", risk=T, ve=T, ci_type="logit") {
       # Generate confidence limits
       if (ci_type=="none") {
         ci_lo <- NA
-        ci_hi <- NA
+        ci_up <- NA
       } else if (ci_type=="regular") {
         ci_lo <- pmin(pmax(est - 1.96*se, 0), 1)
-        ci_hi <- pmin(pmax(est + 1.96*se, 0), 1)
+        ci_up <- pmin(pmax(est + 1.96*se, 0), 1)
       } else if (ci_type=="logit") {
         ci_lo <- expit(logit(est) - 1.96*deriv_logit(est)*se)
-        ci_hi <- expit(logit(est) + 1.96*deriv_logit(est)*se)
+        ci_up <- expit(logit(est) + 1.96*deriv_logit(est)*se)
       }
 
     }
@@ -293,14 +293,14 @@ overall <- function(dat, t_0, method="Cox", risk=T, ve=T, ci_type="logit") {
       srv_p <- survival::survfit(survival::Surv(dat[[g]]$y,dat[[g]]$delta)~1)
       est <- 1 - srv_p$surv[which.min(abs(srv_p$time-t_0))]
       ci_lo <- 1 - srv_p$upper[which.min(abs(srv_p$time-t_0))]
-      ci_hi <- 1 - srv_p$lower[which.min(abs(srv_p$time-t_0))]
+      ci_up <- 1 - srv_p$lower[which.min(abs(srv_p$time-t_0))]
       se <- srv_p$std.err[which.min(abs(srv_p$time-t_0))]
 
     }
 
     # Update results dataframe
     res[nrow(res)+1,] <- list(stat="risk", group=grp, est=est, se=se,
-                              ci_lo=ci_lo, ci_hi=ci_hi)
+                              ci_lower=ci_lo, ci_upper=ci_up)
 
   }
 
@@ -316,7 +316,7 @@ overall <- function(dat, t_0, method="Cox", risk=T, ve=T, ci_type="logit") {
     ci_lo <- 1 - exp(
       log(est_v/est_p) + 1.96*sqrt(se_v^2/est_v^2 + se_p^2/est_p^2)
     )
-    ci_hi <- 1 - exp(
+    ci_up <- 1 - exp(
       log(est_v/est_p) - 1.96*sqrt(se_v^2/est_v^2 + se_p^2/est_p^2)
     )
 
@@ -325,7 +325,7 @@ overall <- function(dat, t_0, method="Cox", risk=T, ve=T, ci_type="logit") {
 
     # Update results dataframe
     res[nrow(res)+1,] <- list(stat="ve", group="both", est=est_ve, se=se_ve,
-                              ci_lo=ci_lo, ci_hi=ci_hi)
+                              ci_lower=ci_lo, ci_upper=ci_up)
 
   }
 

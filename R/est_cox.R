@@ -498,18 +498,18 @@ est_cox <- function(
   # Generate confidence limits
   if (ci_type=="none") {
     ci_lo_cr <- rep(NA, length(ests_cr))
-    ci_hi_cr <- rep(NA, length(ests_cr))
+    ci_up_cr <- rep(NA, length(ests_cr))
   } else if (ci_type=="truncated") {
     ci_lo_cr <- pmin(pmax(ests_cr - 1.96*ses_cr, 0), 1)
-    ci_hi_cr <- pmin(pmax(ests_cr + 1.96*ses_cr, 0), 1)
+    ci_up_cr <- pmin(pmax(ests_cr + 1.96*ses_cr, 0), 1)
   } else if (ci_type=="transformed") {
     ci_lo_cr <- expit(logit(ests_cr) - 1.96*deriv_logit(ests_cr)*ses_cr)
-    ci_hi_cr <- expit(logit(ests_cr) + 1.96*deriv_logit(ests_cr)*ses_cr)
+    ci_up_cr <- expit(logit(ests_cr) + 1.96*deriv_logit(ests_cr)*ses_cr)
   }
 
   # Create results object
-  res <- list("cr" = list(s=s_out, est=ests_cr, se=ses_cr, ci_lo=ci_lo_cr,
-                          ci_hi=ci_hi_cr),
+  res <- list("cr" = list(s=s_out, est=ests_cr, se=ses_cr, ci_lower=ci_lo_cr,
+                          ci_upper=ci_up_cr),
               "cve" = list(s=s_out))
 
   # Compute CVE
@@ -522,8 +522,8 @@ est_cox <- function(
     se_p <- ov[ov$group=="placebo","se"]
     res$cve$est <- 1 - res$cr$est/risk_p
     res$cve$se <- 999
-    res$cve$ci_lo <- 1 - res$cr$ci_hi/risk_p # !!!!! TEMP
-    res$cve$ci_hi <- 1 - res$cr$ci_lo/risk_p # !!!!! TEMP
+    res$cve$ci_lo <- 1 - res$cr$ci_up/risk_p # !!!!! TEMP
+    res$cve$ci_up <- 1 - res$cr$ci_lo/risk_p # !!!!! TEMP
   }
 
   # Return extras
