@@ -60,15 +60,12 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 
   }
 
-  if (type %in% c("Cox SL", "Super Learner")) {
-    if (type=="Cox SL") {
-      methods <- c("survSL.coxph")
-    } else if (type=="Super Learner") {
-      # Excluding "survSL.rfsrc" for now. survSL.pchSL gives errors.
-      methods <- c("survSL.coxph", "survSL.expreg", "survSL.km",
-                   "survSL.loglogreg", "survSL.pchreg", "survSL.weibreg")
-      # methods <- c("survSL.km", "survSL.pchreg", "survSL.rfsrc") # !!!!!
-    }
+  if (type=="Super Learner") { # "Super Learner (Westling)"
+
+    # Excluding "survSL.rfsrc" for now. survSL.pchSL gives errors.
+    methods <- c("survSL.coxph", "survSL.expreg", "survSL.km",
+                 "survSL.loglogreg", "survSL.pchreg", "survSL.weibreg")
+    # methods <- c("survSL.km", "survSL.pchreg", "survSL.rfsrc") # !!!!!
 
     newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
     new.times <- unique(vals$t)
@@ -85,7 +82,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       control = list(initWeightAlg=methods[1], max.SL.iter=10)
     )
 
-    if (print_coeffs && type=="Super Learner") {
+    if (print_coeffs) {
       cat("\n------------------------------\n")
       cat("SuperLearner algorithm weights\n")
       cat("------------------------------\n\n")
@@ -152,7 +149,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
   }
 
   # if (type=="survML") {
-  if (substr(type, 1, 6)=="survML") {
+  if (substr(type, 1, 6)=="survML") { # "Super Learner (Wolock)"
 
     newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
     new.times <- unique(vals$t)
@@ -163,7 +160,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       X = cbind(dat$x, s=dat$s),
       newX = newX,
       newtimes = new.times,
-      bin_size = 0.02,
+      bin_size = 0.1, # !!!!! bin_size = 0.02
       time_basis = "continuous",
       SL_control = list(
         # SL.library = rep(c("SL.mean", "SL.glm", "SL.gam", "SL.earth"),2), # Note: rep() is to avoid a SuperLearner bug
@@ -174,14 +171,18 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
     )
     if (type=="survML-G") {
       fit <- do.call(survML::stackG, survML_args)
+      srv_pred <- fit$S_T_preds
+      cens_pred <- fit$S_C_preds
     } else if (type=="survML-L") {
-      fit <- do.call(survML::stackL, survML_args)
+      survML_args2 <- survML_args
+      survML_args2$event <- round(1 - survML_args2$event)
+      fit_s <- do.call(survML::stackL, survML_args)
+      fit_c <- do.call(survML::stackL, survML_args2)
+      srv_pred <- fit_s$S_T_preds
+      cens_pred <- fit_c$S_T_preds
     }
 
-    srv_pred <- fit$S_T_preds
-    cens_pred <- fit$S_C_preds
-
-    if (print_coeffs && type=="Super Learner") {
+    if (print_coeffs) {
       cat("\n-------------------------------------\n")
       cat("survML SuperLearner algorithm weights\n")
       cat("\n-------------------------------------\n")

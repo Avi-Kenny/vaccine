@@ -329,6 +329,8 @@ est_overall <- function(dat, t_0, method="Cox", risk=T, ve=T, ci_type="logit") {
 
   }
 
+  class(res) <- c(class(res), "vaccine_overall")
+
   return(res)
 
 }

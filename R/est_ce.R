@@ -26,9 +26,9 @@
 #'     overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
 #'     and "Cox" computes an estimate based on a marginalized Cox model survival
 #'     curve. Only relevant if cve=TRUE.
-#' @param params_ce_cox A list of options returned by
+#' @param params_cox A list of options returned by
 #'     \code{\link{params_ce_cox}} that are relevant if type="Cox".
-#' @param params_ce_np A list of options returned by \code{\link{params_ce_np}}
+#' @param params_np A list of options returned by \code{\link{params_ce_np}}
 #'     that are relevant if type="NP".
 #' @return A list of the form \code{list(cr=list(...), cve=list(...))}
 #'     containing CR and/or CVE estimates. Each of the inner lists contains the
@@ -51,7 +51,7 @@
 est_ce <- function(
     dat, type="Cox", t_0, cr=T, cve=F,
     s_out=seq(from=min(dat$v$s, na.rm=T), to=max(dat$v$s, na.rm=T), l=101),
-    ci_type="transformed", placebo_risk_method="KM",
+    ci_type="transformed", placebo_risk_method="KM", return_extras=F,
     params_cox=params_ce_cox(), params_np=params_ce_np()
 ) {
 
@@ -63,20 +63,20 @@ est_ce <- function(
     p <- params_cox
     ests <- est_cox(
       dat=dat, t_0=t_0, cr=cr, cve=cve, s_out=s_out, ci_type=ci_type,
-      placebo_risk_method=placebo_risk_method, return_extras=F,
+      placebo_risk_method=placebo_risk_method, return_extras=return_extras,
       spline_df=p$spline_df, spline_knots=p$spline_knots, edge_ind=p$edge_ind
     )
   }
 
   if (type=="NP") {
     p <- params_np
-    params_ce_np[["dir"]] <- NULL
-    params_ce_np[["edge_corr"]] <- NULL
-    params_ce_np[["grid_size"]] <- NULL
+    params_np[["dir"]] <- NULL
+    params_np[["edge_corr"]] <- NULL
+    params_np[["grid_size"]] <- NULL
     ests <- est_np(
       dat=dat, t_0=t_0, cr=cr, cve=cve, s_out=s_out, ci_type=ci_type,
-      placebo_risk_method=placebo_risk_method, return_extras=F, dir=p$dir,
-      edge_corr=p$edge_corr, params=params_ce_np, grid_size=p$grid_size,
+      placebo_risk_method=placebo_risk_method, return_extras=return_extras, dir=p$dir,
+      edge_corr=p$edge_corr, params=params_np, grid_size=p$grid_size,
       cf_folds=1
     )
   }
