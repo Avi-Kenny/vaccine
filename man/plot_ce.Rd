@@ -25,6 +25,7 @@ inverse-probability-of-sampling weights.}
 Plot CR and/or CVE curves
 }
 \examples{
+\dontrun{
 data(hvtn505)
 dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
@@ -33,4 +34,5 @@ ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
 ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 plot_ce(ests_cox, ests_np)
 plot_ce(ests_cox, ests_np, density=list(s=dat$v$s, weights=dat$v$weights))
+}
 }

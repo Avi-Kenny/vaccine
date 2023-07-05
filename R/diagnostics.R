@@ -1,17 +1,24 @@
 #' Run diagnostics
 #'
-#' @description Run a set of diagnostic plots.
-#' @param obj An object of class \code{vaccine_est} returned by est_ce
+#' @description Run a set of diagnostic plots. Note that for this function to
+#'     work, \code{\link{est_ce}} must be run with \code{return_extras=T}.
+#' @param obj An object of class \code{vaccine_est} returned by
+#'     \code{\link{est_ce}}
 #' @return A combined plot of model diagnostics
 #' @examples
+#' \dontrun{
 #' data(hvtn505)
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 #' diagnostics(ests_np)
+#' }
 #' @export
 diagnostics <- function(obj) {
+
+  # To prevent R CMD CHECK notes
+  s <- est <- ind <- NULL; rm(s,est,ind);
 
   if (!methods::is(obj,"vaccine_est")) {
     stop(paste0("`obj` must be an object of class 'vaccine_est' returned by es",

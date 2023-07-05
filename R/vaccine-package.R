@@ -24,3 +24,8 @@
 #' @name hvtn505
 #' @usage data(hvtn505)
 "hvtn505"
+
+## usethis namespace: start
+#' @importFrom SuperLearner SuperLearner
+## usethis namespace: end
+NULL

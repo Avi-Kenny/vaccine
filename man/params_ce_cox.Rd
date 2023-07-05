@@ -29,6 +29,7 @@ This should be used in conjunction with \code{\link{est_ce}} to
     curves; see examples.
 }
 \examples{
+\dontrun{
 data(hvtn505)
 dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
@@ -39,4 +40,5 @@ ests_cox <- est_ce(
   t_0 = 578,
   params_cox = params_ce_cox(spline_df=4)
 )
+}
 }

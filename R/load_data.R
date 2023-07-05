@@ -1,40 +1,47 @@
 ##' Load and format data object
 #'
 #' @description This function takes in user-supplied data and returns a data
-#'     object that can be read in by \code{est_np()}, \code{est_cox()}, and
-#'     other estimation functions. Data is expected to come from a two-phase
-#'     sampling design and should be filtered to include all phase-one
-#'     individuals.
-#' @param time The name of the numeric variable representing observed event or
-#'     censoring times.
-#' @param event The name of the binary variable corresponding to whether the
-#'     observed time represents an event time (1) or a censoring time (0).
-#'     Either integer (0/1) or Boolean (T/F) values are allowed.
-#' @param vacc A vector of binary values corresponding to whether the individual
-#'     is in the vaccine group (1) or the placebo group (0). Accepts either
-#'     integer (0/1) or Boolean (T/F) values.
-#' @param marker A numeric vector of biomarker values.
-#' @param covariates A dataframe. Columns values should be either numeric,
-#'     binary, or factors. Character columns will be converted into factors.
-#' @param weights A numeric vector of inverse-probability-of-sampling (IPS)
-#'     weights.
-#' @param ph2 A vector of binary values corresponding to whether the individual
-#'     is in the phase-two cohort (1) or not (0). Accepts either integer (0/1)
-#'     or Boolean (T/F) values.
-#' @param strata A vector of strata identifiers (for two-phase sampling strata).
-#'     weights.
-#' @param strata A vector of strata identifiers (for two-phase sampling strata).
-#'     weights.
+#'     object that can be read in by \code{\link{summary_stats}},
+#'     \code{\link{est_ce}}, and other estimation functions. Data is expected to
+#'     come from a two-phase sampling design and should be filtered to include
+#'     all phase-one individuals.
+#' @param time A character string; the name of the numeric variable representing
+#'     observed event or censoring times.
+#' @param event A character string; the name of the binary variable
+#'     corresponding to whether the observed time represents an event time (1)
+#'     or a censoring time (0). Either integer (0/1) or Boolean (T/F) values are
+#'     allowed.
+#' @param vacc A character string; the name of the binary variable denoting
+#'     whether the individual is in the vaccine group (1) or the placebo group
+#'     (0). Accepts either integer (0/1) or Boolean (T/F) values.
+#' @param marker A character string; the name of the numeric variable of
+#'     biomarker values.
+#' @param covariates A character vector; the names of the covariate columns.
+#'     Columns values should be either numeric, binary, or factors. Character
+#'     columns will be converted into factors.
+#' @param weights A character string; the name of the numeric variable
+#'     containing inverse-probability-of-sampling (IPS) weights.
+#' @param ph2 A character string; the name of the binary variable representing
+#'     whether the individual is in the phase-two cohort (1) or not (0). Accepts
+#'     either integer (0/1) or Boolean (T/F) values.
+#' @param strata A character string; the name of the variable containing strata
+#'     identifiers (for two-phase sampling strata).
+#' @param data A dataframe containing the vaccine trial data.
 #' @return An object of class \code{vaccine_dat}.
 #' @examples
+#' \dontrun{
 #' data(hvtn505)
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
+#' }
 #' @export
 load_data <- function(
   time, event, vacc, marker, covariates, weights, ph2, strata=NA, data
 ) {
+
+  # To prevent R CMD CHECK notes
+  .time <- .marker <- .covariates <- NULL; rm(.time,.marker,.covariates);
 
   # Input validation
   {

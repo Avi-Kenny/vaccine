@@ -12,6 +12,7 @@
 #'     of marker values and \code{weights} gives the corresponding
 #'     inverse-probability-of-sampling weights.
 #' @examples
+#' \dontrun{
 #' data(hvtn505)
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
@@ -20,8 +21,12 @@
 #' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 #' plot_ce(ests_cox, ests_np)
 #' plot_ce(ests_cox, ests_np, density=list(s=dat$v$s, weights=dat$v$weights))
+#' }
 #' @export
 plot_ce <- function(..., which, labels=NA, density=NA) {
+
+  # To prevent R CMD CHECK notes
+  x <- y <- ci_lower <- ci_upper <- NULL; rm(x,y,ci_lower,ci_upper);
 
   df_plot <- data.frame(
     x = double(),
@@ -51,8 +56,8 @@ plot_ce <- function(..., which, labels=NA, density=NA) {
 
   if (!missing(density)) {
     plot <- plot +
-      geom_density(
-        aes(x=x),
+      ggplot2::geom_density(
+        ggplot2::aes(x=x),
         data = data.frame(x=density$s),
         inherit.aes = F,
         fill = "forestgreen",
@@ -67,11 +72,11 @@ plot_ce <- function(..., which, labels=NA, density=NA) {
   }
 
   plot <- plot + ggplot2::geom_line() +
-    ggplot2::geom_ribbon(aes(ymin=ci_lower, ymax=ci_upper), # color="darkorchid3", fill="darkorchid3"
+    ggplot2::geom_ribbon(ggplot2::aes(ymin=ci_lower, ymax=ci_upper), # color="darkorchid3", fill="darkorchid3"
                          alpha = 0.1, linetype = "dotted") +
     ggplot2::labs(title="Controlled Risk", x="log(S)", y="Risk", color="",
                   fill="") +
-    theme(
+    ggplot2::theme(
       legend.position = "bottom"
     )
   #

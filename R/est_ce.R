@@ -26,6 +26,8 @@
 #'     overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
 #'     and "Cox" computes an estimate based on a marginalized Cox model survival
 #'     curve. Only relevant if cve=TRUE.
+#' @param return_extras Boolean; if TRUE, objects useful for debugging are
+#'     returned.
 #' @param params_cox A list of options returned by
 #'     \code{\link{params_ce_cox}} that are relevant if type="Cox".
 #' @param params_np A list of options returned by \code{\link{params_ce_np}}
@@ -39,12 +41,14 @@
 #'         \item{\code{ci_upper}: a vector of confidence interval upper limits}
 #' }
 #' @examples
+#' \dontrun{
 #' data(hvtn505)
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
 #' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
+#' }
 #' @references Gilbert P., Fong Y., Kenny A., and Carone, M. (2022). A
 #'     Controlled Effects Approach to Assessing Immune Correlates of Protection.
 #' @references Kenny, A., Gilbert P., and Carone, M. (2023). Nonparametric
