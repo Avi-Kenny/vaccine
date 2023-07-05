@@ -1,4 +1,29 @@
 
+if (F) {
+
+  library(vaccine)
+  data(hvtn505)
+
+  # IgG_env
+  dat <- load_data(time = "HIVwk28preunblfu", event = "HIVwk28preunbl", vacc = "trt", marker = "IgG_env", covariates = c("age","BMI","bhvrisk"), weights = "wt", ph2 = "casecontrol", data = hvtn505)
+  ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
+  ests_np <- est_ce(dat=dat, type="NP", t_0=578)
+  plot_ce(ests_cox, ests_np, density=list(s=dat$v$s, weights=dat$v$weights))
+
+  # IgG_V2
+  dat <- load_data(time = "HIVwk28preunblfu", event = "HIVwk28preunbl", vacc = "trt", marker = "IgG_V2", covariates = c("age","BMI","bhvrisk"), weights = "wt", ph2 = "casecontrol", data = hvtn505)
+  ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
+  ests_np <- est_ce(dat=dat, type="NP", t_0=578)
+  plot_ce(ests_cox, ests_np, density=list(s=dat$v$s, weights=dat$v$weights))
+
+  # IgG_V3
+  dat <- load_data(time = "HIVwk28preunblfu", event = "HIVwk28preunbl", vacc = "trt", marker = "IgG_V3", covariates = c("age","BMI","bhvrisk"), weights = "wt", ph2 = "casecontrol", data = hvtn505)
+  ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
+  ests_np <- est_ce(dat=dat, type="NP", t_0=578)
+  plot_ce(ests_cox, ests_np, density=list(s=dat$v$s, weights=dat$v$weights))
+
+}
+
 # Assembling HVTN 505 dataset
 if (F) {
 
@@ -23,9 +48,8 @@ if (F) {
   nrow(d505_full)
   # d505_full %<>% filter(cc_cohort==1 | trt==0)
   # nrow(d505_full)
-  d505_full %<>% subset(
-    select=c(pub_id, enrdt, HIVwk28fu, HIVwk28preunbl, trt, age, BMI, bhvrisk, casecontrol)
-  )
+  d505_full %<>% subset(select=c(pub_id, enrdt, HIVwk28fu, HIVwk28preunbl, trt,
+                                 age, BMI, bhvrisk, casecontrol))
 
   # Code from Peter
   # .max_futime_unbl <- as.Date("22Apr2013", "%d%b%Y") - as.Date(d505_full$enrdt, "%d%b%Y")
@@ -35,19 +59,28 @@ if (F) {
   d505_full$HIVwk28preunblfu <- .wk28futime_unbl
   d505_full %<>% subset(select=-c(enrdt, HIVwk28fu))
 
-  d505_cc <- read.csv("C:/Users/avike/OneDrive/Desktop/Janes et al. (2017, JID)/v505_tcell_correlates_data_for_sharing.csv")
-  d505_cc2 <- filter(d505_cc, cytokine=="IL2/ifngamma" &
-                       antigen=="ANY VRC ENV" &
-                       tcellsub=="CD4+")
-  d505_cc2 %<>% subset(
-    select=c(pub_id, wt, logpctpos_scaled)
-  )
+  # Pull in weights
+  d505_wt <- read.csv("C:/Users/avike/OneDrive/Desktop/Janes et al. (2017, JID)/v505_tcell_correlates_data_for_sharing.csv")
+  d505_wt %<>% filter(cytokine=="IL2/ifngamma" & antigen=="ANY VRC ENV" & tcellsub=="CD4+")
+  d505_wt %<>% subset(select=c(pub_id, wt))
+  hvtn505 <- dplyr::left_join(d505_full, d505_wt, by="pub_id")
+  hvtn505 %<>% filter(!is.na(BMI))
+
+  # Pull in marker data
+  d505_mrk <- read.csv("C:/Users/avike/OneDrive/Desktop/Janes et al. (2017, JID)/bama.m.for_sharing.csv")
+  d505_mrk %<>% subset(select=c(pub_id, IgG_env, IgG_V2, IgG_V3))
+  hvtn505 <- dplyr::left_join(hvtn505, d505_mrk, by="pub_id")
+
+  # Reorder columns
+  hvtn505 %<>% relocate(trt, .after=pub_id)
+  hvtn505 %<>% relocate(HIVwk28preunblfu, .after=HIVwk28preunbl)
+
+  # Save updated dataset
+  usethis::use_data(hvtn505, overwrite=T)
+
   # length(d505_cc2$pub_id)
   # length(unique(d505_cc2$pub_id))
 
-  hvtn505 <- dplyr::left_join(d505_full, d505_cc2, by="pub_id")
-  hvtn505 %<>% filter(!is.na(BMI))
-  usethis::use_data(hvtn505, overwrite=T)
 
 
 

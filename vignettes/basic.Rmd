@@ -30,7 +30,7 @@ dat <- load_data(
   time = "HIVwk28preunblfu",
   event = "HIVwk28preunbl",
   vacc = "trt",
-  marker = "logpctpos_scaled",
+  marker = "IgG_env",
   covariates = c("age","BMI","bhvrisk"),
   weights = "wt",
   ph2 = "casecontrol",
@@ -62,22 +62,6 @@ The `est_ce` function allows us to compute controlled effects curves; see [Gilbe
 
 ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
 ests_np <- est_ce(dat=dat, type="NP", t_0=578)
-
-system.time({
-  ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
-})
-system.time({
-  ests_np1 <- est_ce(dat=dat, type="NP", t_0=578,
-                     params_np=params_ce_np(surv_type="survML-G"))
-})
-system.time({
-  ests_np2 <- est_ce(dat=dat, type="NP", t_0=578,
-                     params_np=params_ce_np(surv_type="survML-L"))
-})
-system.time({
-  ests_np3 <- est_ce(dat=dat, type="NP", t_0=578,
-                     params_np=params_ce_np(surv_type="survSL"))
-})
 
 ```
 

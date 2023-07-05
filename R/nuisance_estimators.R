@@ -59,7 +59,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
     rm(model_cens)
 
   } else {
-    library("SuperLearner")
+    do.call("library", list("SuperLearner"))
   }
 
   if (type=="survSL") {
