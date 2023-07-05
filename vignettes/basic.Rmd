@@ -79,7 +79,7 @@ if (F) {
   ests_np2 <- est_np(
     dat = dat,
     t_0 = 578,
-    params = list(surv_type="Super Learner", q_n_type="zero")
+    params = list(surv_type="survSL", q_n_type="zero")
   )
   
   ests_np <- est_np(

@@ -49,8 +49,15 @@ params_ce_cox <- function(spline_df=NA, spline_knots=NA, edge_ind=F) {
 #'     point. For grid_size$y, a grid will be created from 0 to t_0, and then
 #'     extended to max(Y). For grid_size$x, a separate grid is created for each
 #'     covariate column (binary/categorical covariates are ignored).
-#' @param surv_type One of c("Super Learner", "Cox"); controls the method to use
-#'     to estimate the conditional survival and conditional censoring functions.
+#' @param surv_type One of c("Cox", "survSL", "survML-G", "survML-L"); controls
+#'     the method to use to estimate the conditional survival and conditional
+#'     censoring functions. If type="Cox", a survival function based on a Cox
+#'     proportional hazard model will be used. If type="survSL", the Super
+#'     Learner method of Westling 2023 (via the \code{survSuperLearner} package)
+#'     is used. If type="survML-G", the global survival stacking method of
+#'     Wolock 2022 (via the \code{survML} package) is used. If type="survML-L",
+#'     the local survival stacking method of Polley 2011 (via the \code{survML}
+#'     package) is used.
 #' @param density_type One of c("binning", "parametric"); controls the method to
 #'     use to estimate the density ratio f(S|X)/f(S).
 #' @param density_bins An integer; if density_type="binning", the number of bins
@@ -71,7 +78,7 @@ params_ce_np <- function(
     dir = "decr",
     edge_corr = F,
     grid_size = list(y=101,s=101,x=5),
-    surv_type = "Super Learner",
+    surv_type = "survSL",
     density_type = "binning",
     density_bins = 15,
     deriv_type = "m-spline"

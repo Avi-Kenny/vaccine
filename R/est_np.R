@@ -35,7 +35,7 @@ est_np <- function(
 
   # Set params
   .default_params <- list(
-    surv_type = "Super Learner",
+    surv_type = "survSL",
     density_type = "binning",
     density_bins = 15,
     deriv_type = "m-spline",

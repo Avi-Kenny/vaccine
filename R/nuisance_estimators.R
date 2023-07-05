@@ -60,7 +60,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 
   }
 
-  if (type=="Super Learner") { # "Super Learner (Westling)"
+  if (type=="survSL") {
 
     # Excluding "survSL.rfsrc" for now. survSL.pchSL gives errors.
     methods <- c("survSL.coxph", "survSL.expreg", "survSL.km",
@@ -148,8 +148,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 
   }
 
-  # if (type=="survML") {
-  if (substr(type, 1, 6)=="survML") { # "Super Learner (Wolock)"
+  if (type %in% c("survML-G","survML-L")) {
 
     newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
     new.times <- unique(vals$t)
@@ -160,7 +159,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       X = cbind(dat$x, s=dat$s),
       newX = newX,
       newtimes = new.times,
-      bin_size = 0.1, # !!!!! bin_size = 0.02
+      bin_size = 0.05,
       time_basis = "continuous",
       SL_control = list(
         # SL.library = rep(c("SL.mean", "SL.glm", "SL.gam", "SL.earth"),2), # Note: rep() is to avoid a SuperLearner bug
