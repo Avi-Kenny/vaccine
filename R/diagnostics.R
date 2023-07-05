@@ -13,20 +13,20 @@ diagnostics <- function(obj) {
                 "t_ce()."))
   }
 
-  p1 <- ggplot(obj$extras$r_Mn, aes(x=s, y=est)) +
+  p1 <- ggplot2::ggplot(obj$extras$r_Mn, aes(x=s, y=est)) +
     geom_line(color="#56B4E9") + geom_point(color="#56B4E9", size=1) +
     labs(y="", x="log(S)", title="r_Mn")
-  p2 <- ggplot(obj$extras$deriv_r_Mn, aes(x=s, y=est)) +
+  p2 <- ggplot2::ggplot(obj$extras$deriv_r_Mn, aes(x=s, y=est)) +
     geom_line(color="#56B4E9") + geom_point(color="#56B4E9", size=1) +
     labs(y="", x="log(S)", title="deriv_r_Mn")
-  p3 <- ggplot(obj$extras$Gamma_os_n, aes(x=s, y=est)) +
+  p3 <- ggplot2::ggplot(obj$extras$Gamma_os_n, aes(x=s, y=est)) +
     geom_line(color="#56B4E9") + geom_point(color="#56B4E9", size=1) +
     labs(y="", x="log(S)", title="Gamma_os_n")
-  p4 <- ggplot(obj$extras$f_s_n, aes(x=s, y=est)) +
+  p4 <- ggplot2::ggplot(obj$extras$f_s_n, aes(x=s, y=est)) +
     geom_line(color="#56B4E9") + geom_point(color="#56B4E9", size=1) +
     labs(y="", x="log(S)", title="f_s_n")
 
-  p5 <- ggplot(
+  p5 <- ggplot2::ggplot(
     obj$extras$Q_n,
     aes(x=t, y=est, group=factor(interaction(ind,s)), color=factor(s))
   ) +
@@ -35,7 +35,7 @@ diagnostics <- function(obj) {
     labs(y="", title="Q_n", color="s") +
     theme(legend.position="none")
 
-  p6 <- ggplot(
+  p6 <- ggplot2::ggplot(
     obj$extras$Qc_n,
     aes(x=t, y=est, group=factor(interaction(ind,s)), color=factor(s))
   ) +
