@@ -27,11 +27,11 @@ The `load_data` function takes in raw data and creates a data object that can be
 data(hvtn505)
 
 dat <- load_data(
-  time = "HIVwk28preunblfu", # HIVwk28preunblfu
-  event = "HIVwk28preunbl", # HIVwk28preunbl
+  time = "HIVwk28preunblfu",
+  event = "HIVwk28preunbl",
   vacc = "trt",
   marker = "logpctpos_scaled",
-  covariates = c("age", "BMI", "bhvrisk"),
+  covariates = c("age","BMI","bhvrisk"),
   weights = "wt",
   ph2 = "casecontrol",
   data = hvtn505
@@ -61,38 +61,27 @@ The `est_ce` function allows us to compute controlled effects curves; see [Gilbe
 ```{r}
 
 ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
-# ests_np <- est_ce(dat=dat, type="NP", t_0=578)
-ests_np <- est_ce(dat=dat, type="NP", t_0=578,
-                  params_np=params_ce_np(surv_type="survML-G"))
-# ests_np2 <- est_ce(dat=dat, type="NP", t_0=578,
-#                   params_np=params_ce_np(surv_type="survML-L"))
-est_ov <- est_overall(dat=dat, t_0=578, method="KM")
+ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 
-if (F) {
-  
-  ests_np1 <- est_np(
-    dat = dat,
-    t_0 = 578,
-    params = list(surv_type="Cox", q_n_type="zero")
-  )
-  
-  ests_np2 <- est_np(
-    dat = dat,
-    t_0 = 578,
-    params = list(surv_type="survSL", q_n_type="zero")
-  )
-  
-  ests_np <- est_np(
-    dat = dat,
-    t_0 = 578,
-    params = list(surv_type="survML-G", q_n_type="zero")
-  )
-  
-}
+system.time({
+  ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
+})
+system.time({
+  ests_np1 <- est_ce(dat=dat, type="NP", t_0=578,
+                     params_np=params_ce_np(surv_type="survML-G"))
+})
+system.time({
+  ests_np2 <- est_ce(dat=dat, type="NP", t_0=578,
+                     params_np=params_ce_np(surv_type="survML-L"))
+})
+system.time({
+  ests_np3 <- est_ce(dat=dat, type="NP", t_0=578,
+                     params_np=params_ce_np(surv_type="survSL"))
+})
 
 ```
 
-The plot_ce function gives some basic plots
+The `plot_ce` function produces basic plots of CR or CVE curves. These are returned as ggplot2 objects, so they can be further customized as needed.
 
 ```{R}
 
@@ -100,4 +89,10 @@ plot_ce(ests_cox, ests_np)
 
 ```
 
-The plots are `ggplot2` plot objects.
+Use the `density` option to add a kernel density estimate of the distribution of the marker.
+
+```{R}
+
+plot_ce(ests_cox, ests_np, density=list(s=dat$v$s, weights=dat$v$weights))
+
+```

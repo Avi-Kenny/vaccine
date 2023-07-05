@@ -15,7 +15,16 @@
 #'     predictor.
 #' @return A list of options.
 #' @examples
-#' print("to do")
+#' data(hvtn505)
+#' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+#'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+#'                  weights="wt", ph2="casecontrol", data=hvtn505)
+#' ests_cox <- est_ce(
+#'   dat = dat,
+#'   type = "Cox",
+#'   t_0 = 578,
+#'   params_cox = params_ce_cox(spline_df=4)
+#' )
 #' @export
 params_ce_cox <- function(spline_df=NA, spline_knots=NA, edge_ind=F) {
 
@@ -72,13 +81,22 @@ params_ce_cox <- function(spline_df=NA, spline_knots=NA, edge_ind=F) {
 #' Fritsch and Carlson 1980) before differentiating.
 #' @return A list of options.
 #' @examples
-#' print("to do")
+#' data(hvtn505)
+#' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+#'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+#'                  weights="wt", ph2="casecontrol", data=hvtn505)
+#' ests_np <- est_ce(
+#'   dat = dat,
+#'   type = "NP",
+#'   t_0 = 578,
+#'   params_np = params_ce_np(edge_corr=T, surv_type="survML-L")
+#' )
 #' @export
 params_ce_np <- function(
     dir = "decr",
     edge_corr = F,
     grid_size = list(y=101,s=101,x=5),
-    surv_type = "survSL",
+    surv_type = "survML-G",
     density_type = "binning",
     density_bins = 15,
     deriv_type = "m-spline"

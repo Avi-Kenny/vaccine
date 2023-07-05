@@ -9,7 +9,11 @@
 #'     \item{\code{three}: asdf}
 #' }
 #' @examples
-#' print("to do")
+#' data(hvtn505)
+#' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+#'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+#'                  weights="wt", ph2="casecontrol", data=hvtn505)
+#' summary_stats(dat=dat)
 #' @export
 summary_stats <- function(dat, quietly=F) {
 

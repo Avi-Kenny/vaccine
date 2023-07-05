@@ -27,7 +27,10 @@
 #'     weights.
 #' @return An object of class \code{vaccine_dat}.
 #' @examples
-#' print("to do")
+#' data(hvtn505)
+#' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+#'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+#'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' @export
 load_data <- function(
   time, event, vacc, marker, covariates, weights, ph2, strata=NA, data

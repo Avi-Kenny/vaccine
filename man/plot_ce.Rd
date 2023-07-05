@@ -4,7 +4,7 @@
 \alias{plot_ce}
 \title{Plotting controlled effect curves}
 \usage{
-plot_ce(..., which)
+plot_ce(..., which, labels = NA, density = NA)
 }
 \arguments{
 \item{...}{One or more objects of class \code{"vaccine_est"} returned by
@@ -12,10 +12,25 @@ plot_ce(..., which)
 
 \item{which}{One of c("CR", "CVE"); controls whether to plot CR curves or CVE
 curves.}
+
+\item{labels}{A character vector of labels corresponding to the estimate
+objects.}
+
+\item{density}{A list with keys \code{s} and \code{weights} used to construct
+and plot a kernel estimate of the marker density. \code{s} gives a vector
+of marker values and \code{weights} gives the corresponding
+inverse-probability-of-sampling weights.}
 }
 \description{
-TO DO
+Plot CR and/or CVE curves
 }
 \examples{
-print("to do")
+data(hvtn505)
+dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+                 marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+                 weights="wt", ph2="casecontrol", data=hvtn505)
+ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
+ests_np <- est_ce(dat=dat, type="NP", t_0=578)
+plot_ce(ests_cox, ests_np)
+plot_ce(ests_cox, ests_np, density=list(s=dat$v$s, weights=dat$v$weights))
 }

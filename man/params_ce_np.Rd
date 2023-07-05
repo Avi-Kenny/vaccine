@@ -9,7 +9,7 @@ params_ce_np(
   dir = "decr",
   edge_corr = F,
   grid_size = list(y = 101, s = 101, x = 5),
-  surv_type = "survSL",
+  surv_type = "survML-G",
   density_type = "binning",
   density_bins = 15,
   deriv_type = "m-spline"
@@ -70,5 +70,14 @@ This should be used in conjunction with \code{\link{est_ce}} to
     curves; see examples.
 }
 \examples{
-print("to do")
+data(hvtn505)
+dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+                 marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+                 weights="wt", ph2="casecontrol", data=hvtn505)
+ests_np <- est_ce(
+  dat = dat,
+  type = "NP",
+  t_0 = 578,
+  params_np = params_ce_np(edge_corr=T, surv_type="survML-L")
+)
 }

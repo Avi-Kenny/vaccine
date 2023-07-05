@@ -1,10 +1,15 @@
 #' Run diagnostics
 #'
-#' @description TO DO
+#' @description Run a set of diagnostic plots.
 #' @param obj An object of class \code{vaccine_est} returned by est_ce
-#' @return A plot of model diagnostics
+#' @return A combined plot of model diagnostics
 #' @examples
-#' print("to do")
+#' data(hvtn505)
+#' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+#'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+#'                  weights="wt", ph2="casecontrol", data=hvtn505)
+#' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
+#' diagnostics(ests_np)
 #' @export
 diagnostics <- function(obj) {
 

@@ -1,6 +1,6 @@
 #' Estimate overall risk and vaccine efficacy
 #'
-#' @description TO DO
+#' @description Estimate overall risk and vaccine efficacy.
 #' @param dat A data object returned by load_data
 #' @param t_0 Time point of interest
 #' @param method One of c("KM", "Cox"), corresponding to either a Kaplan-Meier
@@ -9,16 +9,15 @@
 #' @param risk Boolean. If TRUE, the controlled risk (CR) curve is computed.
 #' @param ve Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
 #'     computed.
-#' @param ci_type TO DO
-#' @return A list containing the following: \itemize{
-#'     \item{\code{one}: asdf}
-#'     \item{\code{two}: asdf}
-#'     \item{\code{three}: asdf}
-#' }
+#' @return A data.frame containing estimates
 #' @examples
-#' print("to do")
+#' data(hvtn505)
+#' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+#'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+#'                  weights="wt", ph2="casecontrol", data=hvtn505)
+#' est_overall(dat=dat, t_0=578, method="KM")
 #' @export
-est_overall <- function(dat, t_0, method="Cox", risk=T, ve=T, ci_type="logit") {
+est_overall <- function(dat, t_0, method="Cox", risk=T, ve=T) { # ci_type="transformed"
 
   if (!(method %in% c("Cox", "KM")) || length(method)>1) {
     stop("`method` must equal either 'Cox' or 'KM'.")
@@ -275,16 +274,16 @@ est_overall <- function(dat, t_0, method="Cox", risk=T, ve=T, ci_type="logit") {
       se <- sqrt(res_cox$var_est_marg)
 
       # Generate confidence limits
-      if (ci_type=="none") {
-        ci_lo <- NA
-        ci_up <- NA
-      } else if (ci_type=="regular") {
-        ci_lo <- pmin(pmax(est - 1.96*se, 0), 1)
-        ci_up <- pmin(pmax(est + 1.96*se, 0), 1)
-      } else if (ci_type=="logit") {
+      # if (ci_type=="none") {
+        # ci_lo <- NA
+        # ci_up <- NA
+      # } else if (ci_type=="regular") {
+        # ci_lo <- pmin(pmax(est - 1.96*se, 0), 1)
+        # ci_up <- pmin(pmax(est + 1.96*se, 0), 1)
+      # } else if (ci_type=="transformed") {
         ci_lo <- expit(logit(est) - 1.96*deriv_logit(est)*se)
         ci_up <- expit(logit(est) + 1.96*deriv_logit(est)*se)
-      }
+      # }
 
     }
 

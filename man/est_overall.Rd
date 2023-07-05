@@ -4,7 +4,7 @@
 \alias{est_overall}
 \title{Estimate overall risk and vaccine efficacy}
 \usage{
-est_overall(dat, t_0, method = "Cox", risk = T, ve = T, ci_type = "logit")
+est_overall(dat, t_0, method = "Cox", risk = T, ve = T)
 }
 \arguments{
 \item{dat}{A data object returned by load_data}
@@ -19,19 +19,17 @@ estimator ("KM") or a marginalized Cox proportional hazards model
 
 \item{ve}{Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
 computed.}
-
-\item{ci_type}{TO DO}
 }
 \value{
-A list containing the following: \itemize{
-    \item{\code{one}: asdf}
-    \item{\code{two}: asdf}
-    \item{\code{three}: asdf}
-}
+A data.frame containing estimates
 }
 \description{
-TO DO
+Estimate overall risk and vaccine efficacy.
 }
 \examples{
-print("to do")
+data(hvtn505)
+dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+                 marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+                 weights="wt", ph2="casecontrol", data=hvtn505)
+est_overall(dat=dat, t_0=578, method="KM")
 }

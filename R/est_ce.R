@@ -39,7 +39,12 @@
 #'         \item{\code{ci_upper}: a vector of confidence interval upper limits}
 #' }
 #' @examples
-#' print("to do")
+#' data(hvtn505)
+#' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+#'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+#'                  weights="wt", ph2="casecontrol", data=hvtn505)
+#' ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
+#' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 #' @references Gilbert P., Fong Y., Kenny A., and Carone, M. (2022). A
 #'     Controlled Effects Approach to Assessing Immune Correlates of Protection.
 #' @references Kenny, A., Gilbert P., and Carone, M. (2023). Nonparametric

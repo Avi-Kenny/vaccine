@@ -29,5 +29,14 @@ This should be used in conjunction with \code{\link{est_ce}} to
     curves; see examples.
 }
 \examples{
-print("to do")
+data(hvtn505)
+dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+                 marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+                 weights="wt", ph2="casecontrol", data=hvtn505)
+ests_cox <- est_ce(
+  dat = dat,
+  type = "Cox",
+  t_0 = 578,
+  params_cox = params_ce_cox(spline_df=4)
+)
 }

@@ -54,5 +54,8 @@ This function takes in user-supplied data and returns a data
     individuals.
 }
 \examples{
-print("to do")
+data(hvtn505)
+dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+                 marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+                 weights="wt", ph2="casecontrol", data=hvtn505)
 }
