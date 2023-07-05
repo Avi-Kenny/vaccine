@@ -280,19 +280,20 @@ est_np <- function(
   }
 
   # Create results object
-  res <- list(
-    "cr" = list(
+  res <- list()
+  if (cr) {
+    res$cr <- list(
       s = s_out_orig,
       est = c(rep(NA,na_head), ests_cr, rep(NA,na_tail)),
       ci_lower = c(rep(NA,na_head), ci_lo_cr, rep(NA,na_tail)),
       ci_upper = c(rep(NA,na_head), ci_up_cr, rep(NA,na_tail))
-    ),
-    "cve" = list(s=s_out)
-  )
+    )
+  }
 
   # Compute CVE
   # !!!!! TO DO: perform finite sample variance correction for CVE
   if (cve) {
+    res$cve <- list(s=s_out)
     if (attr(dat_copy, "groups")!="both") {
       stop("Placebo group data not detected.")
     }

@@ -508,12 +508,15 @@ est_cox <- function(
   }
 
   # Create results object
-  res <- list("cr" = list(s=s_out, est=ests_cr, se=ses_cr, ci_lower=ci_lo_cr,
-                          ci_upper=ci_up_cr),
-              "cve" = list(s=s_out))
+  res <- list()
+  if (cr) {
+    res$cr <- list(s=s_out, est=ests_cr, se=ses_cr, ci_lower=ci_lo_cr,
+                   ci_upper=ci_up_cr)
+  }
 
   # Compute CVE
   if (cve) {
+    res$cve <- list(s=s_out)
     if (attr(dat, "groups")!="both") {
       stop("Placebo group data not detected.")
     }
@@ -521,9 +524,9 @@ est_cox <- function(
     risk_p <- ov[ov$group=="placebo","est"]
     se_p <- ov[ov$group=="placebo","se"]
     res$cve$est <- 1 - res$cr$est/risk_p
-    res$cve$se <- 999
-    res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p # !!!!! TEMP
-    res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p # !!!!! TEMP
+    res$cve$se <- NA
+    res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p # !!!!! Add placebo group correction
+    res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p # !!!!! Add placebo group correction
   }
 
   # Return extras

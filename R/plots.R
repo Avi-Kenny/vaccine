@@ -10,6 +10,19 @@
 #' @export
 plot_ce <- function(..., which) {
 
+  # # !!!!!
+  # (function(...) {
+  #   for (obj in list(...)) {
+  #     print("str(obj)")
+  #     print(str(obj))
+  #   }
+  # })(ests_cox,ests_np)
+
+  ests <- list(...)
+  ests <- list(ests_cox,ests_np) # !!!!!
+
+
+
   ggplot(
     data.frame(x = ests_cox$cr$s,
                y = ests_cox$cr$est,
