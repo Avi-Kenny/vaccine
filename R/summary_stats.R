@@ -3,16 +3,12 @@
 #' @description TO DO
 #' @param dat A data object returned by `load_data`.
 #' @param quietly Boolean. If true, output will not be printed.
-#' @return A list containing the following: \itemize{
-#'     \item{\code{one}: asdf}
-#'     \item{\code{two}: asdf}
-#'     \item{\code{three}: asdf}
-#' }
+#' @return A list containing values of various summary statistics.
 #' @examples
 #' \dontrun{
 #' data(hvtn505)
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
-#'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+#'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' summary_stats(dat=dat)
 #' }

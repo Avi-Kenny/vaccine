@@ -18,7 +18,7 @@
 #' \dontrun{
 #' data(hvtn505)
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
-#'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+#'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' ests_cox <- est_ce(
 #'   dat = dat,
@@ -86,7 +86,7 @@ params_ce_cox <- function(spline_df=NA, spline_knots=NA, edge_ind=F) {
 #' \dontrun{
 #' data(hvtn505)
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
-#'                  marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+#'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' ests_np <- est_ce(
 #'   dat = dat,

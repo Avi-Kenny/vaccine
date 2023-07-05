@@ -119,7 +119,7 @@ if (F) {
   sum(is.na(hvtn505$HIVwk28preunbl))
   sum(is.na(hvtn505$HIVwk28preunblfu))
   sum(is.na(hvtn505$trt))
-  sum(!is.na(hvtn505$logpctpos_scaled))
+  sum(!is.na(hvtn505$IgG_V2))
   sum(is.na(hvtn505$age))
   sum(is.na(hvtn505$BMI))
   sum(is.na(hvtn505$bhvrisk))

@@ -12,11 +12,7 @@ summary_stats(dat, quietly = F)
 \item{quietly}{Boolean. If true, output will not be printed.}
 }
 \value{
-A list containing the following: \itemize{
-    \item{\code{one}: asdf}
-    \item{\code{two}: asdf}
-    \item{\code{three}: asdf}
-}
+A list containing values of various summary statistics.
 }
 \description{
 TO DO
@@ -25,7 +21,7 @@ TO DO
 \dontrun{
 data(hvtn505)
 dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
-                 marker="logpctpos_scaled", covariates=c("age","BMI","bhvrisk"),
+                 marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
                  weights="wt", ph2="casecontrol", data=hvtn505)
 summary_stats(dat=dat)
 }
