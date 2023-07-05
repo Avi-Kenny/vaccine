@@ -291,6 +291,7 @@ est_np <- function(
   )
 
   # Compute CVE
+  # !!!!! TO DO: perform finite sample variance correction for CVE
   if (cve) {
     if (attr(dat_copy, "groups")!="both") {
       stop("Placebo group data not detected.")
@@ -303,14 +304,56 @@ est_np <- function(
     res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p
   }
 
-  # !!!!! TO DO: perform finite sample variance correction for CVE
-
   if (return_extras) {
 
+    ind_sample <- sample(c(1:length(dat$z)), size=20)
+    s1 <- min(grid$s)
+    s3 <- max(grid$s)
+    s2 <- grid$s[which.min(abs((s3-s1)/2-grid$s))]
+    Q_n_df <- data.frame(
+      "ind" = double(),
+      "t" = double(),
+      "s" = double(),
+      "est" = double()
+    )
+    Qc_n_df <- Q_n_df
+    for (ind in ind_sample) {
+      for (t in grid$y) {
+        x_val <- as.numeric(dat$x[ind,])
+        Q_val_s1 <- Q_n(t=t, x=x_val, s=s1)
+        Q_val_s2 <- Q_n(t=t, x=x_val, s=s2)
+        Q_val_s3 <- Q_n(t=t, x=x_val, s=s3)
+        Qc_val_s1 <- Qc_n(t=t, x=x_val, s=s1)
+        Qc_val_s2 <- Qc_n(t=t, x=x_val, s=s2)
+        Qc_val_s3 <- Qc_n(t=t, x=x_val, s=s3)
+        Q_n_df[nrow(Q_n_df)+1,] <- c(ind, t, s1, Q_val_s1)
+        Q_n_df[nrow(Q_n_df)+1,] <- c(ind, t, s2, Q_val_s2)
+        Q_n_df[nrow(Q_n_df)+1,] <- c(ind, t, s3, Q_val_s3)
+        Qc_n_df[nrow(Qc_n_df)+1,] <- c(ind, t, s1, Qc_val_s1)
+        Qc_n_df[nrow(Qc_n_df)+1,] <- c(ind, t, s2, Qc_val_s2)
+        Qc_n_df[nrow(Qc_n_df)+1,] <- c(ind, t, s3, Qc_val_s3)
+      }
+    }
+
     res$extras <- list(
-      res$n <- n_orig,
-      res$tau_ns <- c(rep(NA,na_head), tau_ns, rep(NA,na_tail))
-      # !!!!! continue
+      r_Mn = data.frame(
+        s = s_out_orig,
+        est = c(rep(NA,na_head), sapply(s_out, r_Mn), rep(NA,na_tail))
+      ),
+      deriv_r_Mn = data.frame(
+        s = s_out_orig,
+        est = c(rep(NA,na_head), sapply(s_out, deriv_r_Mn), rep(NA,na_tail))
+      ),
+      Gamma_os_n = data.frame(
+        s = s_out_orig,
+        est = c(rep(NA,na_head), sapply(s_out, Gamma_os_n), rep(NA,na_tail))
+      ),
+      f_s_n = data.frame(
+        s = s_out_orig,
+        est = c(rep(NA,na_head), sapply(s_out, f_s_n), rep(NA,na_tail))
+      ),
+      Q_n = Q_n_df,
+      Qc_n = Qc_n_df
     )
 
   }

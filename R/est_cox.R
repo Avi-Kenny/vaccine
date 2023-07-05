@@ -522,12 +522,12 @@ est_cox <- function(
     se_p <- ov[ov$group=="placebo","se"]
     res$cve$est <- 1 - res$cr$est/risk_p
     res$cve$se <- 999
-    res$cve$ci_lo <- 1 - res$cr$ci_up/risk_p # !!!!! TEMP
-    res$cve$ci_up <- 1 - res$cr$ci_lo/risk_p # !!!!! TEMP
+    res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p # !!!!! TEMP
+    res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p # !!!!! TEMP
   }
 
   # Return extras
-  if (return_extras) { res$model <- model }
+  if (return_extras) { res$extras <- list(model=model) }
 
   return(res)
 

@@ -13,6 +13,7 @@ est_ce(
   s_out = seq(from = min(dat$v$s, na.rm = T), to = max(dat$v$s, na.rm = T), l = 101),
   ci_type = "transformed",
   placebo_risk_method = "KM",
+  return_extras = F,
   params_cox = params_ce_cox(),
   params_np = params_ce_np()
 )
@@ -50,10 +51,10 @@ overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
 and "Cox" computes an estimate based on a marginalized Cox model survival
 curve. Only relevant if cve=TRUE.}
 
-\item{params_ce_cox}{A list of options returned by
+\item{params_cox}{A list of options returned by
 \code{\link{params_ce_cox}} that are relevant if type="Cox".}
 
-\item{params_ce_np}{A list of options returned by \code{\link{params_ce_np}}
+\item{params_np}{A list of options returned by \code{\link{params_ce_np}}
 that are relevant if type="NP".}
 }
 \value{
