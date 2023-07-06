@@ -64,7 +64,7 @@ est_overall(dat=dat, t_0=578, method="Cox")
 #> 3   ve    both -0.42159246 0.417915188 -1.52937491 0.20101796
 ```
 
-The `est_ce` function allows us to compute controlled effects curves; see [Gilbert, Fong, Kenny, and Carone 2022](https://academic.oup.com/biostatistics/advance-article-abstract/doi/10.1093/biostatistics/kxac24/6644798) for more detail.
+The `est_ce` function allows us to compute controlled effects curves; see [Gilbert, Fong, Kenny, and Carone 2022](https://academic.oup.com/biostatistics/advance-article/doi/10.1093/biostatistics/kxac24/6644798) for more detail.
 
 ``` r
 
@@ -89,12 +89,4 @@ The `plot_ce` function produces basic plots of CR or CVE curves. These are retur
 plot_ce(ests_cox, ests_np)
 ```
 
-![plot of chunk unnamed-chunk-6](vignettes/figure/unnamed-chunk-6-1.png)
-
-Use the `density` option to add a kernel density estimate of the distribution of the marker.
-
-``` r
-plot_ce(ests_cox, ests_np, density=list(s=dat$v$s, weights=dat$v$weights))
-```
-
-![plot of chunk unnamed-chunk-7](vignettes/figure/unnamed-chunk-7-1.png)
+![plot of chunk unnamed-chunk-6](unnamed-chunk-6-1.png)

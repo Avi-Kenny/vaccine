@@ -59,10 +59,8 @@ This function takes in user-supplied data and returns a data
     all phase-one individuals.
 }
 \examples{
-\dontrun{
 data(hvtn505)
 dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
                  weights="wt", ph2="casecontrol", data=hvtn505)
-}
 }

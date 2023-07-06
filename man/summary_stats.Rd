@@ -18,11 +18,9 @@ A list containing values of various summary statistics.
 TO DO
 }
 \examples{
-\dontrun{
 data(hvtn505)
 dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
                  weights="wt", ph2="casecontrol", data=hvtn505)
 summary_stats(dat=dat)
-}
 }

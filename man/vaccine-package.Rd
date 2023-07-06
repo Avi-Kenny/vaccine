@@ -4,14 +4,14 @@
 \name{vaccine-package}
 \alias{vaccine}
 \alias{vaccine-package}
-\title{vaccine: Statistical tools for immune correlates analysis of vaccine clinical trial data}
+\title{vaccine: Statistical Tools for Immune Correlates Analysis of Vaccine Clinical Trial Data}
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-This package contains various semiparametric and nonparametric statistical tools for immune correlates analysis of vaccine clinical trial data. This includes calculation of summary statistics and estimation of risk, vaccine efficacy, controlled risk, and controlled vaccine efficacy.
+Various semiparametric and nonparametric statistical tools for immune correlates analysis of vaccine clinical trial data. This includes calculation of summary statistics and estimation of risk, vaccine efficacy, controlled risk, and controlled vaccine efficacy.
 }
 \author{
-\strong{Maintainer}: Avi Kenny \email{avi.kenny@gmail.com}
+\strong{Maintainer}: Avi Kenny \email{avi.kenny@gmail.com} [copyright holder]
 
 }
 \keyword{internal}

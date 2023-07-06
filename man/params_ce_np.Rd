@@ -70,11 +70,11 @@ This should be used in conjunction with \code{\link{est_ce}} to
     curves; see examples.
 }
 \examples{
-\dontrun{
 data(hvtn505)
 dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
                  weights="wt", ph2="casecontrol", data=hvtn505)
+\dontrun{
 ests_np <- est_ce(
   dat = dat,
   type = "NP",

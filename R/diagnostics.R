@@ -10,7 +10,7 @@
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
-#' \donttest{
+#' \dontrun{
 #' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 #' diagnostics(ests_np)
 #' }

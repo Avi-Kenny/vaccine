@@ -18,11 +18,11 @@ Run a set of diagnostic plots. Note that for this function to
     work, \code{\link{est_ce}} must be run with \code{return_extras=T}.
 }
 \examples{
-\dontrun{
 data(hvtn505)
 dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
                  weights="wt", ph2="casecontrol", data=hvtn505)
+\dontrun{
 ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 diagnostics(ests_np)
 }
