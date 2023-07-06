@@ -40,11 +40,9 @@ covariate column (binary/categorical covariates are ignored).}
 the method to use to estimate the conditional survival and conditional
 censoring functions. If type="Cox", a survival function based on a Cox
 proportional hazard model will be used. If type="survSL", the Super
-Learner method of Westling 2023 (via the \code{survSuperLearner} package)
-is used. If type="survML-G", the global survival stacking method of
-Wolock 2022 (via the \code{survML} package) is used. If type="survML-L",
-the local survival stacking method of Polley 2011 (via the \code{survML}
-package) is used.}
+Learner method of Westling 2023 is used. If type="survML-G", the global
+survival stacking method of Wolock 2022 is used. If type="survML-L", the
+local survival stacking method of Polley 2011 is used.}
 
 \item{density_type}{One of c("binning", "parametric"); controls the method to
 use to estimate the density ratio f(S|X)/f(S).}

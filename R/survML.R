@@ -4,15 +4,6 @@
 
 #' Compute the plug-in exponential survival function estimator
 #'
-#' @param cdf_uncens Matrix of predictions of the cdf of the uncensored times (F_Y_1) on chosen time grid
-#' @param cdf_cens Predictions of the cdf of the censored times (F_Y_0) on chosen time grid
-#' @param p_uncens Prediction of the probability of being uncensored
-#' @param newtimes Times at which to make the prediction
-#' @param time_grid Grid of time points over which to discretize the integral
-#' @param denom_method Method of computing the denominator
-#'
-#' @return A vector of estimates of the survival function over \code{time_grid}
-#'
 #' @noRd
 compute_exponential <- function(cdf_uncens,
                                 cdf_cens = NA,
@@ -95,22 +86,11 @@ compute_exponential <- function(cdf_uncens,
   return(S_T_ests)
 }
 
-
-
 #############################.
 ##### compute_prodint.R #####
 #############################.
 
 #' Compute the plug-in product-limit survival function estimator
-#'
-#' @param cdf_uncens Matrix of predictions of the cdf of the uncensored times (F_Y_1) on chosen time grid
-#' @param cdf_cens Predictions of the cdf of the censored times (F_Y_0) on chosen time grid
-#' @param p_uncens Prediction of the probability of being uncensored
-#' @param newtimes Times at which to make the prediction
-#' @param time_grid Grid of time points over which to discretize the product integral
-#' @param denom_method Method of computing the denominator
-#'
-#' @return A vector of estimates of the survival function over \code{time_grid}
 #'
 #' @noRd
 compute_prodint <- function(cdf_uncens,
@@ -194,23 +174,12 @@ compute_prodint <- function(cdf_uncens,
   return(S_T_ests)
 }
 
-
-
 ############################.
 ##### f_w_algorithms.R #####
 ############################.
 
 #' Stacked binary regression using SuperLearner
 #'
-#' @param time Observed time
-#' @param event Indicator of event (vs censoring)
-#' @param entry Truncation variable, time of entry into the study
-#' @param X Covariate matrix
-#' @param censored Logical, indicates whether to run regression on censored observations (vs uncensored)
-#' @param bin_size Size of quantiles over which to make the stacking bins
-#' @param time_basis How to treat time
-#'
-#' @return An object of class \code{f_w_stack_SuperLearner}
 #' @noRd
 f_w_stack_SuperLearner <- function(time,
                                    event,
@@ -280,7 +249,7 @@ f_w_stack_SuperLearner <- function(time,
   # change t to dummy variable
   if (time_basis == "dummy"){
     stacked$t <- factor(stacked$t)
-    dummy_mat <- model.matrix(~-1 + t, data=stacked)
+    dummy_mat <- stats::model.matrix(~-1 + t, data=stacked)
     risk_set_names <- paste0("risk_set_", seq(1, (length(time_grid))))
     colnames(dummy_mat) <- risk_set_names
     stacked$t <- NULL
@@ -332,11 +301,6 @@ f_w_stack_SuperLearner <- function(time,
 
 #' Prediction function for stacked SuperLearner
 #'
-#' @param fit Fitted regression object
-#' @param newX Values of covariates at which to make a prediction
-#' @param newtimes
-#'
-#' @return Matrix of predictions
 #' @noRd
 predict.f_w_stack_SuperLearner <- function(fit, newX, newtimes){
 
@@ -369,44 +333,11 @@ predict.f_w_stack_SuperLearner <- function(fit, newX, newtimes){
   return(predictions)
 }
 
-
-
 #######################.
 ##### f_w_stack.R #####
 #######################.
 
 #' Wrapper for various f_w stacked algorithms
-#'
-#' @param time \code{n x 1} numeric vector of observed
-#' follow-up times If there is censoring, these are the minimum of the
-#' event and censoring times.
-#' @param event \code{n x 1} numeric vector of status indicators of
-#' whether an event was observed. Defaults to a vector of 1s, i.e. no censoring.
-#' @param entry Study entry variable, if applicable. Defaults to \code{NULL},
-#' indicating that there is no truncation.
-#' @param X \code{n x p} data.frame of observed covariate values
-#' on which to train the estimator.
-#' @param censored Logical, indicates whether to run regression on censored
-#' observations (\code{event == 0}) vs. uncensored (\code{event == 1}).
-#' @param bin_size Size of time bin on which to discretize for estimation
-#' of cumulative probability functions. Can be a number between 0 and 1,
-#' indicating the size of quantile grid (e.g. \code{0.1} estimates
-#' the cumulative probability functions on a grid based on deciles of
-#' observed \code{time}s). If \code{NULL}, creates a grid of
-#' all observed \code{time}s.
-#' @param time_basis How to treat time for training the binary
-#' classifier. Options are \code{"continuous"} and \code{"dummy"}, meaning
-#' an indicator variable is included for each time in the time grid.
-#' @param SL.library Library of algorithms to include in the binary classification
-#' Super Learner. Should have the same structure as the \code{SL.library}
-#' argument to the \code{SuperLearner} function in the \code{SuperLearner} package.
-#' @param V Number of cross validation folds on which to train the Super Learner
-#' classifier. Defaults to 10.
-#' @param obsWeights Optional observation weights. These weights are passed
-#' directly to \code{SuperLearner}, which in turn passes them directly to the
-#' prediction algorithms.
-#'
-#' @return An fitted pooled binary regression for the truncation distribution
 #'
 #' @noRd
 f_w_stack <- function(time,
@@ -435,24 +366,12 @@ f_w_stack <- function(time,
   return(fit)
 }
 
-
-
 ############################.
 ##### f_y_algorithms.R #####
 ############################.
 
 #' Stacked binary regression with SuperLearner, using the cdf
 #'
-#' @param time Observed time
-#' @param event Indicator of event (vs censoring)
-#' @param X Covariate matrix
-#' @param censored Logical, indicates whether to run regression on censored observations (vs uncensored)
-#' @param bin_size Size of quantiles over which to make the stacking bins
-#' @param isotonize Logical, indicates whether or not to isotonize cdf estimates using PAVA
-#' @param time_basis How to treat time
-#' @param SL_control SuperLearner control parameters
-#'
-#' @return An object of class \code{f_y_stack_SuperLearner}
 #' @noRd
 f_y_stack_SuperLearner <- function(time,
                                    event,
@@ -514,7 +433,7 @@ f_y_stack_SuperLearner <- function(time,
   # change t to dummy variable
   if (time_basis == "dummy"){
     stacked$t <- factor(stacked$t)
-    dummy_mat <- model.matrix(~-1 + t, data=stacked)
+    dummy_mat <- stats::model.matrix(~-1 + t, data=stacked)
     risk_set_names <- paste0("risk_set_", seq(1, (length(time_grid))))
     colnames(dummy_mat) <- risk_set_names
     stacked$t <- NULL
@@ -569,11 +488,6 @@ f_y_stack_SuperLearner <- function(time,
 
 #' Prediction function for stacked SuperLearner CDF
 #'
-#' @param fit Fitted regression object
-#' @param newX Values of covariates at which to make a prediction
-#' @param newtimes
-#'
-#' @return Matrix of predictions
 #' @noRd
 predict.f_y_stack_SuperLearner <- function(fit, newX, newtimes){
 
@@ -612,42 +526,11 @@ predict.f_y_stack_SuperLearner <- function(fit, newX, newtimes){
   return(iso.cdf.ests)
 }
 
-
-
 #######################.
 ##### f_y_stack.R #####
 #######################.
 
 #' Wrapper for various f_y stacked algorithms
-#'
-#' @param time \code{n x 1} numeric vector of observed
-#' follow-up times If there is censoring, these are the minimum of the
-#' event and censoring times.
-#' @param event \code{n x 1} numeric vector of status indicators of
-#' whether an event was observed. Defaults to a vector of 1s, i.e. no censoring.
-#' @param X \code{n x p} data.frame of observed covariate values
-#' on which to train the estimator.
-#' @param censored Logical, indicates whether to run regression on censored
-#' observations (\code{event == 0}) vs. uncensored (\code{event == 1}).
-#' @param bin_size Size of time bin on which to discretize for estimation
-#' of cumulative probability functions. Can be a number between 0 and 1,
-#' indicating the size of quantile grid (e.g. \code{0.1} estimates
-#' the cumulative probability functions on a grid based on deciles of
-#' observed \code{time}s). If \code{NULL}, creates a grid of
-#' all observed \code{time}s.
-#' @param time_basis How to treat time for training the binary
-#' classifier. Options are \code{"continuous"} and \code{"dummy"}, meaning
-#' an indicator variable is included for each time in the time grid.
-#' @param SL.library Library of algorithms to include in the binary classification
-#' Super Learner. Should have the same structure as the \code{SL.library}
-#' argument to the \code{SuperLearner} function in the \code{SuperLearner} package.
-#' @param V Number of cross validation folds on which to train the Super Learner
-#' classifier. Defaults to 10.
-#' @param obsWeights Optional observation weights. These weights are passed
-#' directly to \code{SuperLearner}, which in turn passes them directly to the
-#' prediction algorithms.
-#'
-#' @return An fitted pooled binary regression for the CDF
 #'
 #' @noRd
 f_y_stack <- function(time,
@@ -675,29 +558,11 @@ f_y_stack <- function(time,
   return(fit)
 }
 
-
-
 #####################.
 ##### p_delta.R #####
 #####################.
 
 #' Wrapper for various p_delta algorithms
-#'
-#' @param event \code{n x 1} numeric vector of status indicators of
-#' whether an event was observed. Defaults to a vector of 1s, i.e. no censoring.
-#' @param X \code{n x p} data.frame of observed covariate values
-#' on which to train the estimator.
-#' @param SL.library Library of algorithms to include in the binary classification
-#' Super Learner. Should have the same structure as the \code{SL.library}
-#' argument to the \code{SuperLearner} function in the \code{SuperLearner} package.
-#' @param V Number of cross validation folds on which to train the Super Learner
-#' classifier. Defaults to 10.
-#' @param obsWeights Optional observation weights. These weights are passed
-#' directly to \code{SuperLearner}, which in turn passes them directly to the
-#' prediction algorithms.
-#'
-#' @return An fitted binary regression for (complement of)
-#' probability of censoring
 #'
 #' @noRd
 p_delta <- function(event,
@@ -714,19 +579,12 @@ p_delta <- function(event,
   return(fit)
 }
 
-
-
 ################################.
 ##### p_delta_algorithms.R #####
 ################################.
 
 #' Binary SuperLearner
 #'
-#' @param event Indicator of event (vs censoring)
-#' @param X Covariate matrix
-#' @param SL_control Super Learner control parameters
-#'
-#' @return An object of class \code{p_delta_SuperLearner}
 #' @noRd
 p_delta_SuperLearner <- function(event,
                                  X,
@@ -764,10 +622,6 @@ p_delta_SuperLearner <- function(event,
 
 #' Prediction function for p delta SuperLearner
 #'
-#' @param fit Fitted regression object
-#' @param newX Values of covariates at which to make a prediction
-#'
-#' @return Matrix of predictions
 #' @noRd
 predict.p_delta_SuperLearner <- function(fit,
                                          newX){
@@ -775,8 +629,6 @@ predict.p_delta_SuperLearner <- function(fit,
   preds <- stats::predict(fit$reg.object, newdata = newX)$pred
   return(preds)
 }
-
-
 
 ####################.
 ##### stackG.R #####
@@ -988,9 +840,9 @@ stackG <- function(time,
   return(res)
 }
 
-
+#' Prediction method for stackG
+#'
 #' @noRd
-#' @export
 predict.stackG <- function(object,
                            newX,
                            newtimes,
@@ -1092,8 +944,6 @@ predict.stackG <- function(object,
 
 }
 
-
-
 ####################.
 ##### stackL.R #####
 ####################.
@@ -1170,7 +1020,7 @@ stackL <- function(time,
   # change t to dummy variable
   if (time_basis == "dummy"){
     stacked$t <- factor(stacked$t)
-    dummy_mat <- model.matrix(~-1 + t, data=stacked)
+    dummy_mat <- stats::model.matrix(~-1 + t, data=stacked)
     risk_set_names <- paste0("risk_set_", seq(1, (length(trunc_time_grid))))
     colnames(dummy_mat) <- risk_set_names
     stacked$t <- NULL
@@ -1259,8 +1109,9 @@ stackL <- function(time,
   return(res)
 }
 
+#' Prediction method for stackL
+#'
 #' @noRd
-#' @export
 predict.stackL <- function(object,
                            newX,
                            newtimes){
@@ -1315,15 +1166,12 @@ predict.stackL <- function(object,
   return(list(S_T_preds = surv_preds))
 }
 
-
-
 #########################.
 ##### stack_utils.R #####
 #########################.
 
 #' Stack a dataset, using the hazard
 #'
-#' @return A stacked dataset
 #' @noRd
 stack_haz <- function(time, event, X, time_grid, entry, time_basis){
   trunc_time_grid <- time_grid#[-length(time_grid)]
@@ -1371,7 +1219,6 @@ stack_haz <- function(time, event, X, time_grid, entry, time_basis){
 
 #' Stack a dataset, using the entry time conditional on event time
 #'
-#' @return A stacked dataset
 #' @noRd
 stack_entry <- function(time, entry, X, time_grid, time_basis){
   trunc_time_grid <- time_grid[-length(time_grid)] # do I need to truncate if treating time as continuous? look at this later
@@ -1420,7 +1267,6 @@ stack_entry <- function(time, entry, X, time_grid, time_basis){
 
 #' Stack a dataset for CDF estimation
 #'
-#' @return A stacked dataset
 #' @noRd
 stack_cdf <- function(time, X, time_grid, time_basis){
 

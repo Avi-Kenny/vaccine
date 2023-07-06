@@ -67,12 +67,24 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
     # Excluding "survSL.rfsrc" for now. survSL.pchSL gives errors.
     methods <- c("survSL.coxph", "survSL.expreg", "survSL.km",
                  "survSL.loglogreg", "survSL.pchreg", "survSL.weibreg")
-    # methods <- c("survSL.km", "survSL.pchreg", "survSL.rfsrc") # !!!!!
 
     newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
     new.times <- unique(vals$t)
 
-    srv <- survSuperLearner::survSuperLearner(
+    # Temporary (until survSuperLearner is on CRAN)
+    survSuperLearner <- function() {}
+    rm(survSuperLearner)
+    tryCatch(
+      expr = { do.call("library", list("survSuperLearner22")) },
+      error = function(e) {
+        message(paste0(
+          "To use surv_type='survSL', you must install the `survSuperLearner` ",
+          "package from github, using:\n\ndevtools::install_github(repo='tedwe",
+          "stling/survSuperLearner')"))
+      }
+    )
+
+    srv <- survSuperLearner(
       time = dat$y,
       event = dat$delta,
       X = cbind(dat$x, s=dat$s),
@@ -171,14 +183,17 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       )
     )
     if (type=="survML-G") {
-      fit <- do.call(survML::stackG, survML_args)
+      # fit <- do.call(survML::stackG, survML_args)
+      fit <- do.call(stackG, survML_args)
       srv_pred <- fit$S_T_preds
       cens_pred <- fit$S_C_preds
     } else if (type=="survML-L") {
       survML_args2 <- survML_args
       survML_args2$event <- round(1 - survML_args2$event)
-      fit_s <- do.call(survML::stackL, survML_args)
-      fit_c <- do.call(survML::stackL, survML_args2)
+      # fit_s <- do.call(survML::stackL, survML_args)
+      fit_s <- do.call(stackL, survML_args)
+      # fit_c <- do.call(survML::stackL, survML_args2)
+      fit_c <- do.call(stackL, survML_args2)
       srv_pred <- fit_s$S_T_preds
       cens_pred <- fit_c$S_T_preds
     }
