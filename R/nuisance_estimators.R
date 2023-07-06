@@ -75,9 +75,9 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
     survSuperLearner <- function() {}
     rm(survSuperLearner)
     tryCatch(
-      expr = { do.call("library", list("survSuperLearner22")) },
+      expr = { do.call("library", list("survSuperLearner")) },
       error = function(e) {
-        message(paste0(
+        stop(paste0(
           "To use surv_type='survSL', you must install the `survSuperLearner` ",
           "package from github, using:\n\ndevtools::install_github(repo='tedwe",
           "stling/survSuperLearner')"))
