@@ -11,12 +11,13 @@
 #'     and plot a kernel estimate of the marker density. \code{s} gives a vector
 #'     of marker values and \code{weights} gives the corresponding
 #'     inverse-probability-of-sampling weights.
+#' @return A plot of CR/CVE estimates
 #' @examples
-#' \dontrun{
 #' data(hvtn505)
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
+#' \donttest{
 #' ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
 #' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 #' plot_ce(ests_cox, ests_np)

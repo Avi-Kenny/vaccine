@@ -514,10 +514,12 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       }
 
       # Run optimizer
+      if(.Platform$OS.type=="unix") { sink("/dev/null") } else { sink("NUL") }
       opt <- Rsolnp::solnp(
         pars = rep(0.001,k+length(dat$x)-1),
         fun = wlik
       )
+      sink()
       if (opt$convergence!=0) {
         warning("f_sIx_n: Rsolnp::solnp() did not converge")
       }
@@ -910,8 +912,7 @@ construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n,
 
     # Fit SuperLearner regression
     SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.loess",
-                    "SL.nnet", "SL.ksvm", "SL.caret", "SL.rpartPrune",
-                    "SL.svm")
+                    "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
 
     model_sl <- SuperLearner::SuperLearner(
       Y = dat_df$po,
@@ -963,7 +964,7 @@ construct_g_zn <- function(dat_orig, type="Super Learner", f_sIx_n,
   # Set library
   if (type=="Super Learner") {
     SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.nnet",
-                    "SL.svm", "SL.glmnet")
+                    "SL.glmnet")
   } else if (type=="logistic") {
     SL.library <- c("SL.glm")
   }

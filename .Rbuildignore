@@ -2,3 +2,5 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^docs$
+^R/scratch\.R$
+^cran-comments\.md$

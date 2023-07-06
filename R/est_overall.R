@@ -9,15 +9,13 @@
 #' @param risk Boolean. If TRUE, the controlled risk (CR) curve is computed.
 #' @param ve Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
 #'     computed.
-#' @return A data.frame containing estimates
+#' @return A dataframe containing estimates
 #' @examples
-#' \dontrun{
 #' data(hvtn505)
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' est_overall(dat=dat, t_0=578, method="KM")
-#' }
 #' @export
 est_overall <- function(dat, t_0, method="Cox", risk=T, ve=T) { # ci_type="transformed"
 
