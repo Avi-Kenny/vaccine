@@ -102,10 +102,10 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       cat("------------------------------\n\n")
       cat("event.coef\n")
       cat("----------\n")
-      print(sort(srv$event.coef, decreasing=T))
+      cat(sort(srv$event.coef, decreasing=T))
       cat("\ncens.coef\n")
       cat("---------\n")
-      print(sort(srv$cens.coef, decreasing=T))
+      cat(sort(srv$cens.coef, decreasing=T))
       cat("\n------------------------------\n")
     }
 
@@ -599,7 +599,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       }
 
       k <- best$k
-      print(paste("Number of bins selected (f_sIx_n):", k)) # !!!!! make this a message, configurable with verbose option
+      message(paste("Number of bins selected (f_sIx_n):", k)) # !!!!! make this configurable with verbose option
 
     }
 
@@ -660,7 +660,7 @@ construct_Phi_n <- function (dat_orig, dat, type="linear (mid)") {
 
   n_orig <- attr(dat_orig, "n_orig")
 
-  fn <- memoise::memoise(function(x) {
+  fn <- memoise::memoise(function(x) { # !!!!! Switch to memoise2
     (1/n_orig) * sum(dat$weights*In(dat$s<=x))
   })
 

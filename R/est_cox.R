@@ -91,7 +91,6 @@ est_cox <- function(
       s_to_spl <- function(s) {
         spl <- as.numeric(splines::ns(
           x = s,
-          # df = spline_df, # !!!!! Confirm that this is ignored
           knots = spl_knots,
           intercept = F,
           Boundary.knots = spl_bnd_knots
@@ -104,7 +103,6 @@ est_cox <- function(
       s_to_spl <- function(s) {
         as.numeric(splines::ns(
           x = s,
-          # df = spline_df, # !!!!! Confirm that this is ignored
           knots = spl_knots,
           intercept = F,
           Boundary.knots = spl_bnd_knots
@@ -166,14 +164,14 @@ est_cox <- function(
   if (any(is.na(coeffs))) {
 
     if (any(is.na(coeffs[which(substr(names(coeffs),1,1)=="x")]))) {
-      print(summary(model)) # !!!!!
-      stop(paste0("Some covariate coefficients were NA. Try removing these coe",
-                  "fficients."))
+      na_coeffs <- names(coeffs)[which(is.na(coeffs))]
+      stop(paste0("The following covariate coefficients were NA.: ",
+                  paste(na_coeffs, collapse=","),
+                  " Try removing these coefficients and rerunning."))
       # !!!!! Automatically omit from the model, as is done for spline coeffs
     }
 
     if (any(is.na(coeffs[which(substr(names(coeffs),1,1)=="s")]))) {
-      print(summary(model)) # !!!!!
       warning(paste0("Some spline coefficients were NA; these coefficients hav",
                      "e been automatically omitted from the model"))
       na_inds <- as.numeric(which(is.na(coeffs)))

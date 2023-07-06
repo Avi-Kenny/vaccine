@@ -80,9 +80,10 @@ est_overall <- function(dat, t_0, method="Cox", risk=T, ve=T) { # ci_type="trans
       beta_n <- as.numeric(coeffs)
 
       if (any(is.na(coeffs))) {
-        print(summary(model))
-        stop(paste0("Some covariate coefficients were NA. Try removing these coe",
-                    "fficients."))
+        na_coeffs <- names(coeffs)[which(is.na(coeffs))]
+        stop(paste0("The following covariate coefficients were NA.: ",
+                    paste(na_coeffs, collapse=","),
+                    " Try removing these coefficients and rerunning."))
         # !!!!! Automatically omit from the model, as is done for spline coeffs
       }
 

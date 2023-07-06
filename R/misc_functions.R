@@ -26,7 +26,7 @@ chk <- function(num, msg="") {
   } else {
     str <- paste0("Check ", num, " (", msg, "): ", Sys.time())
   }
-  print(str)
+  message(str)
 }
 
 
