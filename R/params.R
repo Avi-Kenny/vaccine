@@ -19,7 +19,7 @@
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
-#' \dontrun{
+#' \donttest{
 #' ests_cox <- est_ce(
 #'   dat = dat,
 #'   type = "Cox",
@@ -28,7 +28,7 @@
 #' )
 #' }
 #' @export
-params_ce_cox <- function(spline_df=NA, spline_knots=NA, edge_ind=F) {
+params_ce_cox <- function(spline_df=NA, spline_knots=NA, edge_ind=FALSE) {
 
   return(list(spline_df=spline_df, spline_knots=spline_knots,
               edge_ind=edge_ind))
@@ -85,7 +85,7 @@ params_ce_cox <- function(spline_df=NA, spline_knots=NA, edge_ind=F) {
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
-#' \dontrun{
+#' \donttest{
 #' ests_np <- est_ce(
 #'   dat = dat,
 #'   type = "NP",
@@ -96,7 +96,7 @@ params_ce_cox <- function(spline_df=NA, spline_knots=NA, edge_ind=F) {
 #' @export
 params_ce_np <- function(
     dir = "decr",
-    edge_corr = F,
+    edge_corr = FALSE,
     grid_size = list(y=101,s=101,x=5),
     surv_type = "survML-G",
     density_type = "binning",

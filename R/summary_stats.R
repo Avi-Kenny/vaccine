@@ -11,7 +11,7 @@
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' summary_stats(dat=dat)
 #' @export
-summary_stats <- function(dat, quietly=F) {
+summary_stats <- function(dat, quietly=FALSE) {
 
   if (!methods::is(dat,"vaccine_dat")) {
     stop(paste0("`dat` must be an object of class 'vaccine_dat' returned by lo",

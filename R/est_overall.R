@@ -17,7 +17,7 @@
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' est_overall(dat=dat, t_0=578, method="KM")
 #' @export
-est_overall <- function(dat, t_0, method="Cox", risk=T, ve=T) { # ci_type="transformed"
+est_overall <- function(dat, t_0, method="Cox", risk=TRUE, ve=TRUE) { # ci_type="transformed"
 
   if (!(method %in% c("Cox", "KM")) || length(method)>1) {
     stop("`method` must equal either 'Cox' or 'KM'.")

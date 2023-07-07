@@ -45,22 +45,18 @@
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
-#' \dontrun{
+#' \donttest{
 #' ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
 #' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 #' }
-#' @references Gilbert P., Fong Y., Kenny A., and Carone, M. (2022). A
-#'     Controlled Effects Approach to Assessing Immune Correlates of Protection.
-#' @references Kenny, A., Gilbert P., and Carone, M. (2023). Nonparametric
-#'     inference for the controlled risk and controlled vaccine efficacy curves.
-#' @references Kenny, A., Gilbert P., and Carone, M. (2023). Inference for
-#'     controlled risk and controlled vaccine efficacy curves using a
-#'     marginalized Cox proportional hazards model
+#' @references Gilbert P, Fong Y, Kenny A, and Carone, M (2022). A Controlled
+#'     Effects Approach to Assessing Immune Correlates of Protection.
+#'     <doi:10.1093/biostatistics/kxac24>
 #' @export
 est_ce <- function(
-    dat, type="Cox", t_0, cr=T, cve=F,
-    s_out=seq(from=min(dat$v$s, na.rm=T), to=max(dat$v$s, na.rm=T), l=101),
-    ci_type="transformed", placebo_risk_method="KM", return_extras=F,
+    dat, type="Cox", t_0, cr=TRUE, cve=FALSE,
+    s_out=seq(from=min(dat$v$s,na.rm=TRUE), to=max(dat$v$s,na.rm=TRUE), l=101),
+    ci_type="transformed", placebo_risk_method="KM", return_extras=FALSE,
     params_cox=params_ce_cox(), params_np=params_ce_np()
 ) {
 

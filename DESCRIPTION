@@ -7,7 +7,8 @@ Authors@R: person("Avi", "Kenny", email = "avi.kenny@gmail.com", role = c("aut",
 Description: Various semiparametric and nonparametric statistical tools for
     immune correlates analysis of vaccine clinical trial data. This includes
     calculation of summary statistics and estimation of risk, vaccine efficacy,
-    controlled risk, and controlled vaccine efficacy.
+    controlled risk, and controlled vaccine efficacy. See Gilbert P, Fong Y,
+    Kenny A, and Carone, M (2022) <doi:10.1093/biostatistics/kxac24>.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
