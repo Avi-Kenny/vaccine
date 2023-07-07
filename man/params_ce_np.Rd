@@ -7,7 +7,7 @@
 \usage{
 params_ce_np(
   dir = "decr",
-  edge_corr = F,
+  edge_corr = FALSE,
   grid_size = list(y = 101, s = 101, x = 5),
   surv_type = "survML-G",
   density_type = "binning",

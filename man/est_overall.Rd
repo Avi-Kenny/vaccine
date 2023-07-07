@@ -4,7 +4,7 @@
 \alias{est_overall}
 \title{Estimate overall risk and vaccine efficacy}
 \usage{
-est_overall(dat, t_0, method = "Cox", risk = T, ve = T)
+est_overall(dat, t_0, method = "Cox", risk = TRUE, ve = TRUE)
 }
 \arguments{
 \item{dat}{A data object returned by load_data}

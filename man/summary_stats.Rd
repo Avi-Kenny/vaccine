@@ -4,7 +4,7 @@
 \alias{summary_stats}
 \title{Calculate summary statistics}
 \usage{
-summary_stats(dat, quietly = F)
+summary_stats(dat, quietly = FALSE)
 }
 \arguments{
 \item{dat}{A data object returned by `load_data`.}

@@ -8,12 +8,13 @@ est_ce(
   dat,
   type = "Cox",
   t_0,
-  cr = T,
-  cve = F,
-  s_out = seq(from = min(dat$v$s, na.rm = T), to = max(dat$v$s, na.rm = T), l = 101),
+  cr = TRUE,
+  cve = FALSE,
+  s_out = seq(from = min(dat$v$s, na.rm = TRUE), to = max(dat$v$s, na.rm = TRUE), l =
+    101),
   ci_type = "transformed",
   placebo_risk_method = "KM",
-  return_extras = F,
+  return_extras = FALSE,
   params_cox = params_ce_cox(),
   params_np = params_ce_np()
 )
@@ -85,13 +86,7 @@ ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 }
 }
 \references{
-Gilbert P., Fong Y., Kenny A., and Carone, M. (2022). A
-    Controlled Effects Approach to Assessing Immune Correlates of Protection.
-
-Kenny, A., Gilbert P., and Carone, M. (2023). Nonparametric
-    inference for the controlled risk and controlled vaccine efficacy curves.
-
-Kenny, A., Gilbert P., and Carone, M. (2023). Inference for
-    controlled risk and controlled vaccine efficacy curves using a
-    marginalized Cox proportional hazards model
+Gilbert P, Fong Y, Kenny A, and Carone, M (2022). A Controlled
+    Effects Approach to Assessing Immune Correlates of Protection.
+    <doi:10.1093/biostatistics/kxac24>
 }

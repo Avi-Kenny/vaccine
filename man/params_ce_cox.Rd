@@ -4,7 +4,7 @@
 \alias{params_ce_cox}
 \title{Set parameters controlling Cox model estimation of controlled effect curves}
 \usage{
-params_ce_cox(spline_df = NA, spline_knots = NA, edge_ind = F)
+params_ce_cox(spline_df = NA, spline_knots = NA, edge_ind = FALSE)
 }
 \arguments{
 \item{spline_df}{An integer; if the marker is modeled flexibly within the Cox
