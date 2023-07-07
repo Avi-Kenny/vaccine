@@ -10,5 +10,8 @@ This is a resubmission. The following changes were made:
 **\dontrun{} should only be used if the example really cannot be executed...**
 - We have replaced all instances of \dontrun{} with \donttest, as these examples take longer than five seconds to execute.
 
+**Other**
+- Minor bug fixes were made in the examples for the `diagnostics` and `params_ce_np` functions.
+
 ## R CMD check results
 0 errors | 0 warnings | 0 notes

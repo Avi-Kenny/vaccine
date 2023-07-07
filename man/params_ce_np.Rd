@@ -77,7 +77,7 @@ ests_np <- est_ce(
   dat = dat,
   type = "NP",
   t_0 = 578,
-  params_np = params_ce_np(edge_corr=T, surv_type="survML-L")
+  params_np = params_ce_np(edge_corr=TRUE, surv_type="survML-L")
 )
 }
 }

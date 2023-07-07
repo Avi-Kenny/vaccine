@@ -90,7 +90,7 @@ params_ce_cox <- function(spline_df=NA, spline_knots=NA, edge_ind=FALSE) {
 #'   dat = dat,
 #'   type = "NP",
 #'   t_0 = 578,
-#'   params_np = params_ce_np(edge_corr=T, surv_type="survML-L")
+#'   params_np = params_ce_np(edge_corr=TRUE, surv_type="survML-L")
 #' )
 #' }
 #' @export
