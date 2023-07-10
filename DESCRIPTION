@@ -29,6 +29,7 @@ Imports:
     stats (>= 4.2.2),
     SuperLearner (>= 2.0.28),
     survival (>= 3.4.0),
+    survML (>= 0.0.0.9000),
     truncnorm (>= 1.0.8)
 Suggests: 
     knitr,

@@ -183,17 +183,14 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       )
     )
     if (type=="survML-G") {
-      # fit <- do.call(survML::stackG, survML_args)
-      fit <- do.call(stackG, survML_args)
+      fit <- do.call(survML::stackG, survML_args)
       srv_pred <- fit$S_T_preds
       cens_pred <- fit$S_C_preds
     } else if (type=="survML-L") {
       survML_args2 <- survML_args
       survML_args2$event <- round(1 - survML_args2$event)
-      # fit_s <- do.call(survML::stackL, survML_args)
-      fit_s <- do.call(stackL, survML_args)
-      # fit_c <- do.call(survML::stackL, survML_args2)
-      fit_c <- do.call(stackL, survML_args2)
+      fit_s <- do.call(survML::stackL, survML_args)
+      fit_c <- do.call(survML::stackL, survML_args2)
       srv_pred <- fit_s$S_T_preds
       cens_pred <- fit_c$S_T_preds
     }
