@@ -134,6 +134,11 @@ est_np <- function(
   gcm_x_vals <- gcm_x_vals[indices_to_keep]
   gcm_y_vals <- dir_factor *
     sapply(sort(unique(dat$s))[indices_to_keep], Gamma_os_n)
+
+  if (any(is.nan(gcm_y_vals)) || any(is.na(gcm_y_vals))) {
+    stop("Gamma_os_n produced NAN or NA values.")
+  }
+
   if (!any(gcm_x_vals==0)) {
     gcm_x_vals <- c(0, gcm_x_vals)
     gcm_y_vals <- c(0, gcm_y_vals)

@@ -13,7 +13,13 @@ construct_Gamma_os_n <- function(dat, dat_orig, omega_n, g_n, q_n, r_tilde_Mn) {
     s <- r[["s"]]
     y <- r[["y"]]
     delta <- r[["delta"]]
-    return((omega_n(x,s,y,delta)/g_n(s,x))+r_tilde_Mn(s))
+    g_n_val <- g_n(s,x)
+    if (is.nan(g_n_val)) {
+      stop(paste0("One or more g_n values were NAN; density might be zero. Try ",
+                  "using a density estimator that guarantees positive density ",
+                  "estimates."))
+    }
+    return((omega_n(x,s,y,delta)/g_n_val)+r_tilde_Mn(s))
   }))
   piece_2 <- (1-dat_orig$weights)
 
