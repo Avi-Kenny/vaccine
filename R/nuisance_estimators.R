@@ -571,16 +571,8 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
 
         sum_log_lik <- 0
         for (i in c(1:n_folds)) {
-          dat_train <- list(
-            s = dat$s[-which(folds==i)],
-            weights = dat$weights[-which(folds==i)],
-            x = dat$x[-which(folds==i),]
-          )
-          dat_test <- list(
-            s = dat$s[which(folds==i)],
-            weights = dat$weights[which(folds==i)],
-            x = dat$x[which(folds==i),]
-          )
+          dat_train <- ss(dat, which(folds!=i))
+          dat_test <- ss(dat, which(folds==i))
           dens <- create_dens(k, dat_train)
           sum_log_lik <- sum_log_lik +
             sum(log(sapply(c(1:length(dat_test$s)), function(j) {
