@@ -183,16 +183,20 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       )
     )
     if (type=="survML-G") {
+
       fit <- do.call(survML::stackG, survML_args)
       srv_pred <- fit$S_T_preds
       cens_pred <- fit$S_C_preds
+
     } else if (type=="survML-L") {
+
       survML_args2 <- survML_args
       survML_args2$event <- round(1 - survML_args2$event)
       fit_s <- do.call(survML::stackL, survML_args)
       fit_c <- do.call(survML::stackL, survML_args2)
       srv_pred <- fit_s$S_T_preds
       cens_pred <- fit_c$S_T_preds
+
     }
 
     if (print_coeffs) {
@@ -563,7 +567,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       # Prep
       n_folds <- 5
       folds <- sample(cut(c(1:length(dat$s)), breaks=n_folds, labels=FALSE))
-      ks <- c(5,10,15,20) # !!!!! Make this an argument
+      ks <- c(4,8,12,16) # !!!!! Make this an argument
       best <- list(k=999, max_log_lik=999)
 
       # Cross-validation
