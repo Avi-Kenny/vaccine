@@ -444,65 +444,75 @@ est_cox <- function(
   }))
 
   # Compute variance estimate
-  dat_v_df <- as_df(dat$v, strata=T)
-  res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
+  if (ci_type!="none") {
 
-    # Precalculate pieces dependent on s
-    s_spl <- s_to_spl(s)
-    K_n <- (1/N) * Reduce("+", apply2(dat_v_df, 1, function(r) {
-      x_i <- as.numeric(r[1:dim_x])
-      Q <- Q_n(c(x_i,s_spl))
-      explin <- exp(sum(c(x_i,s_spl)*beta_n))
-      K_n1 <- Q
-      K_n2 <- Q * explin
-      K_n3 <- Q * explin * c(x_i,s_spl)
-      return(c(K_n1,K_n2,K_n3))
-    }, simplify=F))
-    K_n1 <- K_n[1]
-    K_n2 <- K_n[2]
-    K_n3 <- K_n[3:length(K_n)]
+    dat_v_df <- as_df(dat$v, strata=T)
+    res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
 
-    (1/N^2) * sum((apply(dat_v_df, 1, function(r) {
+      # Precalculate pieces dependent on s
+      s_spl <- s_to_spl(s)
+      K_n <- (1/N) * Reduce("+", apply2(dat_v_df, 1, function(r) {
+        x_i <- as.numeric(r[1:dim_x])
+        Q <- Q_n(c(x_i,s_spl))
+        explin <- exp(sum(c(x_i,s_spl)*beta_n))
+        K_n1 <- Q
+        K_n2 <- Q * explin
+        K_n3 <- Q * explin * c(x_i,s_spl)
+        return(c(K_n1,K_n2,K_n3))
+      }, simplify=F))
+      K_n1 <- K_n[1]
+      K_n2 <- K_n[2]
+      K_n3 <- K_n[3:length(K_n)]
 
-      x_i <- as.numeric(r[1:dim_x])
-      if (!is.na(r[["s"]])) {
-        s_i <- s_to_spl(r[["s"]])
-      } else {
-        s_i <- NA
-      }
-      z_i <- r[["z"]]
-      d_i <- r[["delta"]]
-      y_i <- r[["y"]]
-      wt_i <- r[["weights"]]
-      st_i <- r[["strata"]]
+      (1/N^2) * sum((apply(dat_v_df, 1, function(r) {
 
-      pc_1 <- Q_n(c(x_i,s_spl))
-      pc_2 <- Lambda_n_t_0 * sum(
-        K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
-      )
-      pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
-      pc_4 <- K_n1
+        x_i <- as.numeric(r[1:dim_x])
+        if (!is.na(r[["s"]])) {
+          s_i <- s_to_spl(r[["s"]])
+        } else {
+          s_i <- NA
+        }
+        z_i <- r[["z"]]
+        d_i <- r[["delta"]]
+        y_i <- r[["y"]]
+        wt_i <- r[["weights"]]
+        st_i <- r[["strata"]]
 
-      return((pc_1-pc_2-pc_3-pc_4)^2)
+        pc_1 <- Q_n(c(x_i,s_spl))
+        pc_2 <- Lambda_n_t_0 * sum(
+          K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+        )
+        pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+        pc_4 <- K_n1
 
-    })))
+        return((pc_1-pc_2-pc_3-pc_4)^2)
 
-  }))
+      })))
+
+    }))
+
+  }
 
   # Extract estimates and SEs
   ests_cr <- 1-res_cox$est_marg
-  ses_cr <- sqrt(res_cox$var_est_marg)
 
   # Generate confidence limits
   if (ci_type=="none") {
-    ci_lo_cr <- rep(NA, length(ests_cr))
-    ci_up_cr <- rep(NA, length(ests_cr))
-  } else if (ci_type=="truncated") {
-    ci_lo_cr <- pmin(pmax(ests_cr - 1.96*ses_cr, 0), 1)
-    ci_up_cr <- pmin(pmax(ests_cr + 1.96*ses_cr, 0), 1)
-  } else if (ci_type=="transformed") {
-    ci_lo_cr <- expit(logit(ests_cr) - 1.96*deriv_logit(ests_cr)*ses_cr)
-    ci_up_cr <- expit(logit(ests_cr) + 1.96*deriv_logit(ests_cr)*ses_cr)
+
+    ci_lo_cr <- ci_up_cr <- ses_cr <- rep(NA, length(ests_cr))
+
+  } else {
+
+    ses_cr <- sqrt(res_cox$var_est_marg)
+
+    if (ci_type=="truncated") {
+      ci_lo_cr <- pmin(pmax(ests_cr - 1.96*ses_cr, 0), 1)
+      ci_up_cr <- pmin(pmax(ests_cr + 1.96*ses_cr, 0), 1)
+    } else if (ci_type=="transformed") {
+      ci_lo_cr <- expit(logit(ests_cr) - 1.96*deriv_logit(ests_cr)*ses_cr)
+      ci_up_cr <- expit(logit(ests_cr) + 1.96*deriv_logit(ests_cr)*ses_cr)
+    }
+
   }
 
   # Create results object
@@ -522,9 +532,18 @@ est_cox <- function(
     risk_p <- ov[ov$group=="placebo","est"]
     se_p <- ov[ov$group=="placebo","se"]
     res$cve$est <- 1 - res$cr$est/risk_p
-    res$cve$se <- NA
-    res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p # !!!!! Add placebo group correction
-    res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p # !!!!! Add placebo group correction
+
+    if (ci_type=="none") {
+      na_vec <- rep(NA, length(res$cve$s_out))
+      res$cve$se <- na_vec
+      res$cve$ci_lower <- na_vec
+      res$cve$ci_upper <- na_vec
+    } else {
+      res$cve$se <- NA # !!!!! TO DO
+      res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p # !!!!! Add placebo group correction
+      res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p # !!!!! Add placebo group correction
+    }
+
   }
 
   # Return extras

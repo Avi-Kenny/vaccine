@@ -174,12 +174,14 @@ est_np <- function(
   r_Mn_Gr <- function(u) { min(max(dir_factor*dGCM(Phi_n(u)), 0), 1) }
 
   # Compute variance component nuisance estimators
-  f_sIx_z1_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins,
-                                  z1=T)
-  f_s_z1_n <- construct_f_s_n(dat_orig, f_sIx_z1_n)
-  gamma_n <- construct_gamma_n(dat_orig, dat, type="Super Learner", omega_n,
-                               grid)
-  g_zn <- construct_g_zn(dat_orig, type="Super Learner", f_sIx_n, f_sIx_z1_n)
+  if (p$ci_type!="none") {
+    f_sIx_z1_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins,
+                                    z1=T)
+    f_s_z1_n <- construct_f_s_n(dat_orig, f_sIx_z1_n)
+    gamma_n <- construct_gamma_n(dat_orig, dat, type="Super Learner", omega_n,
+                                 grid)
+    g_zn <- construct_g_zn(dat_orig, type="Super Learner", f_sIx_n, f_sIx_z1_n)
+  }
 
   # Create edge-corrected r_Mn estimator
   if (p$edge_corr) {
@@ -201,10 +203,6 @@ est_np <- function(
   # Generate estimates for each point
   ests_cr <- sapply(s_out, r_Mn)
 
-  # Construct variance scale factor
-  deriv_r_Mn <- construct_deriv_r_Mn(type=p$deriv_type, r_Mn, dir, grid)
-  tau_n <- construct_tau_n(deriv_r_Mn, gamma_n, f_sIx_n, g_zn, dat_orig)
-
   # Generate confidence limits
   if (p$ci_type=="none") {
 
@@ -212,6 +210,10 @@ est_np <- function(
     ci_up_cr <- rep(NA, length(ests_cr))
 
   } else {
+
+    # Construct variance scale factor function
+    deriv_r_Mn <- construct_deriv_r_Mn(type=p$deriv_type, r_Mn, dir, grid)
+    tau_n <- construct_tau_n(deriv_r_Mn, gamma_n, f_sIx_n, g_zn, dat_orig)
 
     # Generate variance scale factor for each point
     tau_ns <- sapply(s_out, tau_n)
@@ -222,6 +224,9 @@ est_np <- function(
     if (p$ci_type=="regular") {
       ci_lo_cr <- ests_cr - (qnt*tau_ns)/(n_orig^(1/3))
       ci_up_cr <- ests_cr + (qnt*tau_ns)/(n_orig^(1/3))
+    } else if (p$ci_type=="truncated") {
+      ci_lo_cr <- pmax(ests_cr - (qnt*tau_ns)/(n_orig^(1/3)), 0)
+      ci_up_cr <- pmin(ests_cr + (qnt*tau_ns)/(n_orig^(1/3)), 1)
     } else if (p$ci_type=="transformed") {
       ci_lo_cr <- expit(
         logit(ests_cr) - (qnt*tau_ns*deriv_logit(ests_cr))/(n_orig^(1/3))
@@ -232,6 +237,7 @@ est_np <- function(
     }
 
     # CI edge correction
+    # !!!!! Need to do transformation here too
     if (p$edge_corr) {
       ci_lo_cr2 <- ests_cr[1] - 1.96*sqrt(sigma2_edge_est/n_orig)
       ci_up_cr2 <- ests_cr[1] + 1.96*sqrt(sigma2_edge_est/n_orig)
@@ -255,7 +261,7 @@ est_np <- function(
   }
 
   # Monotone CI correction
-  if (p$mono_cis) {
+  if (p$mono_cis && p$ci_type!="none") {
     val <- ci_lo_cr[1]
     for (i in c(2:length(ci_lo_cr))) {
       if (dir=="decr") {
@@ -298,7 +304,7 @@ est_np <- function(
   # Compute CVE
   # !!!!! TO DO: perform finite sample variance correction for CVE
   if (cve) {
-    res$cve <- list(s=s_out)
+    res$cve <- list(s=s_out_orig)
     if (attr(dat_copy, "groups")!="both") {
       stop("Placebo group data not detected.")
     }
@@ -308,6 +314,15 @@ est_np <- function(
     res$cve$est <- 1 - res$cr$est/risk_p
     res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p
     res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p
+
+    # # !!!!! New
+    # # CONTINUE asdf
+    # var_z <- 0.52^2 # Get exact variance of Chernoff
+    # res$cve$var <- ( res$cr$est^2/(n_orig*risk_p^4) ) * se_p^2 -
+    #   (tau_ns/(risk_p*n_orig^(1/3)))^2 * var_z
+    # res$cve$ci_lower <- 999
+    # res$cve$ci_upper <- 999
+
   }
 
   if (return_extras) {
