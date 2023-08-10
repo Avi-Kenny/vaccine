@@ -550,23 +550,23 @@ est_cox <- function(
 
       res$cve$se <- sqrt(ses_cr^2/risk_p^2 + (res$cr$est^2*se_p^2)/risk_p^4)
       if (ci_type=="regular") {
-        res$cve$ci_lo_cr <- res$cve$est - 1.96*res$cve$se
-        res$cve$ci_up_cr <- res$cve$est + 1.96*res$cve$se
+        res$cve$ci_lower <- res$cve$est - 1.96*res$cve$se
+        res$cve$ci_upper <- res$cve$est + 1.96*res$cve$se
       } else if (ci_type=="truncated") {
-        res$cve$ci_lo_cr <- pmin(res$cve$est - 1.96*res$cve$se, 1)
-        res$cve$ci_up_cr <- pmin(res$cve$est + 1.96*res$cve$se, 1)
+        res$cve$ci_lower <- pmin(res$cve$est - 1.96*res$cve$se, 1)
+        res$cve$ci_upper <- pmin(res$cve$est + 1.96*res$cve$se, 1)
       } else if (ci_type=="transformed") {
-        res$cve$ci_lo_cr <- 1 - exp(
+        res$cve$ci_lower <- 1 - exp(
           log(1-res$cve$est) + 1.96*(1/1-res$cve$est)*res$cve$se
         )
-        res$cve$ci_up_cr <- 1 - exp(
+        res$cve$ci_upper <- 1 - exp(
           log(1-res$cve$est) - 1.96*(1/1-res$cve$est)*res$cve$se
         )
       } else if (ci_type=="transformed 2") {
-        res$cve$ci_lo_cr <- 1 - exp2(
+        res$cve$ci_lower <- 1 - exp2(
           log2(1-res$cve$est) + 1.96*deriv_log2(1-res$cve$est)*res$cve$se
         )
-        res$cve$ci_up_cr <- 1 - exp2(
+        res$cve$ci_upper <- 1 - exp2(
           log2(1-res$cve$est) - 1.96*deriv_log2(1-res$cve$est)*res$cve$se
         )
       }
