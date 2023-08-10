@@ -254,17 +254,17 @@ est_np <- function(
         ci_lo_cr2 <- max(ests_cr[1] - 1.96*se_edge_est, 0)
         ci_up_cr2 <- min(ests_cr[1] - 1.96*se_edge_est, 1)
       } else if (p$ci_type=="transformed") {
-        ci_lo_cr <- expit(
+        ci_lo_cr2 <- expit(
           logit(ests_cr[1]) - 1.96*deriv_logit(ests_cr[1])*se_edge_est
         )
-        ci_up_cr <- expit(
+        ci_up_cr2 <- expit(
           logit(ests_cr[1]) + 1.96*deriv_logit(ests_cr[1])*se_edge_est
         )
       } else if (p$ci_type=="transformed 2") {
-        ci_lo_cr <- expit2(
+        ci_lo_cr2 <- expit2(
           logit2(ests_cr[1]) - 1.96*deriv_logit2(ests_cr[1])*se_edge_est
         )
-        ci_up_cr <- expit2(
+        ci_up_cr2 <- expit2(
           logit2(ests_cr[1]) + 1.96*deriv_logit2(ests_cr[1])*se_edge_est
         )
       }
