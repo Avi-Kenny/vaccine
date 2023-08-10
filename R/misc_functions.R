@@ -5,8 +5,14 @@
 #' @noRd
 logit <- function(x) { log(x/(1-x)) }
 expit <- function(x) { 1 / (1+exp(-x)) }
+expit2 <- function(x) { (expit(x)-0.001)/0.998 }
+logit2 <- function(x) { logit(0.001+0.998*x) }
+log2 <- function(x) { log(x+0.001) }
+exp2 <- function(x) { exp(x) - 0.001 }
 deriv_expit <- function(x) { exp(x) / ((1+exp(x))^2) }
 deriv_logit <- function(x) { 1 / (x-x^2) }
+deriv_logit2 <- function(x) { 0.998*deriv_logit(0.001+0.998*x) }
+deriv_log2 <- function(x) { 1 / (x+0.001) }
 
 
 

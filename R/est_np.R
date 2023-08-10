@@ -229,18 +229,46 @@ est_np <- function(
       ci_up_cr <- pmin(ests_cr + (qnt*tau_ns)/(n_orig^(1/3)), 1)
     } else if (p$ci_type=="transformed") {
       ci_lo_cr <- expit(
-        logit(ests_cr) - (qnt*tau_ns*deriv_logit(ests_cr))/(n_orig^(1/3))
+        logit(ests_cr) - qnt*deriv_logit(ests_cr)*(tau_ns/(n_orig^(1/3)))
       )
       ci_up_cr <- expit(
-        logit(ests_cr) + (qnt*tau_ns*deriv_logit(ests_cr))/(n_orig^(1/3))
+        logit(ests_cr) + qnt*deriv_logit(ests_cr)*(tau_ns/(n_orig^(1/3)))
+      )
+    } else if (p$ci_type=="transformed 2") {
+      ci_lo_cr <- expit2(
+        logit2(ests_cr) - qnt*deriv_logit2(ests_cr)*(tau_ns/(n_orig^(1/3)))
+      )
+      ci_up_cr <- expit2(
+        logit2(ests_cr) + qnt*deriv_logit2(ests_cr)*(tau_ns/(n_orig^(1/3)))
       )
     }
 
     # CI edge correction
-    # !!!!! Need to do transformation here too
     if (p$edge_corr) {
-      ci_lo_cr2 <- ests_cr[1] - 1.96*sqrt(sigma2_edge_est/n_orig)
-      ci_up_cr2 <- ests_cr[1] + 1.96*sqrt(sigma2_edge_est/n_orig)
+
+      se_edge_est <- sqrt(sigma2_edge_est/n_orig)
+      if (p$ci_type=="regular") {
+        ci_lo_cr2 <- ests_cr[1] - 1.96*se_edge_est
+        ci_up_cr2 <- ests_cr[1] + 1.96*se_edge_est
+      } else if (p$ci_type=="truncated") {
+        ci_lo_cr2 <- max(ests_cr[1] - 1.96*se_edge_est, 0)
+        ci_up_cr2 <- min(ests_cr[1] - 1.96*se_edge_est, 1)
+      } else if (p$ci_type=="transformed") {
+        ci_lo_cr <- expit(
+          logit(ests_cr[1]) - 1.96*deriv_logit(ests_cr[1])*se_edge_est
+        )
+        ci_up_cr <- expit(
+          logit(ests_cr[1]) + 1.96*deriv_logit(ests_cr[1])*se_edge_est
+        )
+      } else if (p$ci_type=="transformed 2") {
+        ci_lo_cr <- expit2(
+          logit2(ests_cr[1]) - 1.96*deriv_logit2(ests_cr[1])*se_edge_est
+        )
+        ci_up_cr <- expit2(
+          logit2(ests_cr[1]) + 1.96*deriv_logit2(ests_cr[1])*se_edge_est
+        )
+      }
+
       if (dir=="decr") {
         ci_lo_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_lo_cr,ci_lo_cr2) +
           In(r_Mn_edge_est>ests_cr)*ci_lo_cr
@@ -256,6 +284,7 @@ est_np <- function(
           In(r_Mn_edge_est<ests_cr)*ci_up_cr
         ci_up_cr[1] <- ci_up_cr2
       }
+
     }
 
   }
@@ -302,7 +331,6 @@ est_np <- function(
   }
 
   # Compute CVE
-  # !!!!! TO DO: perform finite sample variance correction for CVE
   if (cve) {
     res$cve <- list(s=s_out_orig)
     if (attr(dat_copy, "groups")!="both") {
@@ -312,16 +340,45 @@ est_np <- function(
     risk_p <- ov[ov$group=="placebo","est"]
     se_p <- ov[ov$group=="placebo","se"]
     res$cve$est <- 1 - res$cr$est/risk_p
-    res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p
-    res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p
 
-    # # !!!!! New
-    # # CONTINUE asdf
-    # var_z <- 0.52^2 # Get exact variance of Chernoff
-    # res$cve$var <- ( res$cr$est^2/(n_orig*risk_p^4) ) * se_p^2 -
-    #   (tau_ns/(risk_p*n_orig^(1/3)))^2 * var_z
-    # res$cve$ci_lower <- 999
-    # res$cve$ci_upper <- 999
+    if (ci_type=="none") {
+
+      na_vec <- rep(NA, length(res$cve$s_out))
+      res$cve$se <- na_vec
+      res$cve$ci_lower <- na_vec
+      res$cve$ci_upper <- na_vec
+
+    } else {
+
+      var_z <- 0.52^2 # Get exact variance of Chernoff
+      res$cve$se <- sqrt(
+        ( res$cr$est^2/(n_orig*risk_p^4) ) * se_p^2 +
+        (tau_ns/(risk_p*n_orig^(1/3)))^2 * var_z
+      )
+
+      if (ci_type=="regular") {
+        ci_lo_cr <- res$cve$est - 1.96*res$cve$se
+        ci_up_cr <- res$cve$est + 1.96*res$cve$se
+      } else if (ci_type=="truncated") {
+        ci_lo_cr <- pmin(res$cve$est - 1.96*res$cve$se, 1)
+        ci_up_cr <- pmin(res$cve$est + 1.96*res$cve$se, 1)
+      } else if (ci_type=="transformed") {
+        ci_lo_cr <- 1 - exp(log(1-res$cve$est) + 1.96*(1/1-res$cve$est)*res$cve$se)
+        ci_up_cr <- 1 - exp(log(1-res$cve$est) - 1.96*(1/1-res$cve$est)*res$cve$se)
+      } else if (ci_type=="transformed 2") {
+        ci_lo_cr <- 1 - exp2(
+          log2(1-res$cve$est) + 1.96*deriv_log2(1-res$cve$est)*res$cve$se
+        )
+        ci_up_cr <- 1 - exp2(
+          log2(1-res$cve$est) - 1.96*deriv_log2(1-res$cve$est)*res$cve$se
+        )
+      }
+
+      # # !!!!! OLD !!!!!
+      # res$cve$se <- NA
+      # res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p
+      # res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p
+    }
 
   }
 

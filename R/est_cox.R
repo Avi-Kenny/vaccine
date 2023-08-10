@@ -505,12 +505,18 @@ est_cox <- function(
 
     ses_cr <- sqrt(res_cox$var_est_marg)
 
-    if (ci_type=="truncated") {
+    if (ci_type=="regular") {
+      ci_lo_cr <- ests_cr - 1.96*ses_cr
+      ci_up_cr <- ests_cr + 1.96*ses_cr
+    } else if (ci_type=="truncated") {
       ci_lo_cr <- pmin(pmax(ests_cr - 1.96*ses_cr, 0), 1)
       ci_up_cr <- pmin(pmax(ests_cr + 1.96*ses_cr, 0), 1)
     } else if (ci_type=="transformed") {
       ci_lo_cr <- expit(logit(ests_cr) - 1.96*deriv_logit(ests_cr)*ses_cr)
       ci_up_cr <- expit(logit(ests_cr) + 1.96*deriv_logit(ests_cr)*ses_cr)
+    } else if (ci_type=="transformed 2") {
+      ci_lo_cr <- expit2(logit2(ests_cr) - 1.96*deriv_logit2(ests_cr)*ses_cr)
+      ci_up_cr <- expit2(logit2(ests_cr) + 1.96*deriv_logit2(ests_cr)*ses_cr)
     }
 
   }
@@ -534,14 +540,37 @@ est_cox <- function(
     res$cve$est <- 1 - res$cr$est/risk_p
 
     if (ci_type=="none") {
+
       na_vec <- rep(NA, length(res$cve$s_out))
       res$cve$se <- na_vec
       res$cve$ci_lower <- na_vec
       res$cve$ci_upper <- na_vec
+
     } else {
-      res$cve$se <- NA # !!!!! TO DO
-      res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p # !!!!! Add placebo group correction
-      res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p # !!!!! Add placebo group correction
+
+      res$cve$se <- sqrt(ses_cr^2/risk_p^2 + (res$cr$est^2*se_p^2)/risk_p^4)
+      if (ci_type=="regular") {
+        ci_lo_cr <- res$cve$est - 1.96*res$cve$se
+        ci_up_cr <- res$cve$est + 1.96*res$cve$se
+      } else if (ci_type=="truncated") {
+        ci_lo_cr <- pmin(res$cve$est - 1.96*res$cve$se, 1)
+        ci_up_cr <- pmin(res$cve$est + 1.96*res$cve$se, 1)
+      } else if (ci_type=="transformed") {
+        ci_lo_cr <- 1 - exp(log(1-res$cve$est) + 1.96*(1/1-res$cve$est)*res$cve$se)
+        ci_up_cr <- 1 - exp(log(1-res$cve$est) - 1.96*(1/1-res$cve$est)*res$cve$se)
+      } else if (ci_type=="transformed 2") {
+        ci_lo_cr <- 1 - exp2(
+          log2(1-res$cve$est) + 1.96*deriv_log2(1-res$cve$est)*res$cve$se
+        )
+        ci_up_cr <- 1 - exp2(
+          log2(1-res$cve$est) - 1.96*deriv_log2(1-res$cve$est)*res$cve$se
+        )
+      }
+
+      # # !!!!! OLD !!!!!
+      # res$cve$se <- NA
+      # res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p # !!!!! Add placebo group correction
+      # res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p # !!!!! Add placebo group correction
     }
 
   }
