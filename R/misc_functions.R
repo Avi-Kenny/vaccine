@@ -293,32 +293,22 @@ apply2 <- function (X, MARGIN, FUN, ..., simplify=TRUE) {
 #' @noRd
 monotonize_cis <- function(ci_lo, ci_up, dir) {
 
-  val <- ci_lo[1]
-  for (i in c(2:length(ci_lo))) {
-    if (dir=="decr") {
-      if (!is.na(ci_lo[i]) && !is.na(val) && ci_lo[i]>val) {
-        ci_lo[i] <- val
-      }
-    } else {
-      if (!is.na(ci_lo[i]) && !is.na(val) && ci_lo[i]<val) {
-        ci_lo[i] <- val
-      }
+  # This helper function returns the "least nondecreasing majorant"
+  lnm <- function(y) {
+    val <- y[1]
+    for (i in c(2:length(y))) {
+      if (!is.na(y[i]) && !is.na(val) && y[i]<val) { y[i] <- val }
+      val <- y[i]
     }
-    val <- ci_lo[i]
+    return(y)
   }
 
-  val <- ci_up[1]
-  for (i in c(2:length(ci_up))) {
-    if (dir=="decr") {
-      if (!is.na(ci_up[i]) && !is.na(val) && ci_up[i]>val) {
-        ci_up[i] <- val
-      }
-    } else {
-      if (!is.na(ci_up[i]) && !is.na(val) && ci_up[i]<val) {
-        ci_up[i] <- val
-      }
-    }
-    val <- ci_up[i]
+  if (dir=="decr") {
+    ci_lo <- -1*lnm(-1*ci_lo)
+    ci_up <- rev(lnm(rev(ci_up)))
+  } else {
+    ci_lo <- -1*rev(lnm(rev(-1*ci_lo)))
+    ci_up <- lnm(ci_up)
   }
 
   return(list(ci_lo=ci_lo, ci_up=ci_up))
