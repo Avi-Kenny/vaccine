@@ -357,19 +357,23 @@ est_np <- function(
       )
 
       if (ci_type=="regular") {
-        ci_lo_cr <- res$cve$est - 1.96*res$cve$se
-        ci_up_cr <- res$cve$est + 1.96*res$cve$se
+        res$cve$ci_lo_cr <- res$cve$est - 1.96*res$cve$se
+        res$cve$ci_up_cr <- res$cve$est + 1.96*res$cve$se
       } else if (ci_type=="truncated") {
-        ci_lo_cr <- pmin(res$cve$est - 1.96*res$cve$se, 1)
-        ci_up_cr <- pmin(res$cve$est + 1.96*res$cve$se, 1)
+        res$cve$ci_lo_cr <- pmin(res$cve$est - 1.96*res$cve$se, 1)
+        res$cve$ci_up_cr <- pmin(res$cve$est + 1.96*res$cve$se, 1)
       } else if (ci_type=="transformed") {
-        ci_lo_cr <- 1 - exp(log(1-res$cve$est) + 1.96*(1/1-res$cve$est)*res$cve$se)
-        ci_up_cr <- 1 - exp(log(1-res$cve$est) - 1.96*(1/1-res$cve$est)*res$cve$se)
+        res$cve$ci_lo_cr <- 1 - exp(
+          log(1-res$cve$est) + 1.96*(1/1-res$cve$est)*res$cve$se
+        )
+        res$cve$ci_up_cr <- 1 - exp(
+          log(1-res$cve$est) - 1.96*(1/1-res$cve$est)*res$cve$se
+        )
       } else if (ci_type=="transformed 2") {
-        ci_lo_cr <- 1 - exp2(
+        res$cve$ci_lo_cr <- 1 - exp2(
           log2(1-res$cve$est) + 1.96*deriv_log2(1-res$cve$est)*res$cve$se
         )
-        ci_up_cr <- 1 - exp2(
+        res$cve$ci_up_cr <- 1 - exp2(
           log2(1-res$cve$est) - 1.96*deriv_log2(1-res$cve$est)*res$cve$se
         )
       }
