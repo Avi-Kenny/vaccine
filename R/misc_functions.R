@@ -281,3 +281,46 @@ apply2 <- function (X, MARGIN, FUN, ..., simplify=TRUE) {
   }
   else ans
 }
+
+
+
+#' Monotonize confidence limits (NP estimator)
+#'
+#' @param ci_lo A vector of confidence interval lower limits
+#' @param ci_up A vector of confidence interval upper limits
+#' @param dir Direction of monotonicity; one of c("decr", "incr")
+#' @return A list of the form list(ci_lo=c(), ci_up=c())
+#' @noRd
+monotonize_cis <- function(ci_lo, ci_up, dir) {
+
+  val <- ci_lo[1]
+  for (i in c(2:length(ci_lo))) {
+    if (dir=="decr") {
+      if (!is.na(ci_lo[i]) && !is.na(val) && ci_lo[i]>val) {
+        ci_lo[i] <- val
+      }
+    } else {
+      if (!is.na(ci_lo[i]) && !is.na(val) && ci_lo[i]<val) {
+        ci_lo[i] <- val
+      }
+    }
+    val <- ci_lo[i]
+  }
+
+  val <- ci_up[1]
+  for (i in c(2:length(ci_up))) {
+    if (dir=="decr") {
+      if (!is.na(ci_up[i]) && !is.na(val) && ci_up[i]>val) {
+        ci_up[i] <- val
+      }
+    } else {
+      if (!is.na(ci_up[i]) && !is.na(val) && ci_up[i]<val) {
+        ci_up[i] <- val
+      }
+    }
+    val <- ci_up[i]
+  }
+
+  return(list(ci_lo=ci_lo, ci_up=ci_up))
+
+}

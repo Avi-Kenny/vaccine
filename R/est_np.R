@@ -291,32 +291,9 @@ est_np <- function(
 
   # Monotone CI correction
   if (p$mono_cis && p$ci_type!="none") {
-    val <- ci_lo_cr[1]
-    for (i in c(2:length(ci_lo_cr))) {
-      if (dir=="decr") {
-        if (!is.na(ci_lo_cr[i]) && !is.na(val) && ci_lo_cr[i]>val) {
-          ci_lo_cr[i] <- val
-        }
-      } else {
-        if (!is.na(ci_lo_cr[i]) && !is.na(val) && ci_lo_cr[i]<val) {
-          ci_lo_cr[i] <- val
-        }
-      }
-      val <- ci_lo_cr[i]
-    }
-    val <- ci_up_cr[1]
-    for (i in c(2:length(ci_up_cr))) {
-      if (dir=="decr") {
-        if (!is.na(ci_up_cr[i]) && !is.na(val) && ci_up_cr[i]>val) {
-          ci_up_cr[i] <- val
-        }
-      } else {
-        if (!is.na(ci_up_cr[i]) && !is.na(val) && ci_up_cr[i]<val) {
-          ci_up_cr[i] <- val
-        }
-      }
-      val <- ci_up_cr[i]
-    }
+    new_lims <- monotonize_cis(ci_lo=ci_lo_cr, ci_up=ci_up_cr, dir=dir)
+    ci_lo_cr <- new_lims$ci_lo
+    ci_up_cr <- new_lims$ci_up
   }
 
   # Create results object
@@ -376,6 +353,17 @@ est_np <- function(
         res$cve$ci_upper <- 1 - exp2(
           log2(1-res$cve$est) - 1.96*deriv_log2(1-res$cve$est)*res$cve$se
         )
+      }
+
+      if (p$mono_cis && p$ci_type!="none") {
+        dir_opposite <- ifelse(dir=="decr", "incr", "decr")
+        new_lims <- monotonize_cis(
+          ci_lo = res$cve$ci_lower,
+          ci_up = res$cve$ci_upper,
+          dir = dir_opposite
+        )
+        res$cve$ci_lower <- new_lims$ci_lo
+        res$cve$ci_upper <- new_lims$ci_up
       }
 
       # # !!!!! OLD !!!!!
