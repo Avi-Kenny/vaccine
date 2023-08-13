@@ -1,6 +1,8 @@
 <!-- badges: start -->
   ![GitHub R package version](https://img.shields.io/github/r-package/v/Avi-Kenny/vaccine)
+  [![CRAN status](https://www.r-pkg.org/badges/version/vaccine)](https://CRAN.R-project.org/package=vaccine)
   ![GitHub](https://img.shields.io/github/license/Avi-Kenny/vaccine)
+  [![](https://cranlogs.r-pkg.org/badges/vaccine)](https://CRAN.R-project.org/package=vaccine)
 <!-- badges: end -->
 
 
