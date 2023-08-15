@@ -536,7 +536,7 @@ est_cox <- function(
     }
     ov <- est_overall(dat=dat, t_0=t_0, method=placebo_risk_method, ve=F)
     risk_p <- ov[ov$group=="placebo","est"]
-    se_p <- ov[ov$group=="placebo","se"]
+    se_p <- ov[ov$group=="placebo","se"] # This equals sd_p/n_orig
     res$cve$est <- 1 - res$cr$est/risk_p
 
     if (ci_type=="none") {

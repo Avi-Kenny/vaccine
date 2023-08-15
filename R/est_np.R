@@ -291,7 +291,12 @@ est_np <- function(
 
   # Monotone CI correction
   if (p$mono_cis && p$ci_type!="none") {
-    new_lims <- monotonize_cis(ci_lo=ci_lo_cr, ci_up=ci_up_cr, dir=dir)
+    new_lims <- monotonize_cis(
+      ci_lo = ci_lo_cr,
+      ci_up = ci_up_cr,
+      dir = dir,
+      type = "regular"
+    )
     ci_lo_cr <- new_lims$ci_lo
     ci_up_cr <- new_lims$ci_up
   }
@@ -315,7 +320,7 @@ est_np <- function(
     }
     ov <- est_overall(dat=dat_copy, t_0=t_0, method=placebo_risk_method, ve=F)
     risk_p <- ov[ov$group=="placebo","est"]
-    se_p <- ov[ov$group=="placebo","se"]
+    se_p <- ov[ov$group=="placebo","se"] # This equals sd_p/n_orig
     res$cve$est <- 1 - res$cr$est/risk_p
 
     if (ci_type=="none") {
@@ -327,10 +332,13 @@ est_np <- function(
 
     } else {
 
-      var_z <- 0.52^2 # Get exact variance of Chernoff
+      # Variance of Chernoff RV
+      var_z <- 0.52^2
+
+      # Finite sample corrected SE estimate
       res$cve$se <- sqrt(
-        ( res$cr$est^2/(n_orig*risk_p^4) ) * se_p^2 +
-        (tau_ns/(risk_p*n_orig^(1/3)))^2 * var_z
+        ( res$cr$est^2/risk_p^4 ) * se_p^2 +
+          (tau_ns/(risk_p*n_orig^(1/3)))^2 * var_z
       )
 
       if (ci_type=="regular") {
@@ -360,16 +368,13 @@ est_np <- function(
         new_lims <- monotonize_cis(
           ci_lo = res$cve$ci_lower,
           ci_up = res$cve$ci_upper,
-          dir = dir_opposite
+          dir = dir_opposite,
+          type = "regular"
         )
         res$cve$ci_lower <- new_lims$ci_lo
         res$cve$ci_upper <- new_lims$ci_up
       }
 
-      # # !!!!! OLD !!!!!
-      # res$cve$se <- NA
-      # res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p
-      # res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p
     }
 
   }

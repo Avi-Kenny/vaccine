@@ -73,12 +73,17 @@ params_ce_cox <- function(spline_df=NA, spline_knots=NA, edge_ind=FALSE) {
 #'     to use. If density_bins=0, the number of bins will be selected via
 #'     cross-validation.
 #' @param deriv_type One of c("m-spline", "linear"); controls the method to use
-#' to estimate the derivative of the CR curve. If deriv_type="linear", a linear
-#' spline is constructed based on the midpoints of the jump points of the
-#' estimated function (plus the estimated function evaluated at the endpoints),
-#' which is then numerically differentiated. deriv_type="m-spline" is similar to
-#' deriv_type="linear" but smooths the set of points (using the method of
-#' Fritsch and Carlson 1980) before differentiating.
+#'     to estimate the derivative of the CR curve. If deriv_type="linear", a
+#'     linear spline is constructed based on the midpoints of the jump points of
+#'     the estimated function (plus the estimated function evaluated at the
+#'     endpoints), which is then numerically differentiated.
+#'     deriv_type="m-spline" is similar to deriv_type="linear" but smooths the
+#'     set of points (using the method of Fritsch and Carlson 1980) before
+#'     differentiating.
+#' @param convex_type One of c("GCM", "CLS"). Whether the greatest convex
+#'     minorant ("GCM") or convex least squares ("CLS") projection should be
+#'     used in the smoothing of the primitive estimator Gamma_n.
+#'     convex_type="CLS" is experimental and should be used with caution.
 #' @return A list of options.
 #' @examples
 #' data(hvtn505)
@@ -101,9 +106,11 @@ params_ce_np <- function(
     surv_type = "survML-G",
     density_type = "binning",
     density_bins = 15,
-    deriv_type = "m-spline"
+    deriv_type = "m-spline",
+    convex_type = "GCM"
 ) {
   return(list(dir=dir, edge_corr=edge_corr, grid_size=grid_size,
               surv_type=surv_type, density_type=density_type,
-              density_bins=density_bins, deriv_type=deriv_type))
+              density_bins=density_bins, deriv_type=deriv_type,
+              convex_type=convex_type))
 }
