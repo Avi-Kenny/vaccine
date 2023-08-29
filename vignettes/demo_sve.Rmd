@@ -78,3 +78,7 @@ sve_est <- est_sve(
 )
 ```
 
+```{r vis_estimated_sve}
+plot_sve(sve_est)
+```
+

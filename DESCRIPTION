@@ -1,20 +1,26 @@
 Package: vaccine
-Type: Package
 Title: Statistical Tools for Immune Correlates Analysis of Vaccine Clinical
     Trial Data
-Version: 0.1.0
-Authors@R: person("Avi", "Kenny", email = "avi.kenny@gmail.com", role = c("aut", "cre", "cph"))
-Description: Various semiparametric and nonparametric statistical tools for
-    immune correlates analysis of vaccine clinical trial data. This includes
+Version: 0.1.5
+Authors@R: c(
+    person("Avi", "Kenny", email = "avi.kenny@gmail.com",
+           role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0002-9465-7307")),
+    person("Nima", "Hejazi", email = "nh@nimahejazi.org",
+           role = "aut",
+           comment = c(ORCID = "0000-0002-7127-2789"))
+  )
+Description: Semiparametric and nonparametric statistical tools for immune
+    correlates analysis of vaccine efficacy clinical trial data. This includes
     calculation of summary statistics and estimation of risk, vaccine efficacy,
-    controlled risk, and controlled vaccine efficacy. See Gilbert P, Fong Y,
-    Kenny A, and Carone, M (2022) <doi:10.1093/biostatistics/kxac24>.
-License: GPL (>= 3)
-Encoding: UTF-8
-LazyData: true
-RoxygenNote: 7.2.3
-VignetteBuilder: knitr
-Imports: 
+    controlled risk, and controlled vaccine efficacy based on Gilbert P, Fong
+    Y, Kenny A, and Carone, M (2022) <doi:10.1093/biostatistics/kxac24>. Also
+    included are semiparametric-efficient, causal machine learning estimators
+    of stochastic vaccine efficacy (SVE) as initially studied in Hejazi N, van
+    der Laan M, Janes H, Gilbert P, Benkeser D (2021) <doi:10.1111/biom.13375>.
+Depends:
+    R (>= 3.2.0)
+Imports:
     dplyr (>= 1.0.10),
     fdrtool (>= 1.2.17),
     ggplot2 (>= 3.4.0),
@@ -30,10 +36,19 @@ Imports:
     SuperLearner (>= 2.0.28),
     survival (>= 3.4.0),
     survML (>= 0.0.0.9000),
-    truncnorm (>= 1.0.8)
-Suggests: 
+    truncnorm (>= 1.0.8),
+    txshift (>= 0.3.8),
+    data.table
+Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
-Depends: 
-    R (>= 2.10)
+Enhances:
+    sl3 (>= 1.4.3)
+License: GPL (>= 3)
+URL: https://github.com/Avi-Kenny/vaccine
+BugReports: https://github.com/Avi-Kenny/vaccine/issues
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.2.3
+VignetteBuilder: knitr

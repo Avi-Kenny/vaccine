@@ -261,9 +261,8 @@ est_sve <- function(ve_dat,
   # convert input VE trial rectangular data object to DT
   data.table::setDT(ve_dat)
 
-  browser()
   # compute risk estimate for numerator of SVE
-  risk_est <- est_mtprisk(
+  cop_risk_est <- est_mtprisk(
     ve_dat = ve_dat,
     Y = Y,
     C = C,
@@ -284,79 +283,74 @@ est_sve <- function(ve_dat,
     eif_est = eif_est
   )
 
-  browser()
-
   # get P(Y(0) = 1) = P(Y = 1 | A = 0), by randomization
-  ve_control_risk_est <- data_cleaned[trt_ind == 0, mean(outcome)]
-  ve_control_risk_eif <- rep(0, nrow(data_cleaned))
-  ve_control_risk_eif[data_cleaned$trt_ind == 0] <-
-    data_cleaned[trt_ind == 0, outcome] - ve_control_risk_est
+  placebo_risk_est <- ve_dat[get(A) == 0, mean(get(Y))]
+  placebo_risk_eif <- rep(0, ve_dat[, .N])
+  placebo_risk_eif[ve_dat[, which(get(A) == 0)]] <-
+    ve_dat[get(A) == 0, get(Y)] - placebo_risk_est
 
   # extract useful components from txshift_msm object
-  delta_grid <- mcop_risk_results$.delta_grid
-  mcop_risk_eif <- replicate(length(delta_grid), rep(0, nrow(data_cleaned)))
-  mcop_risk_eif[data_cleaned$trt_ind == 1, ] <- mcop_risk_results$.eif_mat
-  mcop_risk_est <- mcop_risk_results$param_est$psi
+  cop_vax_risk_eif <- replicate(length(delta_grid), rep(0, ve_dat[, .N]))
+  cop_vax_risk_eif[ve_dat[, which(get(A) == 1)], ] <- cop_risk_est$.eif_mat
 
   # apply the delta method to get the EIFs for SVE for each delta
   # NOTE: letting psi_1: interventional vaccinee risk, psi_0: control risk
   #       EIF(SVE) = [EIF(psi_1) / psi_1] - [EIF(psi_0) / psi_0]
-  mcop_sve_eifs <- lapply(seq_along(delta_grid), function(delta_idx) {
-    (mcop_risk_eif[, delta_idx] / mcop_risk_est[delta_idx]) -
-      (ve_control_risk_eif / ve_control_risk_est)
+  cop_sve_eifs <- lapply(seq_along(delta_grid), function(delta_idx) {
+    (cop_vax_risk_eif[, delta_idx] / cop_risk_est$param_est$psi[delta_idx]) -
+      (placebo_risk_eif / placebo_risk_est)
   })
-  mcop_sve_eifs <- do.call(cbind, mcop_sve_eifs)
+  cop_sve_eifs <- do.call(cbind, cop_sve_eifs)
 
   # compute standard error based on SVE EIFs
-  mcop_sve_se <- sqrt(matrixStats::colVars(mcop_sve_eifs) /
-                      nrow(data_cleaned))
+  cop_sve_stderr <- sqrt(matrixStats::colVars(cop_sve_eifs) / ve_dat[, .N])
 
   # compute SVE estimate and Wald-type confidence intervals on log-scale
   # NOTE: signs for CIs flipped due to working on the log-scale
-  wald_ci_mult <- abs(stats::qnorm(p = (1 - mcop_risk_results$.ci_level)/2))
-  se_wald_ci_mult <- mcop_sve_se * wald_ci_mult
-  mcop_sve_psi_logscale <- log(mcop_risk_est / ve_control_risk_est)
-  mcop_sve_ci_lwr_logscale <- mcop_sve_psi_logscale + se_wald_ci_mult
-  mcop_sve_ci_upr_logscale <- mcop_sve_psi_logscale - se_wald_ci_mult
+  wald_ci_mult <- abs(stats::qnorm(p = (1 - cop_risk_est$.ci_level) / 2))
+  stderr_ci_mult <- cop_sve_stderr * wald_ci_mult
+  cop_sve_psi_logscale <- log(cop_risk_est$param_est$psi / placebo_risk_est)
+  cop_sve_lwrci_logscale <- cop_sve_psi_logscale + stderr_ci_mult
+  cop_sve_uprci_logscale <- cop_sve_psi_logscale - stderr_ci_mult
 
   # summarize output
-  mcop_sve_est <- mcop_risk_results$param_est %>%
+  cop_sve_est <- cop_risk_est$param_est %>%
     mutate(
-      ci_lwr = 1 - exp(mcop_sve_ci_lwr_logscale),
-      psi = 1 - exp(mcop_sve_psi_logscale),
-      ci_upr = 1 - exp(mcop_sve_ci_upr_logscale)
+      ci_lwr = 1 - exp(cop_sve_lwrci_logscale),
+      psi = 1 - exp(cop_sve_psi_logscale),
+      ci_upr = 1 - exp(cop_sve_uprci_logscale)
     )
 
   # construct MSM point estimate on logRR scale
   if (weighting == "variance") {
-    weights_eif <- as.numeric(1 / diag(stats::cov(mcop_sve_eifs)))
+    weights_eif <- as.numeric(1 / diag(stats::cov(cop_sve_eifs)))
   } else if (weighting == "identity") {
-    weights_eif <- rep(1, ncol(mcop_sve_eifs))
+    weights_eif <- rep(1, ncol(cop_sve_eifs))
   }
   x_mat <- stats::model.matrix(
     stats::as.formula(paste0("psi_vec ~ delta")),
-    data = data.frame(psi_vec = mcop_sve_psi_logscale, delta = delta_grid)
+    data = data.frame(psi_vec = cop_sve_psi_logscale, delta = delta_grid)
   )
   omega <- diag(weights_eif)
   s_mat <- solve(t(x_mat) %*% omega %*% x_mat) %*% t(x_mat) %*% omega
-  msm_param <- as.vector(s_mat %*% mcop_sve_psi_logscale)
+  msm_param <- as.vector(s_mat %*% cop_sve_psi_logscale)
 
   # get EIFs, variance, SE for MSM parameter (estimates)
-  msm_eif <- tcrossprod(mcop_sve_eifs, s_mat)
+  msm_eif <- tcrossprod(cop_sve_eifs, s_mat)
   msm_var <- diag(stats::cov(msm_eif))
-  msm_se <- sqrt(msm_var / nrow(msm_eif))
+  msm_stderr <- sqrt(msm_var / ve_dat[, .N])
 
   # build confidence intervals and hypothesis tests for EIF(msm)
-  ci_msm_param <- msm_se %*% t(c(-wald_ci_mult, wald_ci_mult)) + msm_param
-  pval_msm_param <- 2 * stats::pnorm(-abs(msm_param / msm_se))
+  ci_msm_param <- msm_stderr %*% t(c(-wald_ci_mult, wald_ci_mult)) + msm_param
+  pval_msm_param <- 2 * stats::pnorm(-abs(msm_param / msm_stderr))
 
   # create summary table for MSM estimates
-  msm_output <- data.table::as.data.table(list(
-    param = names(msm_se),
+  msm_results <- data.table::as.data.table(list(
+    param = names(msm_stderr),
     ci_lwr = exp(ci_msm_param[, 1]),
     param_est = exp(msm_param),
     ci_upr = exp(ci_msm_param[, 2]),
-    param_se = msm_se,
+    param_se = msm_stderr,
     p_value = pval_msm_param
   ))
 
@@ -364,29 +358,28 @@ est_sve <- function(ve_dat,
   msm_fit <- stats::glm(
     formula = stats::as.formula("y ~ x"), weights = weights_eif,
     family = stats::gaussian(), start = c(0, 0),
-    data = data.frame(y = mcop_sve_psi_logscale, x = delta_grid)
+    data = data.frame(y = cop_sve_psi_logscale, x = delta_grid)
   )
-  # CHECK: GLM coefficients should match exactly with the manually calculated
+  # CHECK: GLM coefficients should match exactly with manually calculations
   assertthat::assert_that(all.equal(unname(stats::coef(msm_fit)), msm_param))
 
   # predict from fitted GLM to create data for plotting MSM VE curves
   delta_grid_seq <- data.frame(
     x = seq(min(delta_grid), max(delta_grid), length.out = 1000L)
   )
-  rr_logscale_msm_pred <- stats::predict(msm_fit, delta_grid_seq) %>%
-    unname()
+  rr_logscale_msm_pred <- stats::predict(msm_fit, delta_grid_seq)
   ve_msm_pred <- 1 - exp(rr_logscale_msm_pred)
   msm_plot_data <- data.table::as.data.table(
     list(psi = ve_msm_pred, delta = delta_grid_seq)
   )
 
-  # re-package output in custom txshift_msm class
-  mcop_sve_results <- mcop_risk_results
-  mcop_sve_results$param_est <- mcop_sve_est
-  mcop_sve_results$msm_est <- msm_output
-  mcop_sve_results$.msm_data <- msm_plot_data
-  mcop_sve_results$msm_fit <- msm_fit
-  return(mcop_sve_results)
+  # overwrite txshift_msm class from txshift::msm_vimshift with SVE results
+  cop_sve_results <- cop_risk_est
+  cop_sve_results$param_est <- cop_sve_est
+  cop_sve_results$msm_est <- msm_results
+  cop_sve_results$.msm_data <- msm_plot_data
+  cop_sve_results$msm_fit <- msm_fit
+  return(cop_sve_results)
 }
 
 #' Plot of working marginal structural model for stochastic vaccine efficacy
@@ -404,7 +397,7 @@ est_sve <- function(ve_dat,
 #' @importFrom latex2exp TeX
 plot_sve <- function(x, ...) {
   # build geom for MSM in plot
-  # error bars for marginal CIs but band for simultaneous CIs
+  # NOTE: error bars for marginal CIs but band for simultaneous CIs
   if (x$.ci_type == "marginal") {
     geom_ci <- geom_errorbar(
       data = x$param_est,

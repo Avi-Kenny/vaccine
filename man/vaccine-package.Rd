@@ -8,10 +8,23 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-Various semiparametric and nonparametric statistical tools for immune correlates analysis of vaccine clinical trial data. This includes calculation of summary statistics and estimation of risk, vaccine efficacy, controlled risk, and controlled vaccine efficacy. See Gilbert P, Fong Y, Kenny A, and Carone, M (2022) \doi{10.1093/biostatistics/kxac24}.
+Semiparametric and nonparametric statistical tools for immune correlates analysis of vaccine efficacy clinical trial data. This includes calculation of summary statistics and estimation of risk, vaccine efficacy, controlled risk, and controlled vaccine efficacy based on Gilbert P, Fong Y, Kenny A, and Carone, M (2022) \doi{10.1093/biostatistics/kxac24}. Also included are semiparametric-efficient, causal machine learning estimators of stochastic vaccine efficacy (SVE) as initially studied in Hejazi N, van der Laan M, Janes H, Gilbert P, Benkeser D (2021) \doi{10.1111/biom.13375}.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/Avi-Kenny/vaccine}
+  \item Report bugs at \url{https://github.com/Avi-Kenny/vaccine/issues}
+}
+
 }
 \author{
-\strong{Maintainer}: Avi Kenny \email{avi.kenny@gmail.com} [copyright holder]
+\strong{Maintainer}: Avi Kenny \email{avi.kenny@gmail.com} (\href{https://orcid.org/0000-0002-9465-7307}{ORCID}) [copyright holder]
+
+Authors:
+\itemize{
+  \item Nima Hejazi \email{nh@nimahejazi.org} (\href{https://orcid.org/0000-0002-7127-2789}{ORCID})
+}
 
 }
 \keyword{internal}
