@@ -7,15 +7,17 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-``` r
+```{r}
 library(vaccine)
 #> vaccine (version 0.1.0).
 #> Type ?vaccine to get started.
 ```
 
-The `load_data` function takes in raw data and creates a data object that can be accepted by various estimation functions. We use publicly-avaliable data from the HVTN 505 HIV vaccine efficacy trial as our example.
+The `load_data` function takes in raw data and creates a data object that can be
+accepted by various estimation functions. We use publicly-avaliable data from
+the HVTN 505 HIV vaccine efficacy trial as our example.
 
-``` r
+```{r}
 data(hvtn505)
 
 dat <- load_data(
@@ -23,7 +25,7 @@ dat <- load_data(
   event = "HIVwk28preunbl",
   vacc = "trt",
   marker = "IgG_env",
-  covariates = c("age","BMI","bhvrisk"),
+  covariates = c("age", "BMI", "bhvrisk"),
   weights = "wt",
   ph2 = "casecontrol",
   data = hvtn505
@@ -32,7 +34,7 @@ dat <- load_data(
 
 The `summary_stats` function gives us some useful summaries of the dataset.
 
-``` r
+```{r}
 summary_stats(dat)
 #> Number of subjects (vaccine group, phase-1): 1161
 #> Number of subjects (placebo group, phase-1): 1141
@@ -48,28 +50,32 @@ summary_stats(dat)
 #> Proportion of subjects with an event (placebo group, phase- 2): 0.48718
 ```
 
-The `est_overall` function allows us to estimate overall risk in the placebo and vaccine groups, as well as estimate vaccine efficacy, using either a nonparametric Kaplan-Meier estimator or a marginalized Cox model.
+The `est_overall` function allows us to estimate overall risk in the placebo and
+vaccine groups, as well as estimate vaccine efficacy, using either a
+nonparametric Kaplan-Meier estimator or a marginalized Cox model.
 
-``` r
-est_overall(dat=dat, t_0=578, method="KM")
+```{r}
+est_overall(dat = dat, t_0 = 578, method = "KM")
 #>   stat   group         est          se    ci_lower   ci_upper
 #> 1 risk vaccine  0.04067009 0.008230842  0.02506853 0.05602199
 #> 2 risk placebo  0.02879861 0.006563785  0.01622360 0.04121288
 #> 3   ve    both -0.41222411 0.430451788 -1.56659984 0.22294979
 
-est_overall(dat=dat, t_0=578, method="Cox")
+est_overall(dat = dat, t_0 = 578, method = "Cox")
 #>   stat   group         est          se    ci_lower   ci_upper
 #> 1 risk vaccine  0.04177642 0.008111679  0.02847302 0.06090588
 #> 2 risk placebo  0.02938706 0.006486545  0.01901930 0.04514638
 #> 3   ve    both -0.42159246 0.417915188 -1.52937491 0.20101796
 ```
 
-The `est_ce` function allows us to compute controlled effects curves; see [Gilbert, Fong, Kenny, and Carone 2022](https://academic.oup.com/biostatistics/advance-article/doi/10.1093/biostatistics/kxac24/6644798) for more detail.
+The `est_ce` function allows us to compute controlled effects curves; see
+[Gilbert, Fong, Kenny, and Carone
+2022](https://academic.oup.com/biostatistics/advance-article/doi/10.1093/biostatistics/kxac24/6644798)
+for more detail.
 
-``` r
-
-ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
-ests_np <- est_ce(dat=dat, type="NP", t_0=578)
+```{r}
+ests_cox <- est_ce(dat = dat, type = "Cox", t_0 = 578)
+ests_np <- est_ce(dat = dat, type = "NP", t_0 = 578)
 #> Warning: package 'SuperLearner' was built under R version
 #> 4.2.3
 #> Loading required package: nnls
@@ -83,9 +89,10 @@ ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 #> Package created on 2021-05-04
 ```
 
-The `plot_ce` function produces basic plots of CR or CVE curves. These are returned as ggplot2 objects, so they can be further customized as needed.
+The `plot_ce` function produces basic plots of CR or CVE curves. These are
+returned as ggplot2 objects, so they can be further customized as needed.
 
-``` r
+```{r}
 plot_ce(ests_cox, ests_np)
 ```
 
