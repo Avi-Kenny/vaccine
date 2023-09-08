@@ -97,16 +97,6 @@ est_med <- function(
     grid <- create_grid(dat_orig, grid_size, t_0)
     dat_orig_rounded <- round_dat(dat_orig, grid, grid_size)
 
-    # Rescale/round s_out and remove s_out points outside [0,1]
-    s_out_orig <- s_out
-    s_out <- (s_out+s_shift)*s_scale
-    na_head <- sum(s_out<0)
-    na_tail <- sum(s_out>1)
-    if (na_head>0) { s_out <- s_out[-c(1:na_head)] }
-    len_p <- length(s_out)
-    if (na_tail>0) { s_out <- s_out[-c((len_p-na_tail+1):len_p)] }
-    s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] })
-
     # Prepare precomputation values for conditional survival estimator
     x_distinct <- dplyr::distinct(dat_orig_rounded$x)
     x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
@@ -163,11 +153,6 @@ est_med <- function(
       "ci_upper" = double()
     )
 
-    # Compute overall estimates
-    if (asdf) {
-
-    }
-
     # Calculate NDE
     if (nde) {
       ov <- est_overall(dat=dat_copy, t_0=t_0, method="KM", ve=F)
@@ -208,6 +193,6 @@ est_med <- function(
 
   }
 
-  return(ests)
+  return(res)
 
 }

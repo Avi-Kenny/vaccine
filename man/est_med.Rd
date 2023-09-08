@@ -4,7 +4,7 @@
 \alias{est_med}
 \title{Estimate mediation effects}
 \usage{
-est_med(dat, type = "NP", t_0, nde = TRUE, nie = TRUE, pm = TRUE)
+est_med(dat, type = "NP", t_0, nde = TRUE, nie = TRUE, pm = TRUE, scale = "RR")
 }
 \arguments{
 \item{dat}{A data object returned by load_data}
