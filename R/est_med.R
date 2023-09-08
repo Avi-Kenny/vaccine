@@ -73,7 +73,8 @@ est_med <- function(
 
     # Set params
     .default_params <- list(
-      surv_type = "survML-G",
+      # surv_type = "survML-G",
+      surv_type = "survSL",
       density_type = "binning",
       density_bins = 15,
       # deriv_type = "m-spline",
@@ -87,6 +88,8 @@ est_med <- function(
     # }
     # p <- params
     p <- .default_params # !!!!! TEMP
+
+    grid_size <- list(y=101, s=101, x=5) # !!!!! TEMP
 
     # Rescale S to lie in [0,1] and create rounded data object
     s_min <- min(dat_orig$s, na.rm=T)
@@ -119,9 +122,6 @@ est_med <- function(
     # Use rounded data objects moving forward
     dat_orig <- dat_orig_rounded
 
-    # Obtain minimum value (excluding edge point mass)
-    if (p$edge_corr) { s_min2 <- min(dat_orig$s[dat_orig$s!=0], na.rm=T) }
-
     # Compute various nuisance functions
     omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)
     f_sIx_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins, z1=F)
@@ -132,6 +132,7 @@ est_med <- function(
     # Compute edge-corrected estimator and standard error
     n_orig <- attr(dat_orig, "n_orig")
     p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
+    print(paste0("Percent of mass at edge: ", round(100*(1-p_n),1), "%")) # !!!!! TEMP
     g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
     r_Mn_edge_est <- r_Mn_edge(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0)
     r_Mn_edge_est <- min(max(r_Mn_edge_est, 0), 1)

@@ -75,9 +75,9 @@ est_ce <- function(
 
   if (type=="NP") {
     p <- params_np
-    params_np[["dir"]] <- NULL
-    params_np[["edge_corr"]] <- NULL
-    params_np[["grid_size"]] <- NULL
+    params_np[["dir"]] <- NULL # !!!!!
+    params_np[["edge_corr"]] <- NULL # !!!!!
+    params_np[["grid_size"]] <- NULL # !!!!!
     ests <- est_np(
       dat=dat, t_0=t_0, cr=cr, cve=cve, s_out=s_out, ci_type=ci_type,
       placebo_risk_method=placebo_risk_method, return_extras=return_extras, dir=p$dir,
