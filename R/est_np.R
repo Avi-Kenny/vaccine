@@ -49,9 +49,6 @@ est_np <- function(
     if (is.null(params[[p_name]])) { params[[p_name]] <- .default_params[[i]] }
   }
   p <- params
-  p$ci_type <- ci_type
-  p$cf_folds <- cf_folds
-  p$edge_corr <- edge_corr
 
   # Rescale S to lie in [0,1] and create rounded data object
   s_min <- min(dat_orig$s, na.rm=T)
@@ -95,7 +92,7 @@ est_np <- function(
   dat_orig <- dat_orig_rounded
 
   # Obtain minimum value (excluding edge point mass)
-  if (p$edge_corr) { s_min2 <- min(dat_orig$s[dat_orig$s!=0], na.rm=T) }
+  if (edge_corr) { s_min2 <- min(dat_orig$s[dat_orig$s!=0], na.rm=T) }
 
   # Compute various nuisance functions
   omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)
@@ -113,7 +110,7 @@ est_np <- function(
 
   # Compute edge-corrected estimator and standard error
   n_orig <- attr(dat_orig, "n_orig")
-  if (p$edge_corr) {
+  if (edge_corr) {
     p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
     g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
     r_Mn_edge_est <- r_Mn_edge(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0)
@@ -174,7 +171,7 @@ est_np <- function(
   r_Mn_Gr <- function(u) { min(max(dir_factor*dGCM(Phi_n(u)), 0), 1) }
 
   # Compute variance component nuisance estimators
-  if (p$ci_type!="none") {
+  if (ci_type!="none") {
     f_sIx_z1_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins,
                                     z1=T)
     f_s_z1_n <- construct_f_s_n(dat_orig, f_sIx_z1_n)
@@ -184,7 +181,7 @@ est_np <- function(
   }
 
   # Create edge-corrected r_Mn estimator
-  if (p$edge_corr) {
+  if (edge_corr) {
     r_Mn <- function(u) {
       if(u==0 || u<s_min2) {
         return(r_Mn_edge_est)
@@ -204,7 +201,7 @@ est_np <- function(
   ests_cr <- sapply(s_out, r_Mn)
 
   # Generate confidence limits
-  if (p$ci_type=="none") {
+  if (ci_type=="none") {
 
     ci_lo_cr <- rep(NA, length(ests_cr))
     ci_up_cr <- rep(NA, length(ests_cr))
@@ -221,20 +218,20 @@ est_np <- function(
     # Construct CIs
     # The 0.975 quantile of the Chernoff distribution occurs at roughly 1.00
     qnt <- 1.00
-    if (p$ci_type=="regular") {
+    if (ci_type=="regular") {
       ci_lo_cr <- ests_cr - (qnt*tau_ns)/(n_orig^(1/3))
       ci_up_cr <- ests_cr + (qnt*tau_ns)/(n_orig^(1/3))
-    } else if (p$ci_type=="truncated") {
+    } else if (ci_type=="truncated") {
       ci_lo_cr <- pmax(ests_cr - (qnt*tau_ns)/(n_orig^(1/3)), 0)
       ci_up_cr <- pmin(ests_cr + (qnt*tau_ns)/(n_orig^(1/3)), 1)
-    } else if (p$ci_type=="transformed") {
+    } else if (ci_type=="transformed") {
       ci_lo_cr <- expit(
         logit(ests_cr) - qnt*deriv_logit(ests_cr)*(tau_ns/(n_orig^(1/3)))
       )
       ci_up_cr <- expit(
         logit(ests_cr) + qnt*deriv_logit(ests_cr)*(tau_ns/(n_orig^(1/3)))
       )
-    } else if (p$ci_type=="transformed 2") {
+    } else if (ci_type=="transformed 2") {
       ci_lo_cr <- expit2(
         logit2(ests_cr) - qnt*deriv_logit2(ests_cr)*(tau_ns/(n_orig^(1/3)))
       )
@@ -244,23 +241,23 @@ est_np <- function(
     }
 
     # CI edge correction
-    if (p$edge_corr) {
+    if (edge_corr) {
 
       se_edge_est <- sqrt(sigma2_edge_est/n_orig)
-      if (p$ci_type=="regular") {
+      if (ci_type=="regular") {
         ci_lo_cr2 <- ests_cr[1] - 1.96*se_edge_est
         ci_up_cr2 <- ests_cr[1] + 1.96*se_edge_est
-      } else if (p$ci_type=="truncated") {
+      } else if (ci_type=="truncated") {
         ci_lo_cr2 <- max(ests_cr[1] - 1.96*se_edge_est, 0)
         ci_up_cr2 <- min(ests_cr[1] - 1.96*se_edge_est, 1)
-      } else if (p$ci_type=="transformed") {
+      } else if (ci_type=="transformed") {
         ci_lo_cr2 <- expit(
           logit(ests_cr[1]) - 1.96*deriv_logit(ests_cr[1])*se_edge_est
         )
         ci_up_cr2 <- expit(
           logit(ests_cr[1]) + 1.96*deriv_logit(ests_cr[1])*se_edge_est
         )
-      } else if (p$ci_type=="transformed 2") {
+      } else if (ci_type=="transformed 2") {
         ci_lo_cr2 <- expit2(
           logit2(ests_cr[1]) - 1.96*deriv_logit2(ests_cr[1])*se_edge_est
         )
@@ -270,35 +267,33 @@ est_np <- function(
       }
 
       if (dir=="decr") {
-        ci_lo_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_lo_cr,ci_lo_cr2) +
-          In(r_Mn_edge_est>ests_cr)*ci_lo_cr
+        ind_edge <- In(r_Mn_edge_est<=ests_cr)
+        ci_lo_cr <- ind_edge*pmin(ci_lo_cr,ci_lo_cr2) + (1-ind_edge)*ci_lo_cr
+        ci_up_cr <- ind_edge*pmin(ci_up_cr,ci_up_cr2) + (1-ind_edge)*ci_up_cr
         ci_lo_cr[1] <- ci_lo_cr2
-        ci_up_cr <- In(r_Mn_edge_est<=ests_cr)*pmin(ci_up_cr,ci_up_cr2) +
-          In(r_Mn_edge_est>ests_cr)*ci_up_cr
         ci_up_cr[1] <- ci_up_cr2
       } else {
-        ci_lo_cr <- In(r_Mn_edge_est>=ests_cr)*pmax(ci_lo_cr,ci_lo_cr2) +
-          In(r_Mn_edge_est<ests_cr)*ci_lo_cr
+        ind_edge <- In(r_Mn_edge_est>=ests_cr)
+        ci_lo_cr <- ind_edge*pmax(ci_lo_cr,ci_lo_cr2) + (1-ind_edge)*ci_lo_cr
+        ci_up_cr <- ind_edge*pmax(ci_up_cr,ci_up_cr2) + (1-ind_edge)*ci_up_cr
         ci_lo_cr[1] <- ci_lo_cr2
-        ci_up_cr <- In(r_Mn_edge_est>=ests_cr)*pmax(ci_up_cr,ci_up_cr2) +
-          In(r_Mn_edge_est<ests_cr)*ci_up_cr
         ci_up_cr[1] <- ci_up_cr2
       }
 
     }
 
-  }
+    # Monotone CI correction
+    if (p$mono_cis) {
+      new_lims <- monotonize_cis(
+        ci_lo = ci_lo_cr,
+        ci_up = ci_up_cr,
+        dir = dir,
+        type = "regular"
+      )
+      ci_lo_cr <- new_lims$ci_lo
+      ci_up_cr <- new_lims$ci_up
+    }
 
-  # Monotone CI correction
-  if (p$mono_cis && p$ci_type!="none") {
-    new_lims <- monotonize_cis(
-      ci_lo = ci_lo_cr,
-      ci_up = ci_up_cr,
-      dir = dir,
-      type = "regular"
-    )
-    ci_lo_cr <- new_lims$ci_lo
-    ci_up_cr <- new_lims$ci_up
   }
 
   # Create results object
@@ -314,6 +309,7 @@ est_np <- function(
 
   # Compute CVE
   if (cve) {
+
     res$cve <- list(s=s_out_orig)
     if (attr(dat_copy, "groups")!="both") {
       stop("Placebo group data not detected.")
@@ -335,10 +331,12 @@ est_np <- function(
       # Variance of Chernoff RV
       var_z <- 0.52^2
 
+      # !!!!! Need to do edge_corr
+
       # Finite sample corrected SE estimate
       res$cve$se <- sqrt(
         ( res$cr$est^2/risk_p^4 ) * se_p^2 +
-          (tau_ns/(risk_p*n_orig^(1/3)))^2 * var_z
+          (qnt*tau_ns/(risk_p*n_orig^(1/3)))^2 * var_z
       )
 
       if (ci_type=="regular") {
@@ -363,7 +361,53 @@ est_np <- function(
         )
       }
 
-      if (p$mono_cis && p$ci_type!="none") {
+      # CI edge correction
+      if (edge_corr) {
+
+        # Finite sample corrected SE estimate
+        se_edge_est_cve <- sqrt(
+          (ests_cr[1]^2/risk_p^4)*se_p^2 + (sigma2_edge_est/n_orig)/(risk_p^2)
+        )
+
+        if (ci_type=="regular") {
+          ci_lo_cve2 <- res$cve$est[1] - 1.96*se_edge_est_cve
+          ci_up_cve2 <- res$cve$est[1] + 1.96*se_edge_est_cve
+        } else if (ci_type=="truncated") {
+          ci_lo_cve2 <- min(res$cve$est[1] - 1.96*se_edge_est_cve, 1)
+          ci_up_cve2 <- min(res$cve$est[1] - 1.96*se_edge_est_cve, 1)
+        } else if (ci_type=="transformed") {
+          ci_lo_cve2 <- 1 - exp(
+            log(1-res$cve$est[1]) + 1.96*(1/(1-res$cve$est[1]))*se_edge_est_cve
+          )
+          ci_up_cve2 <- 1 - exp(
+            log(1-res$cve$est[1]) - 1.96*(1/(1-res$cve$est[1]))*se_edge_est_cve
+          )
+        } else if (ci_type=="transformed 2") {
+          ci_lo_cve2 <- 1 - exp2(
+            log2(1-res$cve$est[1])
+            + 1.96*deriv_log2(1-res$cve$est[1])*se_edge_est_cve
+          )
+          ci_up_cve2 <- 1 - exp2(
+            log2(1-res$cve$est[1])
+            - 1.96*deriv_log2(1-res$cve$est[1])*se_edge_est_cve
+          )
+        }
+
+        if (dir=="decr") {
+          res$cve$ci_lower <- ind_edge*pmax(res$cve$ci_lower,ci_lo_cve2) + (1-ind_edge)*res$cve$ci_lower
+          res$cve$ci_upper <- ind_edge*pmax(res$cve$ci_upper,ci_up_cve2) + (1-ind_edge)*res$cve$ci_upper
+          res$cve$ci_lower[1] <- ci_lo_cve2
+          res$cve$ci_upper[1] <- ci_up_cve2
+        } else {
+          res$cve$ci_lower <- ind_edge*pmin(res$cve$ci_lower,ci_lo_cve2) + (1-ind_edge)*res$cve$ci_lower
+          res$cve$ci_upper <- ind_edge*pmin(res$cve$ci_upper,ci_up_cve2) + (1-ind_edge)*res$cve$ci_upper
+          res$cve$ci_lower[1] <- ci_lo_cve2
+          res$cve$ci_upper[1] <- ci_up_cve2
+        }
+
+      }
+
+      if (p$mono_cis) {
         dir_opposite <- ifelse(dir=="decr", "incr", "decr")
         new_lims <- monotonize_cis(
           ci_lo = res$cve$ci_lower,
@@ -430,6 +474,14 @@ est_np <- function(
       Q_n = Q_n_df,
       Qc_n = Qc_n_df
     )
+
+    # !!!!! TEMP
+    if (T) {
+      res$extras$r_Mn_edge_est <- r_Mn_edge_est
+      res$extras$sigma2_edge_est <- sigma2_edge_est
+      res$extras$risk_p <- risk_p
+      res$extras$se_p <- se_p
+    }
 
   }
 
