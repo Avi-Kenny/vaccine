@@ -13,12 +13,13 @@
 #' @param nie Boolean. If TRUE, the natural indirect effect is computed and
 #'     returned.
 #' @param pm Boolean. If TRUE, the proportion mediated is computed and returned.
-#' @param scale One of c("RR", "VE"). This determines whether estimates and CIs
-#'     are computed on the risk ratio (RR) scale or the vaccine efficacy (VE)
-#'     scale. The latter equals one minus the former.
+#' @param scale One of c("RR", "VE"). This determines whether NDE and NIE
+#'     estimates and CIs are computed on the risk ratio (RR) scale or the
+#'     vaccine efficacy (VE) scale. The latter equals one minus the former.
 #' @return A dataframe containing the following columns: \itemize{
 #'     \item{\code{effect}: one of c("NDE", "NIE", "PM")}
 #'     \item{\code{est}: point estimate}
+#'     \item{\code{se}: standard error of point estimate}
 #'     \item{\code{ci_lower}: a confidence interval lower limit}
 #'     \item{\code{ci_upper}: a confidence interval upper limit}
 #' }
@@ -36,7 +37,7 @@
 est_med <- function(
     dat, type="NP", t_0, nde=TRUE, nie=TRUE, pm=TRUE, scale="RR"
     # ci_type="transformed", return_extras=FALSE,
-    # params_cox=params_med_cox(), params_np=params_med_cox()
+    # params_cox=params_med_cox(), params_np=params_med_np()
 ) {
 
   # !!!!! Need to refactor with est_ce functions
@@ -74,6 +75,7 @@ est_med <- function(
     # Set params
     .default_params <- list(
       # surv_type = "survML-G",
+      # surv_type = "Cox",
       surv_type = "survSL",
       density_type = "binning",
       density_bins = 15,
@@ -112,7 +114,7 @@ est_med <- function(
     )
 
     # Create phase-two data object (unrounded)
-    dat <- ss(dat_orig_rounded, which(dat_orig_rounded$z==1)) # !!!!! uses the `dat` name again; change???
+    dat <- ss(dat_orig_rounded, which(dat_orig_rounded$z==1)) # !!!!! uses the `dat` name again; change
 
     # Fit conditional survival estimator
     srvSL <- construct_Q_n(p$surv_type, dat, vals)
@@ -150,46 +152,182 @@ est_med <- function(
     res <- data.frame(
       "effect" = character(),
       "est" = double(),
+      "se" = double(),
       "ci_lower" = double(),
       "ci_upper" = double()
     )
 
-    # Calculate NDE
-    if (nde) {
+    # !!!!! Standardize names of dat_* throughout package
+
+    # Create necessary objects and functions
+    {
+
       ov <- est_overall(dat=dat_copy, t_0=t_0, method="KM", ve=F)
       risk_p <- ov[ov$group=="placebo","est"]
+      risk_v <- ov[ov$group=="vaccine","est"]
       se_p <- ov[ov$group=="placebo","se"] # This equals sd_p/n_orig
-      nde_est <- r_Mn_edge_est/risk_p
-      nde_se <- sqrt(
-        r_Mn_edge_est^2*se_p^2/risk_p^4 + se_edge_est^2/(n_orig*risk_p^2)
+
+      # !!!!! Temporary until data is restructured
+      # dat_v_copy <- dat_copy$v
+      dat_v_copy <- dat_orig # !!!!! Changed; now using rounded data values
+      dat_p_copy <- dat_copy$p
+      num_v <- length(dat_v_copy$z)
+      num_p <- length(dat_p_copy$z)
+      PA1 <- num_v/(num_v+num_p)
+      dat_v_copy$a <- rep(1, num_v)
+      dat_p_copy$a <- rep(0, num_p)
+      dat_combined <- cbind(
+        rbind(dat_v_copy$x, dat_p_copy$x),
+        a = c(dat_v_copy$a,dat_p_copy$a),
+        y = c(dat_v_copy$y,dat_p_copy$y),
+        delta = c(dat_v_copy$delta,dat_p_copy$delta),
+        s = c(dat_v_copy$s,dat_p_copy$s),
+        weights = c(dat_v_copy$weights,dat_p_copy$weights),
+        strata = c(dat_v_copy$strata,dat_p_copy$strata),
+        z = c(dat_v_copy$z,dat_p_copy$z)
       )
-      nde_lo <- exp(log(nde_est)-1.96*(1/nde_est)*nde_se)
-      nde_up <- exp(log(nde_est)+1.96*(1/nde_est)*nde_se)
-      res[nrow(res)+1,] <- c("NDE", nde_est, nde_lo, nde_up)
+
+      infl_fn_km_v <- construct_km_infl_fn(dat_combined, which="vaccine")
+      infl_fn_km_p <- construct_km_infl_fn(dat_combined, which="placebo")
+
+      infl_fn_edge_2 <- function(a,z,weights,s,x,y,delta) {
+        if (a==0) {
+          return(0)
+        } else {
+          return((1/PA1)*infl_fn_r_Mn_edge(z,weights,s,x,y,delta))
+        }
+      }
+
     }
 
-    # Calculate PM
-    if (pm) {
-      pm_est <- 999 # !!!!! TO DO
-      pm_lo <- 999 # !!!!! TO DO
-      pm_up <- 999 # !!!!! TO DO
-      res[nrow(res)+1,] <- c("PM", pm_est, pm_lo, pm_up)
+    # Calculate NDE
+    if (nde) {
+
+      nde_est <- r_Mn_edge_est/risk_p
+      nde_se <- sqrt(r_Mn_edge_est^2*se_p^2/risk_p^4 + se_edge_est^2/risk_p^2)
+      nde_lo <- exp(log(nde_est)-1.96*(1/nde_est)*nde_se)
+      nde_up <- exp(log(nde_est)+1.96*(1/nde_est)*nde_se)
+      res[nrow(res)+1,] <- list("NDE", nde_est, nde_se, nde_lo, nde_up)
+
+      # !!!!! TEMP; for comparison (but maybe keep this one instead for consistency)
+      sigma2_nde_est <- mean(apply(dat_combined, 1, function(r) {
+
+        if_p <- infl_fn_km_p(A_i=r[["a"]],Delta_i=r[["delta"]], Y_i=r[["y"]],
+                             t=t_0)
+        if_edge <- infl_fn_edge_2(a=r[["a"]], r[["z"]], r[["weights"]],
+                                  r[["s"]], as.numeric(r[1:dim_x]), r[["y"]],
+                                  r[["delta"]])
+
+        return(((1/risk_p)*if_edge-(r_Mn_edge_est/risk_p^2)*if_p)^2)
+
+      }))
+      se_nde_est <- sqrt(sigma2_nde_est/(num_v+num_p))
+      res[nrow(res)+1,] <- list("NDE2", nde_est, se_nde_est, 999, 999)
+
+
+
+      # !!!!! TEMP; return additional values
+      ov2 <- est_overall(dat=dat_copy, t_0=t_0, method="Cox", ve=F)
+      risk_p2 <- ov2[ov2$group=="placebo","est"]
+      res[nrow(res)+1,] <- list("Risk_p", risk_p, 999, 999, 999)
+      res[nrow(res)+1,] <- list("Risk_p (Cox)", risk_p2, 999, 999, 999)
+      res[nrow(res)+1,] <- list("Risk_v", risk_v, 999, 999, 999)
+      res[nrow(res)+1,] <- list("CR(0)", r_Mn_edge_est, 999, 999, 999)
+
+
+
+
+
     }
 
     # Calculate NIE
     if (nie) {
-      nie_est <- 999 # !!!!! TO DO
-      nie_lo <- 999 # !!!!! TO DO
-      nie_up <- 999 # !!!!! TO DO
-      res[nrow(res)+1,] <- c("NIE", nie_est, nie_lo, nie_up)
+
+      nie_est <- risk_v/r_Mn_edge_est
+      sigma2_nie_est <- mean(apply(dat_combined, 1, function(r) {
+
+        if_v <- infl_fn_km_v(A_i=r[["a"]], Delta_i=r[["delta"]], Y_i=r[["y"]],
+                             t=t_0)
+        if_edge <- infl_fn_edge_2(a=r[["a"]], r[["z"]], r[["weights"]],
+                                  r[["s"]], as.numeric(r[1:dim_x]), r[["y"]],
+                                  r[["delta"]])
+
+        return(((1/r_Mn_edge_est)*if_v-(risk_v/r_Mn_edge_est^2)*if_edge)^2)
+
+      }))
+      nie_se <- sqrt(sigma2_nie_est/(num_v+num_p))
+      nie_lo <- exp(log(nie_est)-1.96*(1/nie_est)*nie_se)
+      nie_up <- exp(log(nie_est)+1.96*(1/nie_est)*nie_se)
+      res[nrow(res)+1,] <- list("NIE", nie_est, nie_se, nie_lo, nie_up)
+
+      # # Testing KM influence function
+      # n <- attr(dat_copy$v, "n_orig")
+      # df_var <- data.frame(y=dat_copy$v$y,delta=dat_copy$v$delta)
+      # var_est <- (1/n) * sum(apply(df_var, 1, function(r) {
+      #   Delta_i <- r[["delta"]]
+      #   Y_i <- r[["y"]]
+      #   return((km_infl_fn(Delta_i,Y_i,t_0))^2)
+      # }))
+      # se_est <- sqrt(var_est/n)
+      # print(se_est)
+
+      # ov <- est_overall(dat=dat_copy, t_0=t_0, method="KM", ve=F) # !!!!! For comparison only; turn into unit test
+      # risk_v <- ov[ov$group=="vaccine","est"] # !!!!! For comparison only; turn into unit test
+      # se_v <- ov[ov$group=="vaccine","se"] # !!!!! For comparison only; turn into unit test
+    }
+
+    # Calculate PM
+    if (pm) {
+
+      pm_est <- 1 - (log(r_Mn_edge_est/risk_p) / log(risk_v/risk_p))
+      sigma2_pm_est <- mean(apply(dat_combined, 1, function(r) {
+
+        rr <- risk_v/risk_p
+        c_1 <- log(r_Mn_edge_est/risk_p) / risk_v
+        c_2 <- log(risk_v/r_Mn_edge_est) / risk_p
+        c_3 <- (-1*log(rr)) / r_Mn_edge_est
+
+        if_v <- infl_fn_km_v(A_i=r[["a"]], Delta_i=r[["delta"]], Y_i=r[["y"]],
+                             t=t_0)
+        if_p <- infl_fn_km_p(A_i=r[["a"]], Delta_i=r[["delta"]], Y_i=r[["y"]],
+                             t=t_0)
+        if_edge <- infl_fn_edge_2(a=r[["a"]], r[["z"]], r[["weights"]],
+                                  r[["s"]], as.numeric(r[1:dim_x]), r[["y"]],
+                                  r[["delta"]])
+
+        return((1/(log(rr))^2*(c_1*if_v+c_2*if_p+c_3*if_edge))^2)
+
+      }))
+      pm_se <- sqrt(sigma2_pm_est/(num_v+num_p))
+      pm_lo <- pm_est-1.96*pm_se
+      pm_up <- pm_est+1.96*pm_se
+      res[nrow(res)+1,] <- list("PM", pm_est, pm_se, pm_lo, pm_up)
+
     }
 
     if (scale=="VE") {
-      res$est <- 1 - res$est
-      res_lo_old <- res$ci_lo
-      res_up_old <- res$ci_up
-      res$ci_upper <- 1 - res_lo_old
-      res$ci_lower <- 1 - res_up_old
+
+      # NDE
+      res[res$effect=="NDE","est"] <- 1 - res[res$effect=="NDE","est"]
+      res_lo_old <- res[res$effect=="NDE","ci_lower"]
+      res_up_old <- res[res$effect=="NDE","ci_upper"]
+      res[res$effect=="NDE","ci_lower"] <- 1 - res_up_old
+      res[res$effect=="NDE","ci_upper"] <- 1 - res_lo_old
+
+      # !!!!! TEMP
+      res[res$effect=="NDE2","est"] <- 1 - res[res$effect=="NDE2","est"]
+      res_lo_old <- res[res$effect=="NDE2","ci_lower"]
+      res_up_old <- res[res$effect=="NDE2","ci_upper"]
+      res[res$effect=="NDE2","ci_lower"] <- 1 - res_up_old
+      res[res$effect=="NDE2","ci_upper"] <- 1 - res_lo_old
+
+      # NIE
+      res[res$effect=="NIE","est"] <- 1 - res[res$effect=="NIE","est"]
+      res_lo_old <- res[res$effect=="NIE","ci_lower"]
+      res_up_old <- res[res$effect=="NIE","ci_upper"]
+      res[res$effect=="NIE","ci_lower"] <- 1 - res_up_old
+      res[res$effect=="NIE","ci_upper"] <- 1 - res_lo_old
+
     }
 
   }
