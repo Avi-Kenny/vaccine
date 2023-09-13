@@ -35,13 +35,13 @@
 #'     of Antibodies in Vaccination <doi:10.48550/arXiv.2208.06465>
 #' @export
 est_med <- function(
-    dat, type="NP", t_0, nde=TRUE, nie=TRUE, pm=TRUE, scale="RR"
+    dat, type="NP", t_0, nde=TRUE, nie=TRUE, pm=TRUE, scale="RR",
     # ci_type="transformed", return_extras=FALSE,
-    # params_cox=params_med_cox(), params_np=params_med_np()
+    # params_cox=params_med_cox(),
+    params_np=params_med_np()
 ) {
 
   # !!!!! Need to refactor with est_ce functions
-  # !!!!! Integrate params
 
   if (!(scale %in% c("RR", "VE"))) {
     stop("`scale` must equal one of c('RR', 'VE').")
@@ -73,25 +73,12 @@ est_med <- function(
     dat_orig <- dat$v
 
     # Set params
-    .default_params <- list(
-      # surv_type = "survML-G",
-      # surv_type = "Cox",
-      surv_type = "survSL",
-      density_type = "binning",
-      density_bins = 15,
-      # deriv_type = "m-spline",
-      # gamma_type = "Super Learner",
-      q_n_type = "zero" # standard
-    )
-
-    # for (i in c(1:length(.default_params))) {
-    #   p_name <- names(.default_params)[i]
-    #   if (is.null(params[[p_name]])) { params[[p_name]] <- .default_params[[i]] }
-    # }
-    # p <- params
-    p <- .default_params # !!!!! TEMP
-
-    grid_size <- list(y=101, s=101, x=5) # !!!!! TEMP
+    .default_params <- params_med_np()
+    for (i in c(1:length(.default_params))) {
+      p_name <- names(.default_params)[i]
+      if (is.null(params_np[[p_name]])) { params_np[[p_name]] <- .default_params[[i]] }
+    }
+    p <- params_np
 
     # Rescale S to lie in [0,1] and create rounded data object
     s_min <- min(dat_orig$s, na.rm=T)
@@ -99,8 +86,8 @@ est_med <- function(
     s_shift <- -1 * s_min
     s_scale <- 1/(s_max-s_min)
     dat_orig$s <- (dat_orig$s+s_shift)*s_scale
-    grid <- create_grid(dat_orig, grid_size, t_0)
-    dat_orig_rounded <- round_dat(dat_orig, grid, grid_size)
+    grid <- create_grid(dat_orig, p$grid_size, t_0)
+    dat_orig_rounded <- round_dat(dat_orig, grid, p$grid_size)
 
     # Prepare precomputation values for conditional survival estimator
     x_distinct <- dplyr::distinct(dat_orig_rounded$x)
@@ -220,7 +207,7 @@ est_med <- function(
 
         return(((1/risk_p)*if_edge-(r_Mn_edge_est/risk_p^2)*if_p)^2)
 
-      }))
+      }), na.rm=T) # na.rm included to avoid an issue where KM infl fn is NaN
       se_nde_est <- sqrt(sigma2_nde_est/(num_v+num_p))
       res[nrow(res)+1,] <- list("NDE2", nde_est, se_nde_est, 999, 999)
 
@@ -254,7 +241,7 @@ est_med <- function(
 
         return(((1/r_Mn_edge_est)*if_v-(risk_v/r_Mn_edge_est^2)*if_edge)^2)
 
-      }))
+      }), na.rm=T) # na.rm included to avoid an issue where KM infl fn is NaN
       nie_se <- sqrt(sigma2_nie_est/(num_v+num_p))
       nie_lo <- exp(log(nie_est)-1.96*(1/nie_est)*nie_se)
       nie_up <- exp(log(nie_est)+1.96*(1/nie_est)*nie_se)
@@ -297,7 +284,7 @@ est_med <- function(
 
         return((1/(log(rr))^2*(c_1*if_v+c_2*if_p+c_3*if_edge))^2)
 
-      }))
+      }), na.rm=T) # na.rm included to avoid an issue where KM infl fn is NaN
       pm_se <- sqrt(sigma2_pm_est/(num_v+num_p))
       pm_lo <- pm_est-1.96*pm_se
       pm_up <- pm_est+1.96*pm_se
