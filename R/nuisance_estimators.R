@@ -1107,3 +1107,28 @@ construct_tau_n <- function(deriv_r_Mn, gamma_n, f_sIx_n, g_zn,
 
 
 
+#' Construct Kaplan-Meier estimator
+#'
+#' @param dat2 Either dat$v or dat$p
+#' @return Kaplan-Meier function estimator
+#' @note Used by est_med()
+#' @noRd
+construct_km <- function(dat2) {
+  v <- sort(unique(dat2$y))
+  km <- function(t) {
+    v <- v[v<=t]
+    prod_km <- 1
+    for (v_j in v) {
+      num <- sum(dat2$delta*In(dat2$y==v_j))
+      den <- sum(In(v_j<=dat2$y))
+      prod_km <- prod_km*(1-num/den)
+    }
+    return(prod_km)
+  }
+
+  return(memoise2(km))
+
+}
+
+
+
