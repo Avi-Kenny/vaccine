@@ -34,6 +34,7 @@ est_np <- function(
   if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
 
   # Set params
+  # Make this returned by params_ce_np()
   .default_params <- list(
     surv_type = "survML-G",
     density_type = "binning",
@@ -480,7 +481,7 @@ est_np <- function(
     )
 
     # !!!!! TEMP
-    if (T) {
+    if (edge_corr) {
       res$extras$r_Mn_edge_est <- r_Mn_edge_est
       res$extras$r_Mn_0 <- r_Mn(0)
       res$extras$r_Mn_Gr_0 <- r_Mn_Gr(0)

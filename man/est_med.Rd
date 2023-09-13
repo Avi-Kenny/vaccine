@@ -4,7 +4,16 @@
 \alias{est_med}
 \title{Estimate mediation effects}
 \usage{
-est_med(dat, type = "NP", t_0, nde = TRUE, nie = TRUE, pm = TRUE, scale = "RR")
+est_med(
+  dat,
+  type = "NP",
+  t_0,
+  nde = TRUE,
+  nie = TRUE,
+  pm = TRUE,
+  scale = "RR",
+  params_np = params_med_np()
+)
 }
 \arguments{
 \item{dat}{A data object returned by load_data}
@@ -23,14 +32,15 @@ returned.}
 
 \item{pm}{Boolean. If TRUE, the proportion mediated is computed and returned.}
 
-\item{scale}{One of c("RR", "VE"). This determines whether estimates and CIs
-are computed on the risk ratio (RR) scale or the vaccine efficacy (VE)
-scale. The latter equals one minus the former.}
+\item{scale}{One of c("RR", "VE"). This determines whether NDE and NIE
+estimates and CIs are computed on the risk ratio (RR) scale or the
+vaccine efficacy (VE) scale. The latter equals one minus the former.}
 }
 \value{
 A dataframe containing the following columns: \itemize{
     \item{\code{effect}: one of c("NDE", "NIE", "PM")}
     \item{\code{est}: point estimate}
+    \item{\code{se}: standard error of point estimate}
     \item{\code{ci_lower}: a confidence interval lower limit}
     \item{\code{ci_upper}: a confidence interval upper limit}
 }
