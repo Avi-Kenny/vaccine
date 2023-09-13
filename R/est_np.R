@@ -270,14 +270,14 @@ est_np <- function(
         ind_edge <- In(r_Mn_edge_est<=ests_cr)
         ci_lo_cr <- ind_edge*pmin(ci_lo_cr,ci_lo_cr2) + (1-ind_edge)*ci_lo_cr
         ci_up_cr <- ind_edge*pmin(ci_up_cr,ci_up_cr2) + (1-ind_edge)*ci_up_cr
-        ci_lo_cr[1] <- ci_lo_cr2
-        ci_up_cr[1] <- ci_up_cr2
+        ci_lo_cr[1] <- ci_lo_cr2 # !!!!!
+        ci_up_cr[1] <- ci_up_cr2 # !!!!!
       } else {
         ind_edge <- In(r_Mn_edge_est>=ests_cr)
         ci_lo_cr <- ind_edge*pmax(ci_lo_cr,ci_lo_cr2) + (1-ind_edge)*ci_lo_cr
         ci_up_cr <- ind_edge*pmax(ci_up_cr,ci_up_cr2) + (1-ind_edge)*ci_up_cr
-        ci_lo_cr[1] <- ci_lo_cr2
-        ci_up_cr[1] <- ci_up_cr2
+        ci_lo_cr[1] <- ci_lo_cr2 # !!!!!
+        ci_up_cr[1] <- ci_up_cr2 # !!!!!
       }
 
     }
@@ -394,15 +394,19 @@ est_np <- function(
         }
 
         if (dir=="decr") {
-          res$cve$ci_lower <- ind_edge*pmax(res$cve$ci_lower,ci_lo_cve2) + (1-ind_edge)*res$cve$ci_lower
-          res$cve$ci_upper <- ind_edge*pmax(res$cve$ci_upper,ci_up_cve2) + (1-ind_edge)*res$cve$ci_upper
-          res$cve$ci_lower[1] <- ci_lo_cve2
-          res$cve$ci_upper[1] <- ci_up_cve2
+          res$cve$ci_lower <- ind_edge*pmax(res$cve$ci_lower,ci_lo_cve2) +
+            (1-ind_edge)*res$cve$ci_lower
+          res$cve$ci_upper <- ind_edge*pmax(res$cve$ci_upper,ci_up_cve2) +
+            (1-ind_edge)*res$cve$ci_upper
+          res$cve$ci_lower[1] <- ci_lo_cve2 # !!!!!
+          res$cve$ci_upper[1] <- ci_up_cve2 # !!!!!
         } else {
-          res$cve$ci_lower <- ind_edge*pmin(res$cve$ci_lower,ci_lo_cve2) + (1-ind_edge)*res$cve$ci_lower
-          res$cve$ci_upper <- ind_edge*pmin(res$cve$ci_upper,ci_up_cve2) + (1-ind_edge)*res$cve$ci_upper
-          res$cve$ci_lower[1] <- ci_lo_cve2
-          res$cve$ci_upper[1] <- ci_up_cve2
+          res$cve$ci_lower <- ind_edge*pmin(res$cve$ci_lower,ci_lo_cve2) +
+            (1-ind_edge)*res$cve$ci_lower
+          res$cve$ci_upper <- ind_edge*pmin(res$cve$ci_upper,ci_up_cve2) +
+            (1-ind_edge)*res$cve$ci_upper
+          res$cve$ci_lower[1] <- ci_lo_cve2 # !!!!!
+          res$cve$ci_upper[1] <- ci_up_cve2 # !!!!!
         }
 
       }
@@ -478,6 +482,8 @@ est_np <- function(
     # !!!!! TEMP
     if (T) {
       res$extras$r_Mn_edge_est <- r_Mn_edge_est
+      res$extras$r_Mn_0 <- r_Mn(0)
+      res$extras$r_Mn_Gr_0 <- r_Mn_Gr(0)
       res$extras$sigma2_edge_est <- sigma2_edge_est
       res$extras$risk_p <- risk_p
       res$extras$se_p <- se_p
