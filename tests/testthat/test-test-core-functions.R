@@ -41,3 +41,24 @@ test_that("est_overall (KM)", {
   expect_equal(ests_ve$ci_lower, -1.5666, tolerance=t)
   expect_equal(ests_ve$ci_upper, 0.2229498, tolerance=t)
 })
+
+ests <- est_overall(dat=dat, t_0=578, method="Cox")
+ests_risk_p <- ests[ests$stat=="risk" & ests$group=="placebo",]
+ests_risk_v <- ests[ests$stat=="risk" & ests$group=="vaccine",]
+ests_ve <- ests[ests$stat=="ve",]
+
+test_that("est_overall (Cox)", {
+  expect_equal(class(ests), c("data.frame", "vaccine_overall"))
+  expect_equal(ests_risk_p$est, 0.02938706, tolerance=t)
+  expect_equal(ests_risk_p$se, 0.006486545, tolerance=t)
+  expect_equal(ests_risk_p$ci_lower, 0.0190193, tolerance=t)
+  expect_equal(ests_risk_p$ci_upper, 0.04514638, tolerance=t)
+  expect_equal(ests_risk_v$est, 0.04177642, tolerance=t)
+  expect_equal(ests_risk_v$se, 0.008111679, tolerance=t)
+  expect_equal(ests_risk_v$ci_lower, 0.02847302, tolerance=t)
+  expect_equal(ests_risk_v$ci_upper, 0.06090588, tolerance=t)
+  expect_equal(ests_ve$est, -0.4215925, tolerance=t)
+  expect_equal(ests_ve$se, 0.4179152, tolerance=t)
+  expect_equal(ests_ve$ci_lower, -1.529375, tolerance=t)
+  expect_equal(ests_ve$ci_upper, 0.201018, tolerance=t)
+})
