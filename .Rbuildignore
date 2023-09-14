@@ -5,3 +5,4 @@
 ^R/scratch\.R$
 ^cran-comments\.md$
 ^CRAN-SUBMISSION$
+^\.github$
