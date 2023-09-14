@@ -16,6 +16,8 @@
 #' @param scale One of c("RR", "VE"). This determines whether NDE and NIE
 #'     estimates and CIs are computed on the risk ratio (RR) scale or the
 #'     vaccine efficacy (VE) scale. The latter equals one minus the former.
+#' @param params_np A list of options returned by \code{\link{params_med_np}}
+#'     that are relevant if type="NP".
 #' @return A dataframe containing the following columns: \itemize{
 #'     \item{\code{effect}: one of c("NDE", "NIE", "PM")}
 #'     \item{\code{est}: point estimate}
