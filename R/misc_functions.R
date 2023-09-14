@@ -294,37 +294,6 @@ apply2 <- function (X, MARGIN, FUN, ..., simplify=TRUE) {
 #' @noRd
 monotonize_cis <- function(ci_lo, ci_up, dir, type="regular") {
 
-  # !!!!!
-  if (F) {
-
-    # # Set 1
-    # dir <- "incr"
-    # # type <- "conservative"
-    # type <- "regular"
-    # ci_lo <- c(1.1, 1.3, 1.5, 1.2, 1.6, 1.8, 1.7, 2.0)
-    # ci_up <- c(2.1, 2.5, 2.4, 2.2, 2.6, 2.8, 2.9, 2.5)
-
-    # Set 2
-    dir <- "decr"
-    # type <- "conservative"
-    type <- "regular"
-    ci_lo <- rev(c(1.1, 1.3, 1.5, 1.2, 1.6, 1.8, 1.7, 2.0))
-    ci_up <- rev(c(2.1, 2.5, 2.4, 2.2, 2.6, 2.8, 2.9, 2.5))
-
-    ci_lo_orig <- ci_lo; ci_up_orig <- ci_up
-
-    df_plot <- data.frame(
-      x = rep(seq(1:8), 4),
-      y = c(ci_lo, ci_up, ci_lo_orig, ci_up_orig),
-      which = rep(c("lower", "upper", "lower", "upper"), each=8),
-      type = rep(c("updated", "old"), each=16)
-    )
-    ggplot(df_plot, aes(x=x, y=y, color=factor(which), linetype=type)) +
-      geom_line() +
-      labs(title=paste0(dir, "; ", type))
-
-  }
-
   # This helper function returns the "least nondecreasing majorant"
   lnm <- function(y) {
     val <- y[1]
