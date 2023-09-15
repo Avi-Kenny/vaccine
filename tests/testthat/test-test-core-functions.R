@@ -62,3 +62,18 @@ test_that("est_overall (Cox)", {
   expect_equal(ests_ve$ci_lower, -1.529375, tolerance=t)
   expect_equal(ests_ve$ci_upper, 0.201018, tolerance=t)
 })
+
+test_that("est_overall (error handling)", {
+  expect_error(
+    est_overall(dat=list(), t_0=578, method="KM"),
+    paste0("`dat` must be an object of class 'vaccine_dat' returned by load_da",
+           "ta().")
+  )
+})
+
+test_that("est_overall (error handling)", {
+  expect_error(
+    est_overall(dat=dat, t_0=578, method="hey"),
+    "`method` must equal either 'Cox' or 'KM'."
+  )
+})
