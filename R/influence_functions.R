@@ -44,10 +44,10 @@ construct_km_infl_fn <- function(dat_combined, which) {
   PA1 <- num_v/(num_v+num_p)
 
   if (which=="placebo") {
-    dat2 <- dat_combined <- dat_combined[dat_combined$a==0,]
+    dat2 <- dat_combined[dat_combined$a==0,]
     prob <- 1-PA1
   } else if (which=="vaccine") {
-    dat2 <- dat_combined <- dat_combined[dat_combined$a==1,]
+    dat2 <- dat_combined[dat_combined$a==1,]
     prob <- PA1
   } else (
     stop("`which` must equal one of c('vaccine','placebo')")
