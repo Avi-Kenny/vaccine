@@ -193,7 +193,7 @@ est_med <- function(
       Q_noS_n <- srvSL_p$srv
       Qc_noS_n <- srvSL_p$cens
       omega_noS_n <- construct_omega_noS_n(Q_noS_n, Qc_noS_n, t_0, grid)
-      r_Mn_p3 <- risk_overall_np_p(dat_p_copy, dim_x, Q_noS_n,
+      risk_p_est <- risk_overall_np_p(dat_p_copy, dim_x, Q_noS_n,
                                    omega_noS_n, t_0)
       prob <- 1 - mean(dat_combined$a)
       infl_fn_risk_p <- construct_infl_fn_risk_p(dat_p_copy, Q_noS_n, # NEW
@@ -218,33 +218,33 @@ est_med <- function(
         }
       })
 
-      r_Mn_v3 <- risk_overall_np_v(dat_orig, g_n, Q_n, omega_n, f_n_srv,
+      risk_v_est <- risk_overall_np_v(dat_orig, g_n, Q_n, omega_n, f_n_srv,
                                    q_tilde_n, t_0)
       infl_fn_risk_v <- construct_infl_fn_risk_v(dat_orig, Q_n, g_n, omega_n,
                                                  q_tilde_n, t_0, 1-prob)
 
-      nde_est_v3 <- r_Mn_edge_est/r_Mn_p3
-      sigma2_nde_est_v3 <- mean(apply(dat_combined, 1, function(r) {
+      nde_est <- r_Mn_edge_est/risk_p_est
+      sigma2_nde_est <- mean(apply(dat_combined, 1, function(r) {
 
         x <- as.numeric(r[1:dim_x])
         if_p <- infl_fn_risk_p(r[["a"]], r[["delta"]], r[["y"]], x)
         if_edge <- infl_fn_edge_2(r[["a"]], r[["z"]], r[["weights"]], r[["s"]], x, r[["y"]], r[["delta"]])
 
-        return(((1/r_Mn_p3)*if_edge-(r_Mn_edge_est/r_Mn_p3^2)*if_p)^2)
+        return(((1/risk_p_est)*if_edge-(r_Mn_edge_est/risk_p_est^2)*if_p)^2)
 
       }), na.rm=T) # na.rm included to avoid an issue where KM infl fn is NaN
-      se_nde_est_v3 <- sqrt(sigma2_nde_est_v3/(num_v+num_p))
-      nde_lo_v3 <- exp(log(nde_est_v3)-1.96*(1/nde_est_v3)*se_nde_est_v3)
-      nde_up_v3 <- exp(log(nde_est_v3)+1.96*(1/nde_est_v3)*se_nde_est_v3)
-      res[nrow(res)+1,] <- list("NDE v3", nde_est_v3, se_nde_est_v3, nde_lo_v3, nde_up_v3) # !!!!!
+      nde_se <- sqrt(sigma2_nde_est/(num_v+num_p))
+      nde_lo <- exp(log(nde_est)-1.96*(1/nde_est)*nde_se)
+      nde_up <- exp(log(nde_est)+1.96*(1/nde_est)*nde_se)
+      res[nrow(res)+1,] <- list("NDE", nde_est, nde_se, nde_lo, nde_up)
 
     }
 
     # Calculate NIE
     if (nie) {
 
-      nie_est_v3 <- r_Mn_v3/r_Mn_edge_est
-      sigma2_nie_est_v3 <- mean(apply(dat_combined, 1, function(r) {
+      nie_est <- risk_v_est/r_Mn_edge_est
+      sigma2_nie_est <- mean(apply(dat_combined, 1, function(r) {
 
         x <- as.numeric(r[1:dim_x])
         if_v <- infl_fn_risk_v(a=r[["a"]], z=r[["z"]], weight=r[["weights"]],
@@ -252,25 +252,25 @@ est_med <- function(
                                delta=r[["delta"]])
         if_edge <- infl_fn_edge_2(r[["a"]], r[["z"]], r[["weights"]], r[["s"]], x, r[["y"]], r[["delta"]])
 
-        return(((1/r_Mn_edge_est)*if_v-(r_Mn_v3/r_Mn_edge_est^2)*if_edge)^2)
+        return(((1/r_Mn_edge_est)*if_v-(risk_v_est/r_Mn_edge_est^2)*if_edge)^2)
 
       }), na.rm=T) # na.rm included to avoid an issue where KM infl fn is NaN
-      nie_se_v3 <- sqrt(sigma2_nie_est_v3/(num_v+num_p))
-      nie_lo_v3 <- exp(log(nie_est_v3)-1.96*(1/nie_est_v3)*nie_se_v3)
-      nie_up_v3 <- exp(log(nie_est_v3)+1.96*(1/nie_est_v3)*nie_se_v3)
-      res[nrow(res)+1,] <- list("NIE v3", nie_est_v3, nie_se_v3, nie_lo_v3, nie_up_v3)
+      nie_se <- sqrt(sigma2_nie_est/(num_v+num_p))
+      nie_lo <- exp(log(nie_est)-1.96*(1/nie_est)*nie_se)
+      nie_up <- exp(log(nie_est)+1.96*(1/nie_est)*nie_se)
+      res[nrow(res)+1,] <- list("NIE", nie_est, nie_se, nie_lo, nie_up)
 
     }
 
     # Calculate PM
     if (pm) {
 
-      pm_est_v3 <- 1 - (log(r_Mn_edge_est/r_Mn_p3) / log(r_Mn_v3/r_Mn_p3))
-      sigma2_pm_est_v3 <- mean(apply(dat_combined, 1, function(r) {
+      pm_est <- 1 - (log(r_Mn_edge_est/risk_p_est) / log(risk_v_est/risk_p_est))
+      sigma2_pm_est <- mean(apply(dat_combined, 1, function(r) {
 
-        rr <- r_Mn_v3/r_Mn_p3
-        c_1 <- log(r_Mn_edge_est/r_Mn_p3) / r_Mn_v3
-        c_2 <- log(r_Mn_v3/r_Mn_edge_est) / r_Mn_p3
+        rr <- risk_v_est/risk_p_est
+        c_1 <- log(r_Mn_edge_est/risk_p_est) / risk_v_est
+        c_2 <- log(risk_v_est/r_Mn_edge_est) / risk_p_est
         c_3 <- (-1*log(rr)) / r_Mn_edge_est
 
         x <- as.numeric(r[1:dim_x])
@@ -283,28 +283,28 @@ est_med <- function(
         return((1/(log(rr))^2*(c_1*if_v+c_2*if_p+c_3*if_edge))^2)
 
       }), na.rm=T) # na.rm included to avoid an issue where KM infl fn is NaN
-      pm_se_v3 <- sqrt(sigma2_pm_est_v3/(num_v+num_p))
-      pm_lo_v3 <- pm_est_v3-1.96*pm_se_v3
-      pm_up_v3 <- pm_est_v3+1.96*pm_se_v3
-      res[nrow(res)+1,] <- list("PM v3", pm_est_v3, pm_se_v3, pm_lo_v3, pm_up_v3)
+      pm_se <- sqrt(sigma2_pm_est/(num_v+num_p))
+      pm_lo <- pm_est-1.96*pm_se
+      pm_up <- pm_est+1.96*pm_se
+      res[nrow(res)+1,] <- list("PM", pm_est, pm_se, pm_lo, pm_up)
 
     }
 
     if (scale=="VE") {
 
       # NDE
-      res[res$effect=="NDE v3","est"] <- 1 - res[res$effect=="NDE v3","est"]
-      res_lo_old <- res[res$effect=="NDE v3","ci_lower"]
-      res_up_old <- res[res$effect=="NDE v3","ci_upper"]
-      res[res$effect=="NDE v3","ci_lower"] <- 1 - res_up_old
-      res[res$effect=="NDE v3","ci_upper"] <- 1 - res_lo_old
+      res[res$effect=="NDE","est"] <- 1 - res[res$effect=="NDE","est"]
+      res_lo_old <- res[res$effect=="NDE","ci_lower"]
+      res_up_old <- res[res$effect=="NDE","ci_upper"]
+      res[res$effect=="NDE","ci_lower"] <- 1 - res_up_old
+      res[res$effect=="NDE","ci_upper"] <- 1 - res_lo_old
 
       # NIE
-      res[res$effect=="NIE v3","est"] <- 1 - res[res$effect=="NIE v3","est"]
-      res_lo_old <- res[res$effect=="NIE v3","ci_lower"]
-      res_up_old <- res[res$effect=="NIE v3","ci_upper"]
-      res[res$effect=="NIE v3","ci_lower"] <- 1 - res_up_old
-      res[res$effect=="NIE v3","ci_upper"] <- 1 - res_lo_old
+      res[res$effect=="NIE","est"] <- 1 - res[res$effect=="NIE","est"]
+      res_lo_old <- res[res$effect=="NIE","ci_lower"]
+      res_up_old <- res[res$effect=="NIE","ci_upper"]
+      res[res$effect=="NIE","ci_lower"] <- 1 - res_up_old
+      res[res$effect=="NIE","ci_upper"] <- 1 - res_lo_old
 
     }
 
