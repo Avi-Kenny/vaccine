@@ -106,9 +106,7 @@ est_med <- function(
     dat <- ss(dat_orig_rounded, which(dat_orig_rounded$z==1)) # !!!!! uses the `dat` name again; change
 
     # Fit conditional survival estimator
-    print("check 1")
     srvSL <- construct_Q_n(p$surv_type, dat, vals)
-    print("check 2")
     Q_n <- srvSL$srv
     Qc_n <- srvSL$cens
 
@@ -125,7 +123,6 @@ est_med <- function(
     # Compute edge-corrected estimator and standard error
     n_orig <- attr(dat_orig, "n_orig")
     p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
-    print(paste0("Percent of mass at edge: ", round(100*(1-p_n),1), "%")) # !!!!! TEMP
     g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
     r_Mn_edge_est <- r_Mn_edge(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0)
     r_Mn_edge_est <- min(max(r_Mn_edge_est, 0), 1)
@@ -151,14 +148,7 @@ est_med <- function(
     # Create necessary objects and functions
     {
 
-      ov <- est_overall(dat=dat_copy, t_0=t_0, method="KM", ve=F)
-      risk_p <- ov[ov$group=="placebo","est"]
-      risk_v <- ov[ov$group=="vaccine","est"]
-      se_p <- ov[ov$group=="placebo","se"] # This equals sd_p/n_orig
-      se_v <- ov[ov$group=="vaccine","se"] # This equals sd_v/n_orig
-
       # !!!!! Temporary until data is restructured
-      # dat_v_copy <- dat_copy$v
       dat_orig_rounded_p <- round_dat(dat_copy$p, grid, p$grid_size)
       dat_v_copy <- dat_orig # !!!!! Changed; now using rounded data values
       dat_p_copy <- dat_orig_rounded_p
@@ -178,9 +168,6 @@ est_med <- function(
         z = c(dat_v_copy$z,dat_p_copy$z)
       )
 
-      infl_fn_km_v <- construct_km_infl_fn(dat_combined, which="vaccine") # OLD
-      infl_fn_km_p <- construct_km_infl_fn(dat_combined, which="placebo") # OLD
-
       infl_fn_edge_2 <- function(a,z,weights,s,x,y,delta) {
         if (a==0) {
           return(0)
@@ -194,121 +181,49 @@ est_med <- function(
     # Calculate NDE
     if (nde) {
 
-      # !!!! TEMP RESTRUCTURE
-      if (T) {
+      x_distinct_p <- dplyr::distinct(dat_p_copy$x)
+      x_distinct_p <- cbind("x_index"=c(1:nrow(x_distinct_p)), x_distinct_p)
+      vals_p_pre <- expand.grid(t=grid$y, x_index=x_distinct_p$x_index)
+      vals_p_pre <- dplyr::inner_join(vals_p_pre, x_distinct_p, by="x_index")
+      vals_p <- list(
+        t = vals_p_pre$t,
+        x = subset(vals_p_pre, select=names(dat_p_copy$x))
+      )
+      srvSL_p <- construct_Q_noS_n(type="survSL", dat_p_copy, vals_p)
+      Q_noS_n <- srvSL_p$srv
+      Qc_noS_n <- srvSL_p$cens
+      omega_noS_n <- construct_omega_noS_n(Q_noS_n, Qc_noS_n, t_0, grid)
+      r_Mn_p3 <- risk_overall_np_p(dat_p_copy, dim_x, Q_noS_n,
+                                   omega_noS_n, t_0)
+      prob <- 1 - mean(dat_combined$a)
+      infl_fn_risk_p <- construct_infl_fn_risk_p(dat_p_copy, Q_noS_n, # NEW
+                                                 omega_noS_n, dim_x, t_0,
+                                                 prob) # NEW
 
-        # !!!!! TEMP; new risk estimators
-        x_distinct <- dplyr::distinct(dat_p_copy$x)
-        x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
-        vals_pre <- expand.grid(t=grid$y, x_index=x_distinct$x_index)
-        vals_pre <- dplyr::inner_join(vals_pre, x_distinct, by="x_index")
-        vals <- list(
-          t = vals_pre$t,
-          x = subset(vals_pre, select=names(dat_p_copy$x))
-        )
-        print("check 3")
-        srvSL_p <- construct_Q_noS_n(type="survSL", dat_p_copy, vals)
-        print("check 4")
-        Q_noS_n <- srvSL_p$srv
-        Qc_noS_n <- srvSL_p$cens
-        omega_noS_n <- construct_omega_noS_n(Q_noS_n, Qc_noS_n, t_0, grid)
-        print("check 5 (before r_Mn_p3)")
-        print(Sys.time())
-        r_Mn_p3 <- risk_overall_np_p(dat_p_copy, dim_x, Q_noS_n,
-                                     omega_noS_n, t_0)
-        prob <- 1 - mean(dat_combined$a)
-        infl_fn_risk_p <- construct_infl_fn_risk_p(dat_p_copy, Q_noS_n, # NEW
-                                                   omega_noS_n, dim_x, t_0,
-                                                   prob) # NEW
-        print("check 6 (after r_Mn_p3; before r_Mn_v3)")
-        print(Sys.time())
+      dat_orig_df_short <- dat_orig_df[dat_orig_df$z==1,]
 
-        dat_orig_df_short <- dat_orig_df[dat_orig_df$z==1,]
-        q_tilde_n <- memoise2(function(x,y,delta) {
-          # !!!!! Replace with sapply
-          num <- sum(apply(dat_orig_df_short, 1, function(r) {
-            r[["weights"]] * (omega_n(x,r[["s"]],y,delta)-Q_n(t_0,x,r[["s"]])) *
-              f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
-          }))
-          den <- sum(apply(dat_orig_df_short, 1, function(r) {
-            r[["weights"]] * f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
-          }))
-          if (den==0) {
-            return(0)
-          } else {
-            return(num/den)
-          }
-        })
-
-        r_Mn_v3 <- risk_overall_np_v(dat_orig, g_n, Q_n, omega_n, f_n_srv,
-                                     q_tilde_n, t_0)
-        infl_fn_risk_v <- construct_infl_fn_risk_v(dat_orig, Q_n, g_n, omega_n,
-                                                   q_tilde_n, t_0, 1-prob)
-        print("check 7 (after r_Mn_v3)")
-        print(Sys.time())
-        print("r_Mn_v3")
-        print(r_Mn_v3)
-        print("r_Mn_p3")
-        print(r_Mn_p3)
-
-        # !!!!! Special checks
-        if (T) {
-
-          sigma2_if_v_v3 <- mean(apply(dat_combined, 1, function(r) {
-            x <- as.numeric(r[1:dim_x])
-            if_v <- infl_fn_risk_v(a=r[["a"]], z=r[["z"]], weight=r[["weights"]],
-                                   s=r[["s"]], x=x, y=r[["y"]],
-                                   delta=r[["delta"]])
-            return(if_v^2)
-          }), na.rm=T)
-          sigma2_if_p_v3 <- mean(apply(dat_combined, 1, function(r) {
-            x <- as.numeric(r[1:dim_x])
-            if_p <- infl_fn_risk_p(r[["a"]], r[["delta"]], r[["y"]], x)
-            return(if_p^2)
-          }), na.rm=T)
-          se_v_v3 <- sqrt(sigma2_if_v_v3/(num_v+num_p))
-          se_p_v3 <- sqrt(sigma2_if_p_v3/(num_v+num_p))
-          res[nrow(res)+1,] <- list("Risk v3 V", r_Mn_v3, se_v_v3, 999, 999)
-          res[nrow(res)+1,] <- list("Risk v3 P", r_Mn_p3, se_p_v3, 999, 999)
-
+      q_tilde_n <- memoise2(function(x,y,delta) {
+        # !!!!! Replace with sapply
+        num <- sum(apply(dat_orig_df_short, 1, function(r) {
+          r[["weights"]] * (omega_n(x,r[["s"]],y,delta)-Q_n(t_0,x,r[["s"]])) *
+            f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
+        }))
+        den <- sum(apply(dat_orig_df_short, 1, function(r) {
+          r[["weights"]] * f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
+        }))
+        if (den==0) {
+          return(0)
+        } else {
+          return(num/den)
         }
+      })
 
+      r_Mn_v3 <- risk_overall_np_v(dat_orig, g_n, Q_n, omega_n, f_n_srv,
+                                   q_tilde_n, t_0)
+      infl_fn_risk_v <- construct_infl_fn_risk_v(dat_orig, Q_n, g_n, omega_n,
+                                                 q_tilde_n, t_0, 1-prob)
 
-      }
-
-      nde_est <- r_Mn_edge_est/risk_p
-      nde_se <- sqrt(r_Mn_edge_est^2*se_p^2/risk_p^4 + se_edge_est^2/risk_p^2)
-      nde_lo <- exp(log(nde_est)-1.96*(1/nde_est)*nde_se)
-      nde_up <- exp(log(nde_est)+1.96*(1/nde_est)*nde_se)
-      res[nrow(res)+1,] <- list("NDE", nde_est, nde_se, nde_lo, nde_up)
-
-      # !!!!! TEMP; for comparison (but maybe keep this one instead for consistency)
-      print("check 8")
-      sigma2_nde_est <- mean(apply(dat_combined, 1, function(r) {
-
-        if_p <- infl_fn_km_p(A_i=r[["a"]],Delta_i=r[["delta"]], Y_i=r[["y"]],
-                             t=t_0)
-        if_edge <- infl_fn_edge_2(a=r[["a"]], r[["z"]], r[["weights"]],
-                                  r[["s"]], as.numeric(r[1:dim_x]), r[["y"]],
-                                  r[["delta"]])
-
-        return(((1/risk_p)*if_edge-(r_Mn_edge_est/risk_p^2)*if_p)^2)
-
-      }), na.rm=T) # na.rm included to avoid an issue where KM infl fn is NaN
-      print("check 9")
-      se_nde_est <- sqrt(sigma2_nde_est/(num_v+num_p))
-      res[nrow(res)+1,] <- list("NDE2", nde_est, se_nde_est, 999, 999)
-
-      # !!!!! TEMP; return additional values
-      ov2 <- est_overall(dat=dat_copy, t_0=t_0, method="Cox", ve=F)
-      risk_p2 <- ov2[ov2$group=="placebo","est"]
-      risk_se2 <- ov2[ov2$group=="placebo","se"]
-      res[nrow(res)+1,] <- list("Risk_p", risk_p, se_p, 999, 999)
-      res[nrow(res)+1,] <- list("Risk_p (Cox)", risk_p2, risk_se2, 999, 999)
-      res[nrow(res)+1,] <- list("Risk_v", risk_v, se_v, 999, 999)
-      res[nrow(res)+1,] <- list("CR(0)", r_Mn_edge_est, 999, 999, 999)
-      print("check 10")
-
+      nde_est_v3 <- r_Mn_edge_est/r_Mn_p3
       sigma2_nde_est_v3 <- mean(apply(dat_combined, 1, function(r) {
 
         x <- as.numeric(r[1:dim_x])
@@ -318,36 +233,17 @@ est_med <- function(
         return(((1/r_Mn_p3)*if_edge-(r_Mn_edge_est/r_Mn_p3^2)*if_p)^2)
 
       }), na.rm=T) # na.rm included to avoid an issue where KM infl fn is NaN
-      print("check 11")
-      nde_est_v3 <- r_Mn_edge_est/r_Mn_p3
       se_nde_est_v3 <- sqrt(sigma2_nde_est_v3/(num_v+num_p))
       nde_lo_v3 <- exp(log(nde_est_v3)-1.96*(1/nde_est_v3)*se_nde_est_v3)
       nde_up_v3 <- exp(log(nde_est_v3)+1.96*(1/nde_est_v3)*se_nde_est_v3)
-      res[nrow(res)+1,] <- list("NDE v3", nde_est_v3, se_nde_est_v3,
-                                nde_lo_v3, nde_up_v3) # !!!!!
-      print("check 12")
+      res[nrow(res)+1,] <- list("NDE v3", nde_est_v3, se_nde_est_v3, nde_lo_v3, nde_up_v3) # !!!!!
 
     }
 
     # Calculate NIE
     if (nie) {
 
-      nie_est <- risk_v/r_Mn_edge_est
-      sigma2_nie_est <- mean(apply(dat_combined, 1, function(r) {
-
-        x <- as.numeric(r[1:dim_x])
-        if_v <- infl_fn_km_v(A_i=r[["a"]], Delta_i=r[["delta"]], Y_i=r[["y"]], t=t_0)
-        if_edge <- infl_fn_edge_2(r[["a"]], r[["z"]], r[["weights"]], r[["s"]], x, r[["y"]], r[["delta"]])
-
-        return(((1/r_Mn_edge_est)*if_v-(risk_v/r_Mn_edge_est^2)*if_edge)^2)
-
-      }), na.rm=T) # na.rm included to avoid an issue where KM infl fn is NaN
-      nie_se <- sqrt(sigma2_nie_est/(num_v+num_p))
-      nie_lo <- exp(log(nie_est)-1.96*(1/nie_est)*nie_se)
-      nie_up <- exp(log(nie_est)+1.96*(1/nie_est)*nie_se)
-      res[nrow(res)+1,] <- list("NIE", nie_est, nie_se, nie_lo, nie_up)
-      print("check 13")
-
+      nie_est_v3 <- r_Mn_v3/r_Mn_edge_est
       sigma2_nie_est_v3 <- mean(apply(dat_combined, 1, function(r) {
 
         x <- as.numeric(r[1:dim_x])
@@ -359,43 +255,17 @@ est_med <- function(
         return(((1/r_Mn_edge_est)*if_v-(r_Mn_v3/r_Mn_edge_est^2)*if_edge)^2)
 
       }), na.rm=T) # na.rm included to avoid an issue where KM infl fn is NaN
-      print("check 14")
-      nie_est_v3 <- r_Mn_v3/r_Mn_edge_est
       nie_se_v3 <- sqrt(sigma2_nie_est_v3/(num_v+num_p))
       nie_lo_v3 <- exp(log(nie_est_v3)-1.96*(1/nie_est_v3)*nie_se_v3)
       nie_up_v3 <- exp(log(nie_est_v3)+1.96*(1/nie_est_v3)*nie_se_v3)
-      res[nrow(res)+1,] <- list("NIE v3", nie_est_v3, nie_se_v3, nie_lo_v3, nie_up_v3) # !!!!!
+      res[nrow(res)+1,] <- list("NIE v3", nie_est_v3, nie_se_v3, nie_lo_v3, nie_up_v3)
 
     }
 
     # Calculate PM
     if (pm) {
 
-      pm_est <- 1 - (log(r_Mn_edge_est/risk_p) / log(risk_v/risk_p))
-      print("check 15")
-      sigma2_pm_est <- mean(apply(dat_combined, 1, function(r) {
-
-        rr <- risk_v/risk_p
-        c_1 <- log(r_Mn_edge_est/risk_p) / risk_v
-        c_2 <- log(risk_v/r_Mn_edge_est) / risk_p
-        c_3 <- (-1*log(rr)) / r_Mn_edge_est
-
-        x <- as.numeric(r[1:dim_x])
-        if_v <- infl_fn_km_v(A_i=r[["a"]], Delta_i=r[["delta"]], Y_i=r[["y"]], t=t_0)
-        if_p <- infl_fn_km_p(A_i=r[["a"]], Delta_i=r[["delta"]], Y_i=r[["y"]], t=t_0)
-        if_edge <- infl_fn_edge_2(r[["a"]], r[["z"]], r[["weights"]], r[["s"]], x, r[["y"]], r[["delta"]])
-
-        return((1/(log(rr))^2*(c_1*if_v+c_2*if_p+c_3*if_edge))^2)
-
-      }), na.rm=T) # na.rm included to avoid an issue where KM infl fn is NaN
-      print("check 16")
-      pm_se <- sqrt(sigma2_pm_est/(num_v+num_p))
-      pm_lo <- pm_est-1.96*pm_se
-      pm_up <- pm_est+1.96*pm_se
-      res[nrow(res)+1,] <- list("PM", pm_est, pm_se, pm_lo, pm_up)
-
       pm_est_v3 <- 1 - (log(r_Mn_edge_est/r_Mn_p3) / log(r_Mn_v3/r_Mn_p3))
-      print("check 17")
       sigma2_pm_est_v3 <- mean(apply(dat_combined, 1, function(r) {
 
         rr <- r_Mn_v3/r_Mn_p3
@@ -416,49 +286,25 @@ est_med <- function(
       pm_se_v3 <- sqrt(sigma2_pm_est_v3/(num_v+num_p))
       pm_lo_v3 <- pm_est_v3-1.96*pm_se_v3
       pm_up_v3 <- pm_est_v3+1.96*pm_se_v3
-      res[nrow(res)+1,] <- list("PM v3", pm_est_v3, pm_se_v3, pm_lo_v3, pm_up_v3) # !!!!!
-      print("check 18")
+      res[nrow(res)+1,] <- list("PM v3", pm_est_v3, pm_se_v3, pm_lo_v3, pm_up_v3)
 
     }
 
     if (scale=="VE") {
 
       # NDE
-      res[res$effect=="NDE","est"] <- 1 - res[res$effect=="NDE","est"]
-      res_lo_old <- res[res$effect=="NDE","ci_lower"]
-      res_up_old <- res[res$effect=="NDE","ci_upper"]
-      res[res$effect=="NDE","ci_lower"] <- 1 - res_up_old
-      res[res$effect=="NDE","ci_upper"] <- 1 - res_lo_old
+      res[res$effect=="NDE v3","est"] <- 1 - res[res$effect=="NDE v3","est"]
+      res_lo_old <- res[res$effect=="NDE v3","ci_lower"]
+      res_up_old <- res[res$effect=="NDE v3","ci_upper"]
+      res[res$effect=="NDE v3","ci_lower"] <- 1 - res_up_old
+      res[res$effect=="NDE v3","ci_upper"] <- 1 - res_lo_old
 
       # NIE
-      res[res$effect=="NIE","est"] <- 1 - res[res$effect=="NIE","est"]
-      res_lo_old <- res[res$effect=="NIE","ci_lower"]
-      res_up_old <- res[res$effect=="NIE","ci_upper"]
-      res[res$effect=="NIE","ci_lower"] <- 1 - res_up_old
-      res[res$effect=="NIE","ci_upper"] <- 1 - res_lo_old
-
-      # !!!!! TEMP
-      print("check 19")
-      if (T) {
-        res[res$effect=="NDE2","est"] <- 1 - res[res$effect=="NDE2","est"]
-        res_lo_old <- res[res$effect=="NDE2","ci_lower"]
-        res_up_old <- res[res$effect=="NDE2","ci_upper"]
-        res[res$effect=="NDE2","ci_lower"] <- 1 - res_up_old
-        res[res$effect=="NDE2","ci_upper"] <- 1 - res_lo_old
-
-        res[res$effect=="NDE v3","est"] <- 1 - res[res$effect=="NDE v3","est"]
-        res_lo_old <- res[res$effect=="NDE v3","ci_lower"]
-        res_up_old <- res[res$effect=="NDE v3","ci_upper"]
-        res[res$effect=="NDE v3","ci_lower"] <- 1 - res_up_old
-        res[res$effect=="NDE v3","ci_upper"] <- 1 - res_lo_old
-
-        res[res$effect=="NIE v3","est"] <- 1 - res[res$effect=="NIE v3","est"]
-        res_lo_old <- res[res$effect=="NIE v3","ci_lower"]
-        res_up_old <- res[res$effect=="NIE v3","ci_upper"]
-        res[res$effect=="NIE v3","ci_lower"] <- 1 - res_up_old
-        res[res$effect=="NIE v3","ci_upper"] <- 1 - res_lo_old
-
-      }
+      res[res$effect=="NIE v3","est"] <- 1 - res[res$effect=="NIE v3","est"]
+      res_lo_old <- res[res$effect=="NIE v3","ci_lower"]
+      res_up_old <- res[res$effect=="NIE v3","ci_upper"]
+      res[res$effect=="NIE v3","ci_lower"] <- 1 - res_up_old
+      res[res$effect=="NIE v3","ci_upper"] <- 1 - res_lo_old
 
     }
 
