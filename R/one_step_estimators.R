@@ -43,7 +43,7 @@ construct_Gamma_os_n <- function(dat, dat_orig, omega_n, g_n, q_n, r_tilde_Mn) {
 
 
 
-#' Compute one-step estimator of counterfactual survival at S=0
+#' Compute one-step estimator of counterfactual risk at S=0
 #'
 #' @param dat Subsample of dataset returned by ss() for which z==1
 #' @param g_sn Propensity score estimator returned by construct_g_sn()
@@ -84,3 +84,68 @@ r_Mn_edge <- function(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0) {
 
 
 
+#' Compute one-step estimator of overall risk (vaccine group)
+#'
+#' @param TODO TO DO
+#' @return Value of one-step estimator
+#' @noRd
+risk_overall_np_v <- function(dat_orig, g_n, Q_n, omega_n, f_n_srv, q_tilde_n,
+                              t_0) {
+
+  # !!!!! Port to est_overall
+
+  n_orig <- attr(dat_orig, "n_orig")
+  dim_x <- attr(dat_orig, "dim_x")
+  dat_orig_df <- as_df(dat_orig)
+
+  v <- (1/n_orig) * sum(apply(dat_orig_df, 1, function(r) {
+
+    y <- r[["y"]]
+    delta <- r[["delta"]]
+    z <- r[["z"]]
+    x <- as.numeric(r[1:dim_x])
+    if (z==0) {
+      s <- 0
+      pi_ <- 1
+    } else {
+      s <- r[["s"]]
+      pi_ <- 1/r[["weights"]]
+    }
+
+    val <- (z/pi_)*(omega_n(x,s,y,delta)-Q_n(t_0,x,s)) + # !!!!! New
+      (1-z/pi_)*q_tilde_n(x,y,delta) # !!!!! New
+    return(val)
+
+  }))
+
+  return(1+v)
+
+}
+
+
+
+#' Compute one-step estimator of overall risk (placebo group)
+#'
+#' @param TODO TO DO
+#' @return Value of one-step estimator
+#' @noRd
+risk_overall_np_p <- function(dat_orig_rounded_p, dim_x, Q_noS_n, omega_noS_n, t_0) {
+
+  # !!!!! Temporary
+  df_p <- cbind(dat_orig_rounded_p$x,
+                y = dat_orig_rounded_p$y,
+                delta = dat_orig_rounded_p$delta)
+
+  # !!!!! Port to est_overall
+
+  n_orig <- nrow(df_p)
+  # dat_orig_df <- as_df(dat_orig)
+
+  v <- (1/n_orig) * sum(apply(df_p, 1, function(r) {
+    x <- as.numeric(r[1:dim_x])
+    omega_noS_n(x,r[["y"]],r[["delta"]])-Q_noS_n(t_0,x)
+  }))
+
+  return(1+v)
+
+}

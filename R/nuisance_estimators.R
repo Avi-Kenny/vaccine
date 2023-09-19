@@ -2,9 +2,9 @@
 
 #' Construct conditional survival estimator Q_n
 #'
+#' @param type One of c("true", "Cox", "Random Forest", "Super Learner")
 #' @param dat Subsample of dataset returned by `ss` for which z==1
 #' @param vals List of values to pre-compute function on; REQUIRED FOR SUPERLEARNER
-#' @param type One of c("true", "Cox", "Random Forest", "Super Learner")
 #' @param return_model Logical; if TRUE, return the model object instead of the
 #'     function
 #' @param print_coeffs Logical; if TRUE, print the algorithm coefficients for
@@ -40,7 +40,6 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
         return(1)
       } else {
         Lambda_t <- bh_srv$hazard[which.min(abs(bh_srv$time-t))]
-        # Lambda_t <- bh_srv$hazard[max(which((bh_srv$time<t)==T))] # This version sometimes throws an error
         return(exp(-1*Lambda_t*exp(sum(coeffs_srv*as.numeric(c(x,s))))))
       }
     }
@@ -50,7 +49,6 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
         return(1)
       } else {
         Lambda_t <- bh_cens$hazard[which.min(abs(bh_cens$time-t))]
-        # Lambda_t <- bh_cens$hazard[max(which((bh_cens$time<t)==T))] # This version sometimes throws an error
         return(exp(-1*Lambda_t*exp(sum(coeffs_cens*as.numeric(c(x,s))))))
       }
     }
@@ -157,7 +155,9 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
         stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
                     paste(x,collapse=","),"),s=",s,""))
       }
-      return(cens_pred[row,col])
+      # return(cens_pred[row,col])
+      return(max(cens_pred[row,col], 0.001)) # !!!!! Correction to prevent unreasonably small probabilities
+
     }
 
   }
@@ -258,7 +258,8 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
         stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
                     paste(x,collapse=","),"),s=",s,""))
       }
-      return(cens_pred[row,col])
+      # return(cens_pred[row,col])
+      return(max(cens_pred[row,col], 0.001)) # !!!!! Correction to prevent unreasonably small probabilities
     }
 
   }
@@ -270,6 +271,124 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
     sfnc_srv <- memoise2(fnc_srv)
     sfnc_cens <- memoise2(fnc_cens)
   }
+  rm("vals", envir=environment(get("fnc_srv",envir=environment(sfnc_srv))))
+
+  return(list(srv=sfnc_srv, cens=sfnc_cens))
+
+}
+
+
+
+#' Construct conditional survival estimator Q_n
+#'
+#' @param type One of c("true", "Cox", "Random Forest", "Super Learner")
+#' @param dat Subsample of dataset returned by `ss` for which z==1
+#' @param vals List of values to pre-compute function on; REQUIRED FOR SUPERLEARNER
+#' @param return_model Logical; if TRUE, return the model object instead of the
+#'     function
+#' @param print_coeffs Logical; if TRUE, print the algorithm coefficients for
+#'     the conditional survival and censoring functions (applicable only if
+#'     type=="Super Learner")
+#' @return Conditional density estimator function
+#'
+#' @noRd
+construct_Q_noS_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
+
+  # Merge this with construct_Q_n after data objects are harmonized
+
+  do.call("library", list("SuperLearner"))
+
+  if (type=="survSL") {
+
+    # Excluding "survSL.rfsrc" for now. survSL.pchSL gives errors.
+    methods <- c("survSL.coxph", "survSL.expreg", "survSL.km",
+                 "survSL.loglogreg", "survSL.pchreg", "survSL.weibreg")
+
+    newX <- vals$x[which(vals$t==0),, drop=F]
+    new.times <- unique(vals$t)
+
+    # Temporary (until survSuperLearner is on CRAN)
+    survSuperLearner <- function() {}
+    rm(survSuperLearner)
+    tryCatch(
+      expr = { do.call("library", list("survSuperLearner")) },
+      error = function(e) {
+        stop(paste0(
+          "To use surv_type='survSL', you must install the `survSuperLearner` ",
+          "package from github, using:\n\ndevtools::install_github(repo='tedwe",
+          "stling/survSuperLearner')"))
+      }
+    )
+
+    srv <- survSuperLearner(
+      time = dat$y,
+      event = dat$delta,
+      X = dat$x,
+      newX = newX,
+      new.times = new.times,
+      event.SL.library = methods,
+      cens.SL.library = methods,
+      control = list(initWeightAlg=methods[1], max.SL.iter=10)
+    )
+
+    if (print_coeffs) {
+      cat("\n------------------------------\n")
+      cat("SuperLearner algorithm weights\n")
+      cat("------------------------------\n\n")
+      cat("event.coef\n")
+      cat("----------\n")
+      cat(sort(srv$event.coef, decreasing=T))
+      cat("\ncens.coef\n")
+      cat("---------\n")
+      cat(sort(srv$cens.coef, decreasing=T))
+      cat("\n------------------------------\n")
+    }
+
+    srv_pred <- srv$event.SL.predict
+    cens_pred <- srv$cens.SL.predict
+    rm(srv)
+
+    # !!!!! Later consolidate these via a wrapper/constructor function
+    fnc_srv <- function(t, x) {
+      r <- list()
+      for (i in 1:length(x)) {
+        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
+      }
+      row <- Reduce(intersect, r)
+      col <- which.min(abs(t-new.times))
+      if (length(row)!=1) {
+        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
+                    paste(x,collapse=","),")"))
+      }
+      if (length(col)!=1) {
+        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
+                    paste(x,collapse=","),")"))
+      }
+      return(srv_pred[row,col])
+    }
+
+    fnc_cens <- function(t, x) {
+      r <- list()
+      for (i in 1:length(x)) {
+        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
+      }
+      row <- Reduce(intersect, r)
+      col <- which.min(abs(t-new.times))
+      if (length(row)!=1) {
+        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
+                    paste(x,collapse=","),")"))
+      }
+      if (length(col)!=1) {
+        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
+                    paste(x,collapse=","),")"))
+      }
+      return(max(cens_pred[row,col], 0.001)) # !!!!! Correction to prevent unreasonably small probabilities
+    }
+
+  }
+
+  sfnc_srv <- memoise2(fnc_srv)
+  sfnc_cens <- memoise2(fnc_cens)
   rm("vals", envir=environment(get("fnc_srv",envir=environment(sfnc_srv))))
 
   return(list(srv=sfnc_srv, cens=sfnc_cens))
@@ -317,6 +436,56 @@ construct_omega_n <- function(Q_n, Qc_n, t_0, grid) {
     Q_n(t_0,x,s) * (
       (delta * In(y<=t_0)) / (Q_n(y,x,s) * Qc_n(y,x,s)) -
         omega_integral(min(y,t_0),x,s)
+    )
+  }
+
+  return(memoise2(fnc))
+
+}
+
+
+
+#' Construct estimator of nuisance influence function omega_n
+#'
+#' @param Q_noS_n Conditional survival function estimator returned by
+#'     `construct_Q_noS_n` (no biomarker)
+#' @param Qc_noS_n Conditional censoring survival function estimator returned by
+#'     `construct_Q_noS_n` (no biomarker)
+#' @param type Defaults to "estimated". Override with "true" for debugging. Note
+#'     that type="true" only works for surv_true="Cox" and assumes that Q_0
+#'     and Qc_0 (i.e. the true functions) are passed in.
+#' @return Estimator function of nuisance omega_0
+#' @noRd
+construct_omega_noS_n <- function(Q_noS_n, Qc_noS_n, t_0, grid) {
+
+  Q_n <- Q_noS_n
+  Qc_n <- Qc_noS_n
+
+  # Construct cumulative hazard estimator
+  H_n <- function(t,x) { -1 * log(Q_n(t,x)) }
+
+  # Construct memoised integral function
+  x_vals <- memoise2(function(x) {
+    diff(sapply(grid$y, function(t) { H_n(t,x) }))
+  })
+  y_vals <- memoise2(function(x) {
+    sapply(grid$y[2:length(grid$y)], function(t) {
+      ( Q_n(t,x) * Qc_n(t,x) )^-1
+    })
+  })
+  omega_integral <- function(k,x) {
+    index <- which.min(abs(k-grid$y)) - 1
+    if (index==0) {
+      return(0)
+    } else {
+      return(sum(x_vals(x)[1:index]*y_vals(x)[1:index]))
+    }
+  }
+
+  fnc <- function(x,y,delta) {
+    Q_n(t_0,x) * (
+      (delta * In(y<=t_0)) / (Q_n(y,x) * Qc_n(y,x)) -
+        omega_integral(min(y,t_0),x)
     )
   }
 
@@ -866,7 +1035,7 @@ construct_g_sn <- function(dat, f_n_srv, g_n, p_n) {
     num <- f_n_srv(y, delta, x, 0) * g_n(s=0,x) * (1-p_n)
     den <- (1/n_orig) * sum(
       dat$weights * apply(dat_df, 1, function(r) {
-        f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x) # !!!!! Can this be replaced with sapply ?????
+        f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x) # !!!!! Replace this with sapply
       })
     )
     if (den==0) { return(0) } else { return(num/den) }
