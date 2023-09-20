@@ -2,9 +2,10 @@
 #'
 #' @description This function takes in user-supplied data and returns a data
 #'     object that can be read in by \code{\link{summary_stats}},
-#'     \code{\link{est_ce}}, and other estimation functions. Data is expected to
-#'     come from a two-phase sampling design and should be filtered to include
-#'     all phase-one individuals.
+#'     \code{\link{est_ce}}, \code{\link{est_med}}, and other estimation
+#'     functions. Data is expected to come from a vaccine clinical trial,
+#'     possibly involving two-phase sampling and possibly including a biomarker
+#'     of interest.
 #' @param time A character string; the name of the numeric variable representing
 #'     observed event or censoring times.
 #' @param event A character string; the name of the binary variable
@@ -52,6 +53,7 @@ load_data <- function(
 
       var <- get(arg)
       if (!(arg=="strata" && missing(strata))) {
+      # if (!(arg=="strata")) { # For testing
 
         # Variable is a character string specifying variable(s) in `data`
         is_string <- methods::is(var,"character")
@@ -107,16 +109,22 @@ load_data <- function(
   .vacc <- as.integer(.vacc)
   .ph2 <- as.integer(.ph2)
 
+  # Create additional variables
   .groups <- ifelse(any(.vacc==0) && any(.vacc==1), "both",
                     ifelse(any(.vacc==1), "vaccine", "placebo"))
 
   .weights <- ifelse(is.na(.weights), 0, .weights)
+  .dim_x <- length(.covariates)
+  .n_v <- sum(.vacc)
+  .n_p <- sum(1-.vacc)
+
+  # Rename covariate dataframe to c("x1", "x2", ...)
+  names(.covariates) <- paste0("x", c(1:.dim_x))
 
   # !!!!! convert factors to dummy columns; import code from VaxCurve
   # !!!!! Check what processing we have to do to strata (e.g. convert to integers)
   # !!!!! Store two copies of covariates; one for Cox model and one for NPCVE etc.
   # !!!!! Also maybe store a combined version of the dataset (or have a helper function to combine)?
-  # Change n_orig to n or n_ph1
 
   if (.groups %in% c("vaccine", "both")) {
 
@@ -129,25 +137,16 @@ load_data <- function(
     }
 
     # Create data object
-    df_vc <- list(
-      "y" = .time[.ind_v],
-      "delta" = .event[.ind_v],
-      "s" = .marker[.ind_v],
-      "x" = .covariates[.ind_v,, drop=F],
-      "weights" = .ph2[.ind_v]*.weights[.ind_v],
-      "strata" = .strata,
-      "z" = .ph2[.ind_v]
+    df_v <- cbind(
+      .covariates[.ind_v,, drop=F], "y"=.time[.ind_v], "delta"=.event[.ind_v],
+      "s"=.marker[.ind_v], "weights"=.ph2[.ind_v]*.weights[.ind_v],
+      "strata"=.strata, "z"=.ph2[.ind_v], "a"=1
     )
-    names(df_vc$x) <- paste0("x", c(1:length(df_vc$x)))
-    attr(df_vc, "n_orig") <- length(df_vc$z)
-    attr(df_vc, "dim_x") <- length(.covariates)
 
     # Stabilize weights (rescale to sum to sample size)
-    .stb_v <- sum(df_vc$weights) / length(df_vc$z)
-    df_vc$weights <- df_vc$weights / .stb_v
+    .stb_v <- sum(df_v$weights) / .n_v
+    df_v$weights <- df_v$weights / .stb_v
 
-  } else {
-    df_vc <- list()
   }
 
   if (.groups %in% c("placebo", "both")) {
@@ -161,31 +160,35 @@ load_data <- function(
     }
 
     # Create data object
-    df_pl <- list(
-      "y" = .time[.ind_p],
-      "delta" = .event[.ind_p],
-      "s" = .marker[.ind_p],
-      "x" = .covariates[.ind_p,, drop=F],
-      "weights" = .ph2[.ind_p]*.weights[.ind_p],
-      "strata" = .strata,
-      "z" = .ph2[.ind_p]
+    df_p <- cbind(
+      .covariates[.ind_p,, drop=F], "y"=.time[.ind_p], "delta"=.event[.ind_p],
+      "s"=.marker[.ind_p], "weights"=.ph2[.ind_p]*.weights[.ind_p],
+      "strata"=.strata, "z"=.ph2[.ind_p], "a"=0
     )
-    names(df_pl$x) <- paste0("x", c(1:length(df_pl$x)))
-    attr(df_pl, "n_orig") <- length(df_pl$z)
 
     # Stabilize weights (rescale to sum to sample size)
-    .stb_p <- sum(df_pl$weights) / length(df_pl$z)
-    df_pl$weights <- df_pl$weights / .stb_p
+    # !!!!! Consider making weights NA in placebo group
+    .stb_p <- sum(df_p$weights) / .n_p
+    df_p$weights <- df_p$weights / .stb_p
 
-  } else {
-    df_pl <- list()
+  }
+
+  if (.groups=="vaccine") {
+    dat <- df_v
+  } else if (.groups=="placebo") {
+    dat <- df_p
+  } else if (.groups=="both") {
+    dat <- rbind(df_v, df_p)
   }
 
   # Create and return data object
-  dat <- list("v"=df_vc, "p"=df_pl)
-  class(dat) <- "vaccine_dat"
+  class(dat) <- c("data.frame", "vaccine_dat")
   attr(dat, "groups") <- .groups
   attr(dat, "covariate_names") <- covariates
+  attr(dat, "dim_x") <- .dim_x
+  attr(dat, "n") <- .n_v+.n_p
+  attr(dat, "n_vacc") <- .n_v
+  attr(dat, "n_plac") <- .n_p
   return(dat)
 
 }
