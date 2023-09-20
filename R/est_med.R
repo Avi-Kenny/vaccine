@@ -189,7 +189,7 @@ est_med <- function(
         t = vals_p_pre$t,
         x = subset(vals_p_pre, select=names(dat_p_copy$x))
       )
-      srvSL_p <- construct_Q_noS_n(type="survSL", dat_p_copy, vals_p)
+      srvSL_p <- construct_Q_noS_n(type=p$surv_type, dat_p_copy, vals_p)
       Q_noS_n <- srvSL_p$srv
       Qc_noS_n <- srvSL_p$cens
       omega_noS_n <- construct_omega_noS_n(Q_noS_n, Qc_noS_n, t_0, grid)
