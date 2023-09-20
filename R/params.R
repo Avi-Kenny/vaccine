@@ -150,7 +150,7 @@ params_ce_np <- function(
 #'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' \donttest{
-#' ests_med <- ests_med(
+#' ests_med <- est_med(
 #'   dat = dat,
 #'   type = "NP",
 #'   t_0 = 578,
