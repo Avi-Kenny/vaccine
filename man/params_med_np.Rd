@@ -6,7 +6,7 @@
 \usage{
 params_med_np(
   grid_size = list(y = 101, s = 101, x = 5),
-  surv_type = "survSL",
+  surv_type = "survML-G",
   density_type = "binning",
   density_bins = 15
 )
