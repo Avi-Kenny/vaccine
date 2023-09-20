@@ -1134,6 +1134,7 @@ construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n,
   if (type=="Super Learner") {
 
     # Fit SuperLearner regression
+    do.call("library", list("SuperLearner"))
     SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.loess",
                     "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
 
@@ -1186,6 +1187,7 @@ construct_g_zn <- function(dat_orig, type="Super Learner", f_sIx_n,
 
   # Set library
   if (type=="Super Learner") {
+    do.call("library", list("SuperLearner"))
     SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.nnet",
                     "SL.glmnet")
   } else if (type=="logistic") {
