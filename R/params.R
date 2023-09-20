@@ -160,7 +160,6 @@ params_ce_np <- function(
 #' @export
 params_med_np <- function(
     grid_size = list(y=101,s=101,x=5),
-    surv_type = "survSL",
     surv_type = "survML-G",
     density_type = "binning",
     density_bins = 15
