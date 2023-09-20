@@ -7,13 +7,10 @@
 #' @param vals List of values to pre-compute function on; REQUIRED FOR SUPERLEARNER
 #' @param return_model Logical; if TRUE, return the model object instead of the
 #'     function
-#' @param print_coeffs Logical; if TRUE, print the algorithm coefficients for
-#'     the conditional survival and censoring functions (applicable only if
-#'     type=="Super Learner")
 #' @return Conditional density estimator function
 #'
 #' @noRd
-construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
+construct_Q_n <- function(type, dat, vals, return_model=F) {
 
   if (type=="Cox") {
 
@@ -93,19 +90,6 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       obsWeights = dat$weights,
       control = list(initWeightAlg=methods[1], max.SL.iter=10)
     )
-
-    if (print_coeffs) {
-      cat("\n------------------------------\n")
-      cat("SuperLearner algorithm weights\n")
-      cat("------------------------------\n\n")
-      cat("event.coef\n")
-      cat("----------\n")
-      cat(sort(srv$event.coef, decreasing=T))
-      cat("\ncens.coef\n")
-      cat("---------\n")
-      cat(sort(srv$cens.coef, decreasing=T))
-      cat("\n------------------------------\n")
-    }
 
     srv_pred <- srv$event.SL.predict
     cens_pred <- srv$cens.SL.predict
@@ -199,22 +183,6 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 
     }
 
-    if (print_coeffs) {
-      cat("\n-------------------------------------\n")
-      cat("survML SuperLearner algorithm weights\n")
-      cat("\n-------------------------------------\n")
-      cat("P_Delta coeffs\n")
-      cat("--------------\n")
-      fit$fits$P_Delta$reg.object$coef
-      cat("S_Y_1 coeffs\n")
-      cat("------------\n")
-      fit$fits$S_Y_1$reg.object$coef
-      cat("S_Y_0 coeffs\n")
-      cat("------------\n")
-      fit$fits$S_Y_0$reg.object$coef
-      cat("\n-------------------------------------\n")
-    }
-
     fnc_srv <- function(t, x, s) {
       r <- list()
       for (i in 1:length(x)) {
@@ -286,13 +254,10 @@ construct_Q_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 #' @param vals List of values to pre-compute function on; REQUIRED FOR SUPERLEARNER
 #' @param return_model Logical; if TRUE, return the model object instead of the
 #'     function
-#' @param print_coeffs Logical; if TRUE, print the algorithm coefficients for
-#'     the conditional survival and censoring functions (applicable only if
-#'     type=="Super Learner")
 #' @return Conditional density estimator function
 #'
 #' @noRd
-construct_Q_noS_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
+construct_Q_noS_n <- function(type, dat, vals, return_model=F) {
 
   # Merge this with construct_Q_n after data objects are harmonized
 
@@ -371,19 +336,6 @@ construct_Q_noS_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
       cens.SL.library = methods,
       control = list(initWeightAlg=methods[1], max.SL.iter=10)
     )
-
-    if (print_coeffs) {
-      cat("\n------------------------------\n")
-      cat("SuperLearner algorithm weights\n")
-      cat("------------------------------\n\n")
-      cat("event.coef\n")
-      cat("----------\n")
-      cat(sort(srv$event.coef, decreasing=T))
-      cat("\ncens.coef\n")
-      cat("---------\n")
-      cat(sort(srv$cens.coef, decreasing=T))
-      cat("\n------------------------------\n")
-    }
 
     srv_pred <- srv$event.SL.predict
     cens_pred <- srv$cens.SL.predict
@@ -591,54 +543,6 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
       sigma <- 10*expit(prm[length(prm)])
       return( truncnorm::dtruncnorm(s, a=0, b=1, mean=mu, sd=sigma) )
-    }
-
-  }
-
-  if (type=="parametric (edge)") {
-
-    # Density for a single observation
-    dens_s <- function(s, x, prm) {
-      mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
-      sigma <- 10*expit(prm[length(prm)])
-      return( truncnorm::dtruncnorm(s, a=0.01, b=1, mean=mu, sd=sigma) )
-    }
-
-    # Estimate p_0
-    n_orig <- attr(dat, "n_orig")
-    p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
-
-    # Filter out observations with s==0
-    dat <- ss(dat, which(dat$s!=0))
-
-    # Set up weighted likelihood
-    wlik <- function(prm) {
-      -1 * sum(sapply(c(1:length(dat$s)), function(i) {
-        dat$weights[i] *
-          log(pmax(dens_s(s=dat$s[i], x=as.numeric(dat$x[i,]), prm),1e-8))
-      }))
-    }
-
-    # Run optimizer
-    opt <- Rsolnp::solnp(
-      pars = c(rep(0, length(dat$x)+1), 0.15),
-      fun = wlik
-    )
-    if (opt$convergence!=0) {
-      warning("f_sIx_n: Rsolnp::solnp() did not converge")
-    }
-    prm <- opt$pars
-
-    # Remove large intermediate objects
-    rm(dat,dens_s,opt)
-
-    fnc <- function(s, x) {
-      mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
-      sigma <- 10*expit(prm[length(prm)])
-      pc_1 <- In(s==0) * ( (1-p_n) / 0.01 )
-      pc_2 <- In(s!=0) * p_n *
-        truncnorm::dtruncnorm(s, a=0, b=1, mean=mu, sd=sigma)
-      return(pc_1+pc_2)
     }
 
   }
