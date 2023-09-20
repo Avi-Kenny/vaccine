@@ -2,9 +2,20 @@
 t <- 1e-4
 
 data(hvtn505)
-dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
-                 marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
-                 weights="wt", ph2="casecontrol", data=hvtn505)
+set.seed(1)
+hvtn505_sample <- hvtn505[sample(c(1:nrow(hvtn505)), size=500),]
+dat <- load_data(
+  time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt", marker="IgG_V2",
+  covariates=c("age","BMI","bhvrisk"), weights="wt", ph2="casecontrol",
+  data=hvtn505
+)
+
+# Create a smaller dataset to run faster tests
+dat_sample <- load_data(
+  time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt", marker="IgG_V2",
+  covariates=c("age","BMI","bhvrisk"), weights="wt", ph2="casecontrol",
+  data=hvtn505_sample
+)
 
 test_that("load_data", {
   expect_equal(class(dat), "vaccine_dat")
@@ -21,13 +32,13 @@ test_that("load_data", {
   expect_equal(attr(dat$v, "dim_x"), 3)
 })
 
-ests <- est_overall(dat=dat, t_0=578, method="KM")
-ests_risk_p <- ests[ests$stat=="risk" & ests$group=="placebo",]
-ests_risk_v <- ests[ests$stat=="risk" & ests$group=="vaccine",]
-ests_ve <- ests[ests$stat=="ve",]
+ests_o_KM <- est_overall(dat=dat, t_0=578, method="KM")
+ests_risk_p <- ests_o_KM[ests_o_KM$stat=="risk"&ests_o_KM$group=="placebo",]
+ests_risk_v <- ests_o_KM[ests_o_KM$stat=="risk"&ests_o_KM$group=="vaccine",]
+ests_ve <- ests_o_KM[ests_o_KM$stat=="ve",]
 
 test_that("est_overall (KM)", {
-  expect_equal(class(ests), c("data.frame", "vaccine_overall"))
+  expect_equal(class(ests_o_KM), c("data.frame", "vaccine_overall"))
   expect_equal(ests_risk_p$est, 0.02879861, tolerance=t)
   expect_equal(ests_risk_p$se, 0.006563785, tolerance=t)
   expect_equal(ests_risk_p$ci_lower, 0.0162236, tolerance=t)
@@ -42,13 +53,13 @@ test_that("est_overall (KM)", {
   expect_equal(ests_ve$ci_upper, 0.2229498, tolerance=t)
 })
 
-ests <- est_overall(dat=dat, t_0=578, method="Cox")
-ests_risk_p <- ests[ests$stat=="risk" & ests$group=="placebo",]
-ests_risk_v <- ests[ests$stat=="risk" & ests$group=="vaccine",]
-ests_ve <- ests[ests$stat=="ve",]
+ests_o_Cox <- est_overall(dat=dat, t_0=578, method="Cox")
+ests_risk_p <- ests_o_Cox[ests_o_Cox$stat=="risk"&ests_o_Cox$group=="placebo",]
+ests_risk_v <- ests_o_Cox[ests_o_Cox$stat=="risk"&ests_o_Cox$group=="vaccine",]
+ests_ve <- ests_o_Cox[ests_o_Cox$stat=="ve",]
 
 test_that("est_overall (Cox)", {
-  expect_equal(class(ests), c("data.frame", "vaccine_overall"))
+  expect_equal(class(ests_o_Cox), c("data.frame", "vaccine_overall"))
   expect_equal(ests_risk_p$est, 0.02938706, tolerance=t)
   expect_equal(ests_risk_p$se, 0.006486545, tolerance=t)
   expect_equal(ests_risk_p$ci_lower, 0.0190193, tolerance=t)
@@ -76,4 +87,107 @@ test_that("est_overall (error handling)", {
     est_overall(dat=dat, t_0=578, method="hey"),
     "`method` must equal either 'Cox' or 'KM'."
   )
+})
+
+set.seed(1)
+ests_med_NP <- est_med(dat=dat_sample, type="NP", t_0=578,
+                       params_np=params_med_np(surv_type="Cox"))
+ests_med_NP_nde <- ests_med_NP[ests_med_NP$effect=="NDE",]
+ests_med_NP_nie <- ests_med_NP[ests_med_NP$effect=="NIE",]
+ests_med_NP_pm <- ests_med_NP[ests_med_NP$effect=="PM",]
+
+test_that("est_med", {
+  expect_equal(class(ests_med_NP), "data.frame")
+  expect_equal(ests_med_NP_nde$est, 22.5903, tolerance=t)
+  expect_equal(ests_med_NP_nde$se, 13.03654, tolerance=t)
+  expect_equal(ests_med_NP_nde$ci_lower, 7.289483, tolerance=t)
+  expect_equal(ests_med_NP_nde$ci_upper, 70.00794, tolerance=t)
+  expect_equal(ests_med_NP_nie$est, 1.03442, tolerance=t)
+  expect_equal(ests_med_NP_nie$se, 0.2177699, tolerance=t)
+  expect_equal(ests_med_NP_nie$ci_lower, 0.6846922, tolerance=t)
+  expect_equal(ests_med_NP_nie$ci_upper, 1.562782, tolerance=t)
+  expect_equal(ests_med_NP_pm$est, 0.01073844, tolerance=t)
+  expect_equal(ests_med_NP_pm$se, 0.06668967, tolerance=t)
+  expect_equal(ests_med_NP_pm$ci_lower, -0.1199733, tolerance=t)
+  expect_equal(ests_med_NP_pm$ci_upper, 0.1414502, tolerance=t)
+})
+
+set.seed(1)
+ests_cox <- est_ce(dat=dat, type="Cox", t_0=578, cve=T)
+
+test_that("est_cox (CR)", {
+  expect_equal(class(ests_cox), "vaccine_est")
+  expect_equal(ests_cox$cr$s[1], 0, tolerance=t)
+  expect_equal(ests_cox$cr$s[50], 1.15447037, tolerance=t)
+  expect_equal(ests_cox$cr$s[101], 2.35606198, tolerance=t)
+  expect_equal(ests_cox$cr$est[1], 0.15486178, tolerance=t)
+  expect_equal(ests_cox$cr$est[50], 0.08759399, tolerance=t)
+  expect_equal(ests_cox$cr$est[101], 0.04724430, tolerance=t)
+  expect_equal(ests_cox$cr$se[1], 0.05514197, tolerance=t)
+  expect_equal(ests_cox$cr$se[50], 0.01915460, tolerance=t)
+  expect_equal(ests_cox$cr$se[101], 0.02528916, tolerance=t)
+  expect_equal(ests_cox$cr$ci_lower[1], 0.07427856, tolerance=t)
+  expect_equal(ests_cox$cr$ci_lower[50], 0.05661917, tolerance=t)
+  expect_equal(ests_cox$cr$ci_lower[101], 0.01621916, tolerance=t)
+  expect_equal(ests_cox$cr$ci_upper[1], 0.2950081, tolerance=t)
+  expect_equal(ests_cox$cr$ci_upper[50], 0.1331231, tolerance=t)
+  expect_equal(ests_cox$cr$ci_upper[101], 0.1297870, tolerance=t)
+})
+
+test_that("est_cox (CVE)", {
+  expect_equal(ests_cox$cve$s[1], 0, tolerance=t)
+  expect_equal(ests_cox$cve$s[50], 1.15447037, tolerance=t)
+  expect_equal(ests_cox$cve$s[101], 2.35606198, tolerance=t)
+  expect_equal(ests_cox$cve$est[1], -4.3774047, tolerance=t)
+  expect_equal(ests_cox$cve$est[50], -2.0416048, tolerance=t)
+  expect_equal(ests_cox$cve$est[101], -0.6405062, tolerance=t)
+  expect_equal(ests_cox$cve$se[1], 2.2734089, tolerance=t)
+  expect_equal(ests_cox$cve$se[50], 0.9607152, tolerance=t)
+  expect_equal(ests_cox$cve$se[101], 0.9544273, tolerance=t)
+  expect_equal(ests_cox$cve$ci_lower[1], -11.315226, tolerance=t)
+  expect_equal(ests_cox$cve$ci_lower[50], -4.648935, tolerance=t)
+  expect_equal(ests_cox$cve$ci_lower[101], -4.131048, tolerance=t)
+  expect_equal(ests_cox$cve$ci_upper[1], -1.3480269019, tolerance=t)
+  expect_equal(ests_cox$cve$ci_upper[50], -0.6377176338, tolerance=t)
+  expect_equal(ests_cox$cve$ci_upper[101], 0.4754949600, tolerance=t)
+})
+
+set.seed(1)
+ests_np <- est_ce(dat=dat, type="NP", t_0=578, cve=T)
+
+test_that("est_np (CR)", {
+  expect_equal(class(ests_cox), "vaccine_est")
+  expect_equal(ests_np$cr$s[1], 0, tolerance=t)
+  expect_equal(ests_np$cr$s[50], 1.15447, tolerance=t)
+  expect_equal(ests_np$cr$s[101], 2.356062, tolerance=t)
+  expect_equal(ests_np$cr$est[1], 0.239854, tolerance=t)
+  expect_equal(ests_np$cr$est[50], 0.08358707, tolerance=t)
+  expect_equal(ests_np$cr$est[101], 0.03412803, tolerance=t)
+  # expect_equal(ests_np$cr$se[1], 999, tolerance=t)
+  # expect_equal(ests_np$cr$se[50], 999, tolerance=t)
+  # expect_equal(ests_np$cr$se[101], 999, tolerance=t)
+  expect_equal(ests_np$cr$ci_lower[1], 0.1312532, tolerance=t)
+  expect_equal(ests_np$cr$ci_lower[50], 0.05613188, tolerance=t)
+  expect_equal(ests_np$cr$ci_lower[101], 0.01040323, tolerance=t)
+  expect_equal(ests_np$cr$ci_upper[1], 0.3972259, tolerance=t)
+  expect_equal(ests_np$cr$ci_upper[50], 0.123396, tolerance=t)
+  expect_equal(ests_np$cr$ci_upper[101], 0.0983162, tolerance=t)
+})
+
+test_that("est_np (CVE)", {
+  expect_equal(ests_np$cve$s[1], 0, tolerance=t)
+  expect_equal(ests_np$cve$s[50], 1.15447, tolerance=t)
+  expect_equal(ests_np$cve$s[101], 2.356062, tolerance=t)
+  expect_equal(ests_np$cve$est[1], -7.328665, tolerance=t)
+  expect_equal(ests_np$cve$est[50], -1.902469, tolerance=t)
+  expect_equal(ests_np$cve$est[101], -0.1850584, tolerance=t)
+  expect_equal(ests_np$cve$se[1], 3.079193, tolerance=t)
+  expect_equal(ests_np$cve$se[50], 0.893211, tolerance=t)
+  expect_equal(ests_np$cve$se[101], 0.7704391, tolerance=t)
+  expect_equal(ests_np$cve$ci_lower[1], -16.19013, tolerance=t)
+  expect_equal(ests_np$cve$ci_lower[50], -4.305456, tolerance=t)
+  expect_equal(ests_np$cve$ci_lower[101], -2.918239, tolerance=t)
+  expect_equal(ests_np$cve$ci_upper[1], -3.035261, tolerance=t)
+  expect_equal(ests_np$cve$ci_upper[50], -0.5940439, tolerance=t)
+  expect_equal(ests_np$cve$ci_upper[101], 0.6686095, tolerance=t)
 })
