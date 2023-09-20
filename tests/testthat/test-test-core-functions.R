@@ -1,7 +1,8 @@
 
+# Load data
 data(hvtn505)
 set.seed(1)
-hvtn505_sample <- hvtn505[sample(c(1:nrow(hvtn505)), size=500),]
+hvtn505_sample <- hvtn505[sample(c(1:nrow(hvtn505)), size=1000),]
 dat <- load_data(
   time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt", marker="IgG_V2",
   covariates=c("age","BMI","bhvrisk"), weights="wt", ph2="casecontrol",
@@ -28,6 +29,24 @@ test_that("load_data", {
   expect_equal(unique(dat$v$z), c(0,1))
   expect_equal(attr(dat$v, "n_orig"), 1161)
   expect_equal(attr(dat$v, "dim_x"), 3)
+})
+
+ss <- summary_stats(dat, quietly=TRUE)
+
+test_that("sumamry_stats", {
+  expect_equal(class(ss), "list")
+  expect_equal(ss$num_ph1_subj_v, 1161)
+  expect_equal(ss$num_ph1_subj_p, 1141)
+  expect_equal(ss$num_ph2_subj_v, 150)
+  expect_equal(ss$num_ph2_subj_p, 39)
+  expect_equal(ss$num_ph1_events_v, 27)
+  expect_equal(ss$num_ph1_events_p, 21)
+  expect_equal(ss$num_ph2_events_v, 25)
+  expect_equal(ss$num_ph2_events_p, 19)
+  expect_equal(ss$prop_ph1_events_v, 0.02326)
+  expect_equal(ss$prop_ph1_events_p, 0.0184)
+  expect_equal(ss$prop_ph2_events_v, 0.16667)
+  expect_equal(ss$prop_ph2_events_p, 0.48718)
 })
 
 ests_o_KM <- est_overall(dat=dat, t_0=578, method="KM")
@@ -141,6 +160,37 @@ test_that("est_cox (CVE)", {
 })
 
 set.seed(1)
+ests_cox_spl <- est_ce(dat=dat_sample, type="Cox", t_0=578, cve=T,
+                        params_cox=params_ce_cox(spline_df=3))
+
+test_that("est_cox spline (CR)", {
+  expect_equal(class(ests_cox_spl), "vaccine_est")
+  expect_equal(ests_cox_spl$cr$s[1], 0, tolerance=0.01)
+  expect_equal(ests_cox_spl$cr$s[50], 1.144744, tolerance=0.01)
+  expect_equal(ests_cox_spl$cr$est[1], 0.2861402, tolerance=0.01)
+  expect_equal(ests_cox_spl$cr$est[50], 0.05516619, tolerance=0.01)
+  expect_equal(ests_cox_spl$cr$se[1], 0.1977738, tolerance=0.01)
+  expect_equal(ests_cox_spl$cr$se[50], 0.03191638, tolerance=0.01)
+  expect_equal(ests_cox_spl$cr$ci_lower[1], 0.05668296, tolerance=0.01)
+  expect_equal(ests_cox_spl$cr$ci_lower[50], 0.01727915, tolerance=0.01)
+  expect_equal(ests_cox_spl$cr$ci_upper[1], 0.7278059, tolerance=0.01)
+  expect_equal(ests_cox_spl$cr$ci_upper[50], 0.162398, tolerance=0.01)
+})
+
+test_that("est_cox spline (CVE)", {
+  expect_equal(ests_cox_spl$cve$s[1], 0, tolerance=0.01)
+  expect_equal(ests_cox_spl$cve$s[50], 1.144744, tolerance=0.01)
+  expect_equal(ests_cox_spl$cve$est[1], -12.76739, tolerance=0.01)
+  expect_equal(ests_cox_spl$cve$est[50], -1.654274, tolerance=0.01)
+  expect_equal(ests_cox_spl$cve$se[1], 10.91096, tolerance=0.01)
+  expect_equal(ests_cox_spl$cve$se[50], 1.848648, tolerance=0.01)
+  expect_equal(ests_cox_spl$cve$ci_lower[1], -64.08185, tolerance=0.01)
+  expect_equal(ests_cox_spl$cve$ci_lower[50], -9.39444, tolerance=0.01)
+  expect_equal(ests_cox_spl$cve$ci_upper[1], -1.912348, tolerance=0.01)
+  expect_equal(ests_cox_spl$cve$ci_upper[50], 0.3222172, tolerance=0.01)
+})
+
+set.seed(1)
 ests_np <- est_ce(dat=dat, type="NP", t_0=578, cve=T,
                   params_np=params_ce_np(surv_type="Cox"))
 
@@ -170,4 +220,10 @@ test_that("est_np (CVE)", {
   expect_equal(ests_np$cve$ci_lower[50], -4.133193, tolerance=0.01)
   expect_equal(ests_np$cve$ci_upper[1], -3.837045, tolerance=0.01)
   expect_equal(ests_np$cve$ci_upper[50], -0.7789708, tolerance=0.01)
+})
+
+p <- plot_ce(ests_np)
+
+test_that("plot_ce", {
+  expect_equal(class(p), c("gg", "ggplot"))
 })
