@@ -1,6 +1,5 @@
 
 t <- 1e-4
-
 data(hvtn505)
 set.seed(1)
 hvtn505_sample <- hvtn505[sample(c(1:nrow(hvtn505)), size=500),]
@@ -98,18 +97,18 @@ ests_med_NP_pm <- ests_med_NP[ests_med_NP$effect=="PM",]
 
 test_that("est_med", {
   expect_equal(class(ests_med_NP), "data.frame")
-  expect_equal(ests_med_NP_nde$est, 22.5903, tolerance=t)
-  expect_equal(ests_med_NP_nde$se, 13.03654, tolerance=t)
-  expect_equal(ests_med_NP_nde$ci_lower, 7.289483, tolerance=t)
-  expect_equal(ests_med_NP_nde$ci_upper, 70.00794, tolerance=t)
+  expect_equal(ests_med_NP_nde$est, 20.35041, tolerance=t)
+  expect_equal(ests_med_NP_nde$se, 10.57582, tolerance=t)
+  expect_equal(ests_med_NP_nde$ci_lower, 7.348651, tolerance=t)
+  expect_equal(ests_med_NP_nde$ci_upper, 56.35583, tolerance=t)
   expect_equal(ests_med_NP_nie$est, 1.03442, tolerance=t)
   expect_equal(ests_med_NP_nie$se, 0.2177699, tolerance=t)
   expect_equal(ests_med_NP_nie$ci_lower, 0.6846922, tolerance=t)
   expect_equal(ests_med_NP_nie$ci_upper, 1.562782, tolerance=t)
-  expect_equal(ests_med_NP_pm$est, 0.01073844, tolerance=t)
-  expect_equal(ests_med_NP_pm$se, 0.06668967, tolerance=t)
-  expect_equal(ests_med_NP_pm$ci_lower, -0.1199733, tolerance=t)
-  expect_equal(ests_med_NP_pm$ci_upper, 0.1414502, tolerance=t)
+  expect_equal(ests_med_NP_pm$est, 0.01110645, tolerance=t)
+  expect_equal(ests_med_NP_pm$se, 0.068966, tolerance=t)
+  expect_equal(ests_med_NP_pm$ci_lower, -0.1240669, tolerance=t)
+  expect_equal(ests_med_NP_pm$ci_upper, 0.1462798, tolerance=t)
 })
 
 set.seed(1)

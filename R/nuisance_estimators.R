@@ -296,7 +296,48 @@ construct_Q_noS_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 
   # Merge this with construct_Q_n after data objects are harmonized
 
-  do.call("library", list("SuperLearner"))
+  if (type=="Cox") {
+
+    model_srv <- survival::coxph(
+      formula = stats::formula(paste0("survival::Surv(y,delta)~",
+                                      paste(names(dat$x),collapse="+"))),
+      data = cbind(y=dat$y, delta=dat$delta, dat$x)
+    )
+    coeffs_srv <- as.numeric(model_srv$coefficients)
+    bh_srv <- survival::basehaz(model_srv, centered=F)
+
+    model_cens <- survival::coxph(
+      formula = stats::formula(paste0("survival::Surv(y,delta)~",
+                                      paste(names(dat$x),collapse="+"))),
+      data = cbind(y=dat$y, delta=1-dat$delta, dat$x)
+    )
+    coeffs_cens <- as.numeric(model_cens$coefficients)
+    bh_cens <- survival::basehaz(model_cens, centered=F)
+
+    fnc_srv <- function(t, x) {
+      if (t==0) {
+        return(1)
+      } else {
+        Lambda_t <- bh_srv$hazard[which.min(abs(bh_srv$time-t))]
+        return(exp(-1*Lambda_t*exp(sum(coeffs_srv*as.numeric(x)))))
+      }
+    }
+
+    fnc_cens <- function(t, x) {
+      if (t==0) {
+        return(1)
+      } else {
+        Lambda_t <- bh_cens$hazard[which.min(abs(bh_cens$time-t))]
+        return(exp(-1*Lambda_t*exp(sum(coeffs_cens*as.numeric(x)))))
+      }
+    }
+
+    rm(model_srv)
+    rm(model_cens)
+
+  } else {
+    do.call("library", list("SuperLearner"))
+  }
 
   if (type=="survSL") {
 
@@ -387,8 +428,13 @@ construct_Q_noS_n <- function(type, dat, vals, return_model=F, print_coeffs=F) {
 
   }
 
-  sfnc_srv <- memoise2(fnc_srv)
-  sfnc_cens <- memoise2(fnc_cens)
+  if (type=="Cox") {
+    sfnc_srv <- fnc_srv
+    sfnc_cens <- fnc_cens
+  } else {
+    sfnc_srv <- memoise2(fnc_srv)
+    sfnc_cens <- memoise2(fnc_cens)
+  }
   rm("vals", envir=environment(get("fnc_srv",envir=environment(sfnc_srv))))
 
   return(list(srv=sfnc_srv, cens=sfnc_cens))
