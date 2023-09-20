@@ -809,23 +809,6 @@ construct_Phi_n <- function (dat_orig, dat, type="linear (mid)") {
 
 
 
-#' Construct nuisance estimator eta_n
-#'
-#' @noRd
-construct_eta_n <- function(dat, Q_n, t_0) {
-
-  n_orig <- attr(dat, "n_orig")
-
-  return(memoise2(function(u,x) {
-    (1/n_orig) * sum(
-      dat$weights * sapply(dat$s, function(s) { In(s<=u) * (1-Q_n(t_0,x,s)) })
-    )
-  }))
-
-}
-
-
-
 #' Construct g-computation estimator function of theta_0
 #'
 #' @param dat_orig Dataset returned by `generate_data`
@@ -841,20 +824,6 @@ construct_r_tilde_Mn <- function(dat_orig, Q_n, t_0) {
       Q_n(t_0, as.numeric(x), s)
     }))
   })
-
-}
-
-
-
-#' Construct nuisance estimator Gamma_tilde_n
-#'
-#' @noRd
-construct_Gamma_tilde_n <- function(dat, r_tilde_Mn) {
-
-  n_orig <- attr(dat, "n_orig")
-  piece_1 <- dat$weights * sapply(dat$s, r_tilde_Mn)
-
-  return(memoise2(function(u) { (1/n_orig) * sum(In(dat$s<=u)*piece_1) }))
 
 }
 
@@ -1225,31 +1194,3 @@ construct_tau_n <- function(deriv_r_Mn, gamma_n, f_sIx_n, g_zn,
   }))
 
 }
-
-
-
-#' Construct Kaplan-Meier estimator
-#'
-#' @param dat2 Either dat$v or dat$p
-#' @return Kaplan-Meier function estimator
-#' @note Used by est_med()
-#' @noRd
-construct_km <- function(dat2) {
-  v <- sort(unique(dat2$y))
-  km <- function(t) {
-    v <- v[v<=t]
-    prod_km <- 1
-    for (v_j in v) {
-      num <- sum(dat2$delta*In(dat2$y==v_j))
-      den <- sum(In(v_j<=dat2$y))
-      prod_km <- prod_km*(1-num/den)
-    }
-    return(prod_km)
-  }
-
-  return(memoise2(km))
-
-}
-
-
-
