@@ -63,6 +63,13 @@ construct_Q_n <- function(type, dat, vals, return_model=F) {
     methods <- c("survSL.coxph", "survSL.expreg", "survSL.km",
                  "survSL.loglogreg", "survSL.pchreg", "survSL.weibreg")
 
+    # Prevents CRAN Note
+    if (F) {
+      x <- earth::earth
+      x <- glmnet::glmnet
+      x <- e1071::svm
+    }
+
     newX <- cbind(vals$x, s=vals$s)[which(vals$t==0),]
     new.times <- unique(vals$t)
 
