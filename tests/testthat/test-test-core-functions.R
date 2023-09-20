@@ -1,5 +1,5 @@
 
-t <- 1e-4
+t <- 1e-2
 data(hvtn505)
 set.seed(1)
 hvtn505_sample <- hvtn505[sample(c(1:nrow(hvtn505)), size=500),]
