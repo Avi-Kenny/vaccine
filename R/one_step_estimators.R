@@ -131,10 +131,10 @@ risk_overall_np_p <- function(dat_p_rd, Q_noS_n, omega_noS_n, t_0) {
 
   # !!!!! Port to est_overall
 
-  n_vacc <- attr(dat_p_rd, "n_vacc")
+  n_plac <- attr(dat_p_rd, "n_plac")
   dim_x <- attr(dat_p_rd, "dim_x")
 
-  v <- (1/n_vacc) * sum(apply(dat_p_rd, 1, function(r) {
+  v <- (1/n_plac) * sum(apply(dat_p_rd, 1, function(r) {
     x <- as.numeric(r[1:dim_x])
     omega_noS_n(x,r[["y"]],r[["delta"]])-Q_noS_n(t_0,x)
   }))
