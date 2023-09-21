@@ -110,7 +110,7 @@ est_cox <- function(
   # Alias random variables
   WT <- dat_v2$weights
   ST <- dat_v2$strata
-  N <- attr(dat, "n") # !!!!! Change to n
+  N <- attr(dat, "n_vacc") # !!!!! Change to n_vacc
   n <- attr(dat, "n_vacc2") # !!!!! Change to n_vacc2
   dim_x <- attr(dat_v, "dim_x")
   X <- dat_v2[,c(1:dim_x), drop=F]
