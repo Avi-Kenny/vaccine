@@ -52,20 +52,24 @@ est_overall <- function(dat, t_0, method="Cox", risk=TRUE, ve=TRUE) { # ci_type=
 
   for (grp in .groups) {
 
-    g <- ifelse(grp=="vaccine", "v", "p")
+    if (grp=="vaccine") {
+      dat_grp <- dat[dat$a==1,]
+    } else {
+      dat_grp <- dat[dat$a==0,]
+    }
 
     if (method=="Cox") {
 
       # Alias random variables
-      N <- length(dat[[g]]$s)
-      X <- dat[[g]]$x
+      N <- length(dat_grp$s)
+      X <- dat_grp[,c(1:dim_x), drop=F]
       V_ <- t(as.matrix(X))
-      Y_ <- dat[[g]]$y
-      D_ <- dat[[g]]$delta
+      Y_ <- dat_grp$y
+      D_ <- dat_grp$delta
 
       # Get dimensions
       dim_v <- dim(V_)[1]
-      dim_x <- dim_v
+      dim_x <- attr(dat, "dim_x")
 
       # Create set of event times
       i_ev <- which(D_==1)
@@ -229,17 +233,16 @@ est_overall <- function(dat, t_0, method="Cox", risk=TRUE, ve=TRUE) { # ci_type=
       # Compute marginalized risk
       res_cox <- list()
       Lambda_n_t_0 <- Lambda_n(t_0)
-      res_cox$est_marg <- (1/N) * sum((apply(dat[[g]]$x, 1, function(r) {
+      res_cox$est_marg <- (1/N) * sum((apply(dat_grp, 1, function(r) {
         x_i <- as.numeric(r[1:dim_x])
         exp(-1*exp(sum(beta_n*x_i))*Lambda_n_t_0)
       })))
 
       # Compute variance estimate
-      dat_v_df <- as_df(dat[[g]])
       res_cox$var_est_marg <- (function() {
 
         # Precalculate pieces dependent on s
-        K_n <- (1/N) * Reduce("+", apply2(dat_v_df, 1, function(r) {
+        K_n <- (1/N) * Reduce("+", apply2(dat_grp, 1, function(r) {
           x_i <- as.numeric(r[1:dim_x])
           Q <- Q_n(x_i)
           explin <- exp(sum(x_i*beta_n))
@@ -252,7 +255,7 @@ est_overall <- function(dat, t_0, method="Cox", risk=TRUE, ve=TRUE) { # ci_type=
         K_n2 <- K_n[2]
         K_n3 <- K_n[3:length(K_n)]
 
-        (1/N^2) * sum((apply(dat_v_df, 1, function(r) {
+        (1/N^2) * sum((apply(dat_grp, 1, function(r) {
 
           x_i <- as.numeric(r[1:dim_x])
           z_i <- r[["z"]]
@@ -290,7 +293,7 @@ est_overall <- function(dat, t_0, method="Cox", risk=TRUE, ve=TRUE) { # ci_type=
 
     if (method=="KM") {
 
-      srv_p <- survival::survfit(survival::Surv(dat[[g]]$y,dat[[g]]$delta)~1)
+      srv_p <- survival::survfit(survival::Surv(y,delta)~1, data=dat_grp)
       est <- 1 - srv_p$surv[which.min(abs(srv_p$time-t_0))]
       ci_lo <- 1 - srv_p$upper[which.min(abs(srv_p$time-t_0))]
       ci_up <- 1 - srv_p$lower[which.min(abs(srv_p$time-t_0))]
