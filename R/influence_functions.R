@@ -37,15 +37,12 @@ construct_infl_fn_r_Mn_edge <- function(Q_n, g_sn, omega_n, g_n,
 #' @return Influence function estimator
 #' @note Used by est_med()
 #' @noRd
-construct_infl_fn_risk_p <- function(dat_p_copy, Q_noS_n, omega_noS_n,
-                                     dim_x, t_0, prob) {
+construct_infl_fn_risk_p <- function(dat_p_rd, Q_noS_n, omega_noS_n, t_0,
+                                     p_plac) {
 
-  # !!!!! Temporary
-  df_p <- cbind(dat_p_copy$x,
-                y = dat_p_copy$y,
-                delta = dat_p_copy$delta)
+  dim_x <- attr(dat_p_rd, "dim_x")
 
-  mean_Q_n <- mean(apply(df_p, 1, function(r) {
+  mean_Q_n <- mean(apply(dat_p_rd, 1, function(r) {
     Q_noS_n(t_0,as.numeric(r[1:dim_x]))
   }))
 
@@ -53,7 +50,7 @@ construct_infl_fn_risk_p <- function(dat_p_copy, Q_noS_n, omega_noS_n,
     if (a==1) {
       return(0)
     } else {
-      return((1/prob)*(omega_noS_n(x,y,delta)-Q_noS_n(t_0,x)+mean_Q_n))
+      return((1/p_plac)*(omega_noS_n(x,y,delta)-Q_noS_n(t_0,x)+mean_Q_n))
     }
   }
 
@@ -69,30 +66,31 @@ construct_infl_fn_risk_p <- function(dat_p_copy, Q_noS_n, omega_noS_n,
 #' @return Influence function estimator
 #' @note Used by est_med()
 #' @noRd
-construct_infl_fn_risk_v <- function(dat_orig, Q_n, g_n, omega_n,
-                                     q_tilde_n, t_0, prob) {
+construct_infl_fn_risk_v <- function(dat_v_rd, Q_n, g_n, omega_n, q_tilde_n,
+                                     t_0, p_vacc) {
 
-  n_orig <- attr(dat_orig, "n_orig")
-  dim_x <- attr(dat_orig, "dim_x")
-  dat_orig_df <- as_df(dat_orig)
-  dat2 <- dat_orig_df[dat_orig_df$z==1,]
+  dat_v2_rd <- dat_v_rd[dat_v_rd$z==1,]
+  n_vacc <- attr(dat_v_rd, "n_vacc")
+  dim_x <- attr(dat_v_rd, "dim_x")
 
   # Helper function
   C_n <- memoise2(function(s) {
-    mean(apply(dat_orig_df, 1, function(r) {
+    mean(apply(dat_v_rd, 1, function(r) {
       x <- as.numeric(r[1:dim_x])
       return(Q_n(t_0,x,s)*g_n(s,x))
     }))
   })
 
-  mean_Q_n_g_n <- (1/n_orig) * sum(apply(dat2, 1, function(r) {
+  mean_Q_n_g_n <- (1/n_vacc) * sum(apply(dat_v2_rd, 1, function(r) {
     r[["weights"]] * C_n(r[["s"]]) # Replace with sapply
   }))
 
   infl_fn <- function(a,z,weight,s,x,y,delta) {
 
     if (a==0) {
+
       return(0)
+
     } else {
 
       if (z==0) {
@@ -105,7 +103,8 @@ construct_infl_fn_risk_v <- function(dat_orig, Q_n, g_n, omega_n,
       val <- (z/pi_)*(omega_n(x,s,y,delta)-Q_n(t_0,x,s)) +
         (1-z/pi_)*q_tilde_n(x,y,delta) + mean_Q_n_g_n
 
-      return((1/prob)*val)
+      return((1/p_vacc)*val)
+
     }
   }
 

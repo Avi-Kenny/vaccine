@@ -12,22 +12,25 @@
 #' @noRd
 construct_Q_n <- function(type, dat, vals, return_model=F) {
 
+  dim_x <- attr(dat,"dim_x")
+
   if (type=="Cox") {
 
+    x_names <- names(dat)[1:dim_x]
     model_srv <- survival::coxph(
       formula = stats::formula(paste0("survival::Surv(y,delta)~",
-                               paste(names(dat$x),collapse="+"),"+s")),
-      data = cbind(y=dat$y, delta=dat$delta, dat$x, s=dat$s),
-      weights = dat$weights
+                               paste(x_names,collapse="+"),"+s")),
+      data = dat,
+      weights = weights
     )
     coeffs_srv <- as.numeric(model_srv$coefficients)
     bh_srv <- survival::basehaz(model_srv, centered=F)
 
     model_cens <- survival::coxph(
       formula = stats::formula(paste0("survival::Surv(y,delta)~",
-                               paste(names(dat$x),collapse="+"),"+s")),
-      data = cbind(y=dat$y, delta=1-dat$delta, dat$x, s=dat$s),
-      weights = dat$weights
+                               paste(x_names,collapse="+"),"+s")),
+      data = dat,
+      weights = weights
     )
     coeffs_cens <- as.numeric(model_cens$coefficients)
     bh_cens <- survival::basehaz(model_cens, centered=F)
@@ -89,7 +92,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F) {
     srv <- survSuperLearner(
       time = dat$y,
       event = dat$delta,
-      X = cbind(dat$x, s=dat$s),
+      X = dat[,c(1:dim_x,which(names(dat)=="s"))],
       newX = newX,
       new.times = new.times,
       event.SL.library = methods,
@@ -161,7 +164,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F) {
     survML_args <- list(
       time = dat$y,
       event = dat$delta,
-      X = cbind(dat$x, s=dat$s),
+      X = dat[,c(1:dim_x,which(names(dat)=="s"))],
       newX = newX,
       newtimes = new.times,
       bin_size = 0.05,
@@ -266,23 +269,27 @@ construct_Q_n <- function(type, dat, vals, return_model=F) {
 #' @noRd
 construct_Q_noS_n <- function(type, dat, vals, return_model=F) {
 
-  # Merge this with construct_Q_n after data objects are harmonized
+  # !!!!! Merge this with construct_Q_n after data objects are harmonized
+
+  dim_x <- attr(dat,"dim_x")
 
   # if (type=="Cox") {
   if (type %in% c("Cox", "survML-G", "survML-L")) { # !!!!! Temporary to avoid R-CMD-CHECK failure
 
+    x_names <- names(dat)[1:dim_x]
+
     model_srv <- survival::coxph(
       formula = stats::formula(paste0("survival::Surv(y,delta)~",
-                                      paste(names(dat$x),collapse="+"))),
-      data = cbind(y=dat$y, delta=dat$delta, dat$x)
+                                      paste(x_names,collapse="+"))),
+      data = dat
     )
     coeffs_srv <- as.numeric(model_srv$coefficients)
     bh_srv <- survival::basehaz(model_srv, centered=F)
 
     model_cens <- survival::coxph(
       formula = stats::formula(paste0("survival::Surv(y,delta)~",
-                                      paste(names(dat$x),collapse="+"))),
-      data = cbind(y=dat$y, delta=1-dat$delta, dat$x)
+                                      paste(x_names,collapse="+"))),
+      data = dat
     )
     coeffs_cens <- as.numeric(model_cens$coefficients)
     bh_cens <- survival::basehaz(model_cens, centered=F)
@@ -337,7 +344,7 @@ construct_Q_noS_n <- function(type, dat, vals, return_model=F) {
     srv <- survSuperLearner(
       time = dat$y,
       event = dat$delta,
-      X = dat$x,
+      X = dat[,c(1:dim_x)],
       newX = newX,
       new.times = new.times,
       event.SL.library = methods,
@@ -503,7 +510,7 @@ construct_omega_noS_n <- function(Q_noS_n, Qc_noS_n, t_0, grid) {
 
 #' Construct estimator of conditional density of S given X
 #'
-#' @param dat Subsample of dataset returned by `ss` for which z==1
+#' @param dat_v2 Dataset returned by `load_data`, subset to ph2 vacc
 #' @param type One of c("parametric", "binning")
 #' @param k Number of bins for the binning estimator (if k=0, then the number of
 #'     bins will be selected via cross-validation); ignored for the parametric
@@ -513,9 +520,10 @@ construct_omega_noS_n <- function(Q_noS_n, Qc_noS_n, t_0, grid) {
 #' @note
 #'   - Assumes support of S is [0,1]
 #' @noRd
-construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
+construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
 
-  if (z1) { dat$weights <- rep(1, length(dat$weights)) }
+  dim_x <- attr(dat_v2, "dim_x")
+  if (z1) { dat_v2$weights <- rep(1, length(dat_v2$weights)) }
 
   if (type=="parametric") {
 
@@ -527,16 +535,18 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     }
 
     # Set up weighted likelihood
+    # !!!!! Replace this with apply
     wlik <- function(prm) {
-      -1 * sum(sapply(c(1:length(dat$s)), function(i) {
-        dat$weights[i] *
-          log(pmax(dens_s(s=dat$s[i], x=as.numeric(dat$x[i,]), prm),1e-8))
+      -1 * sum(sapply(c(1:length(dat_v2$s)), function(i) {
+        dat_v2$weights[i] * log(pmax(
+          dens_s(s=dat_v2$s[i], x=as.numeric(dat_v2[i,c(1:dim_x)]), prm), 1e-8
+        ))
       }))
     }
 
     # Run optimizer
     opt <- Rsolnp::solnp(
-      pars = c(rep(0, length(dat$x)+1), 0.15),
+      pars = c(rep(0, dim_x+1), 0.15),
       fun = wlik
     )
     if (opt$convergence!=0) {
@@ -545,7 +555,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     prm <- opt$pars
 
     # Remove large intermediate objects
-    rm(dat,dens_s,opt)
+    rm(dat_v2,dens_s,opt)
 
     fnc <- function(s, x) {
       mu <- sum( c(1,x) * c(expit(prm[1]),prm[2:(length(x)+1)]) )
@@ -572,16 +582,18 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     }
 
     # Set up weighted likelihood (edge)
+    # !!!!! Replace this with apply
     wlik_1 <- function(prm) {
-      -1 * sum(sapply(c(1:length(dat$s)), function(i) {
-        dat$weights[i] *
-          log(pmax(prob_s(s=dat$s[i], x=as.numeric(dat$x[i,]), prm),1e-8))
+      -1 * sum(sapply(c(1:length(dat_v2$s)), function(i) {
+        dat_v2$weights[i] * log(pmax(
+          prob_s(s=dat_v2$s[i], x=as.numeric(dat_v2[i,c(1:dim_x)]), prm), 1e-8
+        ))
       }))
     }
 
     # Run optimizer (edge)
     opt_1 <- Rsolnp::solnp(
-      pars = rep(0.01, length(dat$x)+1),
+      pars = rep(0.01, dim_x+1),
       fun = wlik_1
     )
     if (opt_1$convergence!=0) {
@@ -592,19 +604,20 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     # print(prm_1) # !!!!!
 
     # Filter out observations with s==0
-    dat_1 <- ss(dat, which(dat$s!=0))
+    dat_1 <- dat_v2[dat_v2$s!=0,]
 
     # Set up weighted likelihood (Normal)
     wlik_2 <- function(prm) {
       -1 * sum(sapply(c(1:length(dat_1$s)), function(i) {
-        dat_1$weights[i] *
-          log(pmax(dens_s(s=dat_1$s[i], x=as.numeric(dat_1$x[i,]), prm),1e-8))
+        dat_1$weights[i] * log(pmax(
+          dens_s(s=dat_1$s[i], x=as.numeric(dat_1[i,c(1:dim_x)]), prm), 1e-8
+        ))
       }))
     }
 
     # Run optimizer (Normal)
     opt_2 <- Rsolnp::solnp(
-      pars = c(rep(0.01, length(dat_1$x)+1), 0.15),
+      pars = c(rep(0.01, dim_x+1), 0.15),
       fun = wlik_2
     )
     if (opt_2$convergence!=0) {
@@ -613,7 +626,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     prm_2 <- opt_2$pars
 
     # Remove large intermediate objects
-    rm(dat,dat_1,opt_1,opt_2)
+    rm(dat_v2,dat_1,opt_1,opt_2)
 
     fnc <- function(s, x) {
       if (s==0) {
@@ -630,7 +643,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
     # Set up binning density (based on Diaz and Van Der Laan 2011)
     # prm[1] through prm[k-1] are the hazard components for the bins 1 to k-1
     # prm[k] and prm[k+1] are the coefficients for W1 and W2
-    create_dens <- function(k, dat, remove_dat=F) {
+    create_dens <- function(k, dat_v2, remove_dat=F) {
 
       # Cut points
       alphas <- seq(0, 1, length.out=k+1)
@@ -648,10 +661,8 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       })
 
       # Set up weighted likelihood
-      dat_df <- as_df(dat)
-      dim_x <- attr(dat, "dim_x")
       wlik <- function(prm) {
-        -1 * sum(dat$weights * log(pmax(apply(dat_df, 1, function(r) {
+        -1 * sum(dat_v2$weights * log(pmax(apply(dat_v2, 1, function(r) {
           dens_s(s=r[["s"]], x=as.numeric(r[1:dim_x]), prm)
         }),1e-8)))
       }
@@ -659,7 +670,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       # Run optimizer
       if(.Platform$OS.type=="unix") { sink("/dev/null") } else { sink("NUL") }
       opt <- Rsolnp::solnp(
-        pars = rep(0.001,k+length(dat$x)-1),
+        pars = rep(0.001,k+dim_x-1),
         fun = wlik
       )
       sink()
@@ -671,7 +682,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
       # Remove large intermediate objects
       rm(dens_s,opt)
 
-      if (remove_dat) { rm(dat) }
+      if (remove_dat) { rm(dat_v2) }
 
       fnc <- function(s, x) {
 
@@ -693,7 +704,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
 
       # Prep
       n_folds <- 5
-      folds <- sample(cut(c(1:length(dat$s)), breaks=n_folds, labels=FALSE))
+      folds <- sample(cut(c(1:length(dat_v2$s)), breaks=n_folds, labels=FALSE))
       ks <- c(4,8,12,16) # !!!!! Make this an argument
       best <- list(k=999, max_log_lik=999)
 
@@ -702,12 +713,12 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
 
         sum_log_lik <- 0
         for (i in c(1:n_folds)) {
-          dat_train <- ss(dat, which(folds!=i))
-          dat_test <- ss(dat, which(folds==i))
+          dat_train <- dat_v2[which(folds!=i),]
+          dat_test <- dat_v2[which(folds==i),]
           dens <- create_dens(k, dat_train)
           sum_log_lik <- sum_log_lik +
             sum(log(sapply(c(1:length(dat_test$s)), function(j) {
-              dens(dat_test$s[j], as.numeric(dat_test$x[j,]))
+              dens(dat_test$s[j], as.numeric(dat_test[j,c(1:dim_x)]))
             })))
         }
 
@@ -723,7 +734,7 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
 
     }
 
-    fnc <- create_dens(k, dat, remove_dat=T)
+    fnc <- create_dens(k, dat_v2, remove_dat=T)
 
   }
 
@@ -740,12 +751,13 @@ construct_f_sIx_n <- function(dat, type, k=0, z1=F) {
 #'     `construct_f_sIx_n`
 #' @return Marginal density estimator function
 #' @noRd
-construct_f_s_n <- function(dat_orig, f_sIx_n) {
+construct_f_s_n <- function(dat_v_rd, f_sIx_n) {
 
-  n_orig <- attr(dat_orig, "n_orig")
+  n_vacc <- attr(dat_v_rd, "n_vacc")
+  datx_v_rd <- dat_v_rd[, c(1:dim_x), drop=F]
   memoise2(function(s) {
-    (1/n_orig) * sum(apply(dat_orig$x, 1, function(x) {
-      f_sIx_n(s,as.numeric(x))
+    (1/n_vacc) * sum(apply(datx_v_rd, 1, function(r) {
+      f_sIx_n(s,as.numeric(r))
     }))
   })
 
@@ -953,15 +965,14 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
 #' Construct estimator of nuisance g_sn
 #'
 #' @noRd
-construct_g_sn <- function(dat, f_n_srv, g_n, p_n) {
+construct_g_sn <- function(dat_v2_rd, f_n_srv, g_n, p_n) {
 
-  n_orig <- attr(dat, "n_orig")
-  dat_df <- as_df(dat)
+  n_vacc <- attr(dat_v2_rd, "n_vacc")
 
   return(memoise2(function(x, y, delta) {
     num <- f_n_srv(y, delta, x, 0) * g_n(s=0,x) * (1-p_n)
-    den <- (1/n_orig) * sum(
-      dat$weights * apply(dat_df, 1, function(r) {
+    den <- (1/n_vacc) * sum(
+      dat_v2_rd$weights * apply(dat_v2_rd, 1, function(r) {
         f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x) # !!!!! Replace this with sapply
       })
     )

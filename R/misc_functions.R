@@ -75,21 +75,19 @@ memoise2 <- function(fnc) {
 
 #' Round data values
 #'
-#' @param dat_orig Dataset returned by `load_data`
-#' @param grid_size A list, as specified in `est_np`
+#' @param dat Dataset returned by `load_data` (possibly filtered)
+#' @param grid_size A list, as specified in `params_ce_np`
 #' @return Dataset with values rounded
 #' @noRd
-create_grid <- function(dat_orig, grid_size, t_0) {
+create_grid <- function(dat, grid_size, t_0) {
 
-  d <- dat_orig
   grid <- list()
   grid$y <- round(seq(from=0, to=t_0, length.out=grid_size$y), 5)
-  grid$y_ext <- round(seq(from=0, to=max(dat_orig$y),
-                          by=(t_0/(grid_size$y-1))), 5)
+  grid$y_ext <- round(seq(from=0, to=max(dat$y), by=(t_0/(grid_size$y-1))), 5)
   if (!(t_0 %in% grid$y)) { grid$y <- sort(c(grid$y, t_0)) }
   grid$s <- round(seq(from=0, to=1, length.out=grid_size$s), 5)
-  grid$x <- lapply(c(1:length(d$x)), function(i) {
-    x_col <- d$x[,i]
+  grid$x <- lapply(c(1:attr(dat,"dim_x")), function(i) {
+    x_col <- as.numeric(dat[,i])
     if (length(unique(x_col))>grid_size$x) {
       return(round(seq(from=min(x_col), to=max(x_col),
                        length.out=grid_size$x), 5))
@@ -106,18 +104,18 @@ create_grid <- function(dat_orig, grid_size, t_0) {
 
 #' Round data values
 #'
-#' @param dat_orig Dataset returned by `load_data`
+#' @param dat Dataset returned by `load_data` (possibly filtered)
 #' @param grid A grid, returned by `create_grid`
 #' @param grid_size A list, as specified in `est_np`
 #' @return Dataset with values rounded
 #' @noRd
-round_dat <- function(dat_orig, grid, grid_size) {
-
-  d <- dat_orig
+round_dat <- function(dat, grid, grid_size) {
 
   # Round `y` and `s`
-  d$y <- sapply(d$y, function(y) { grid$y_ext[which.min(abs(grid$y_ext-y))] })
-  d$s <- sapply(d$s, function(s) {
+  dat$y <- sapply(dat$y, function(y) {
+    grid$y_ext[which.min(abs(grid$y_ext-y))]
+  })
+  dat$s <- sapply(dat$s, function(s) {
     if (is.na(s)) {
       return(NA)
     } else {
@@ -126,18 +124,18 @@ round_dat <- function(dat_orig, grid, grid_size) {
   })
 
   # Round `x`
-  for (i in c(1:length(d$x))) {
-    x_col <- d$x[,i]
+  for (i in c(1:attr(dat,"dim_x"))) {
+    x_col <- as.numeric(dat[,i])
     if (length(unique(x_col))>grid_size$x) {
-      d$x[,i] <- sapply(x_col, function(x) {
+      dat[,i] <- sapply(x_col, function(x) {
         grid$x[[i]][which.min(abs(grid$x[[i]]-x))]
       })
     }
   }
 
-  # Not rounding weights for now
+  # !!!!! Note: not rounding weights (for now)
 
-  return(d)
+  return(dat)
 
 }
 

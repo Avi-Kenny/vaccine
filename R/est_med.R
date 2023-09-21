@@ -98,10 +98,12 @@ est_med <- function(
 
     # Create filtered data objects
     dat_v_rd <- round_dat(dat_v, grid, p$grid_size) # !!!!! see (1) above
+    dat_p_rd <- round_dat(dat_p, grid, p$grid_size) # !!!!! see (1) above
     datx_v_rd <- dat_v_rd[, c(1:dim_x), drop=F]
     datx_p_rd <- dat_p_rd[, c(1:dim_x), drop=F]
+    class(datx_v_rd) <- "data.frame"
+    class(datx_p_rd) <- "data.frame"
     dat_v2_rd <- dat_v_rd[dat_v_rd$z==1,]
-    dat_p_rd <- round_dat(dat_p, grid, p$grid_size) # !!!!! see (1) above
     dat_rd <- round_dat(dat, grid, p$grid_size) # !!!!! see (1) above
 
     # Precomputation values for conditional survival/censoring estimators
@@ -173,10 +175,9 @@ est_med <- function(
 
       # Construct other nuisance estimators
       omega_noS_n <- construct_omega_noS_n(Q_noS_n, Qc_noS_n, t_0, grid)
-      risk_p_est <- risk_overall_np_p(dat_p_rd, dim_x, Q_noS_n, omega_noS_n,
-                                      t_0)
+      risk_p_est <- risk_overall_np_p(dat_p_rd, Q_noS_n, omega_noS_n, t_0)
       infl_fn_risk_p <- construct_infl_fn_risk_p(dat_p_rd, Q_noS_n, omega_noS_n,
-                                                 dim_x, t_0, p_plac)
+                                                 t_0, p_plac)
 
       q_tilde_n <- memoise2(function(x,y,delta) {
         # !!!!! Replace with sapply

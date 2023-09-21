@@ -51,13 +51,12 @@ construct_Gamma_os_n <- function(dat, dat_orig, omega_n, g_n, q_n, r_tilde_Mn) {
 #' @param omega_n A nuisance influence function returned by construct_omega_n()
 #' @return Value of one-step estimator
 #' @noRd
-r_Mn_edge <- function(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0) {
+r_Mn_edge <- function(dat_v_rd, g_sn, g_n, p_n, Q_n, omega_n, t_0) {
 
-  n_orig <- attr(dat_orig, "n_orig")
-  dim_x <- attr(dat_orig, "dim_x")
-  dat_orig_df <- as_df(dat_orig)
+  n_vacc <- attr(dat_v_rd, "n_vacc")
+  dim_x <- attr(dat_v_rd, "dim_x")
 
-  v <- (1/n_orig) * sum(apply(dat_orig_df, 1, function(r) {
+  v <- (1/n_vacc) * sum(apply(dat_v_rd, 1, function(r) {
 
     y <- r[["y"]]
     delta <- r[["delta"]]
@@ -89,16 +88,15 @@ r_Mn_edge <- function(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0) {
 #' @param TODO TO DO
 #' @return Value of one-step estimator
 #' @noRd
-risk_overall_np_v <- function(dat_orig, g_n, Q_n, omega_n, f_n_srv, q_tilde_n,
+risk_overall_np_v <- function(dat_v_rd, g_n, Q_n, omega_n, f_n_srv, q_tilde_n,
                               t_0) {
 
   # !!!!! Port to est_overall
 
-  n_orig <- attr(dat_orig, "n_orig")
-  dim_x <- attr(dat_orig, "dim_x")
-  dat_orig_df <- as_df(dat_orig)
+  n_vacc <- attr(dat_v_rd, "n_vacc")
+  dim_x <- attr(dat_v_rd, "dim_x")
 
-  v <- (1/n_orig) * sum(apply(dat_orig_df, 1, function(r) {
+  v <- (1/n_vacc) * sum(apply(dat_v_rd, 1, function(r) {
 
     y <- r[["y"]]
     delta <- r[["delta"]]
@@ -112,8 +110,8 @@ risk_overall_np_v <- function(dat_orig, g_n, Q_n, omega_n, f_n_srv, q_tilde_n,
       pi_ <- 1/r[["weights"]]
     }
 
-    val <- (z/pi_)*(omega_n(x,s,y,delta)-Q_n(t_0,x,s)) + # !!!!! New
-      (1-z/pi_)*q_tilde_n(x,y,delta) # !!!!! New
+    val <- (z/pi_)*(omega_n(x,s,y,delta)-Q_n(t_0,x,s)) +
+      (1-z/pi_)*q_tilde_n(x,y,delta)
     return(val)
 
   }))
@@ -129,19 +127,14 @@ risk_overall_np_v <- function(dat_orig, g_n, Q_n, omega_n, f_n_srv, q_tilde_n,
 #' @param TODO TO DO
 #' @return Value of one-step estimator
 #' @noRd
-risk_overall_np_p <- function(dat_orig_rounded_p, dim_x, Q_noS_n, omega_noS_n, t_0) {
-
-  # !!!!! Temporary
-  df_p <- cbind(dat_orig_rounded_p$x,
-                y = dat_orig_rounded_p$y,
-                delta = dat_orig_rounded_p$delta)
+risk_overall_np_p <- function(dat_p_rd, Q_noS_n, omega_noS_n, t_0) {
 
   # !!!!! Port to est_overall
 
-  n_orig <- nrow(df_p)
-  # dat_orig_df <- as_df(dat_orig)
+  n_vacc <- attr(dat_p_rd, "n_vacc")
+  dim_x <- attr(dat_p_rd, "dim_x")
 
-  v <- (1/n_orig) * sum(apply(df_p, 1, function(r) {
+  v <- (1/n_vacc) * sum(apply(dat_p_rd, 1, function(r) {
     x <- as.numeric(r[1:dim_x])
     omega_noS_n(x,r[["y"]],r[["delta"]])-Q_noS_n(t_0,x)
   }))
