@@ -188,6 +188,7 @@ load_data <- function(
   attr(dat, "dim_x") <- .dim_x
   attr(dat, "n") <- .n_v+.n_p
   attr(dat, "n_vacc") <- .n_v
+  attr(dat, "n_vacc2") <- sum(df_v$z)
   attr(dat, "n_plac") <- .n_p
   return(dat)
 

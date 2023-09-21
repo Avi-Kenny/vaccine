@@ -70,9 +70,11 @@ est_med <- function(
 
   if (type=="NP") {
 
-    # # Alias variables
+    # Create filtered data objects
     dat_v <- dat[dat$a==1,]
     dat_p <- dat[dat$a==0,]
+
+    # Alias variables
     dim_x <- attr(dat, "dim_x")
     n_vacc <- attr(dat, "n_vacc")
     n_plac <- attr(dat, "n_plac")
@@ -96,7 +98,7 @@ est_med <- function(
     dat_v$s <- (dat_v$s+s_shift)*s_scale
     grid <- create_grid(dat_v, p$grid_size, t_0) # !!!!! feed in dat instead (1)
 
-    # Create filtered data objects
+    # Create rounded filtered data objects
     dat_v_rd <- round_dat(dat_v, grid, p$grid_size) # !!!!! see (1) above
     dat_p_rd <- round_dat(dat_p, grid, p$grid_size) # !!!!! see (1) above
     datx_v_rd <- dat_v_rd[, c(1:dim_x), drop=F]

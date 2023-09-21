@@ -526,6 +526,8 @@ construct_omega_noS_n <- function(Q_noS_n, Qc_noS_n, t_0, grid) {
 construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
 
   dim_x <- attr(dat_v2, "dim_x")
+  n_vacc2 <- attr(dat, "n_vacc2")
+
   if (z1) { dat_v2$weights <- rep(1, length(dat_v2$weights)) }
 
   if (type=="parametric") {
@@ -540,7 +542,7 @@ construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
     # Set up weighted likelihood
     # !!!!! Replace this with apply
     wlik <- function(prm) {
-      -1 * sum(sapply(c(1:length(dat_v2$s)), function(i) {
+      -1 * sum(sapply(c(1:n_vacc2), function(i) {
         dat_v2$weights[i] * log(pmax(
           dens_s(s=dat_v2$s[i], x=as.numeric(dat_v2[i,c(1:dim_x)]), prm), 1e-8
         ))
@@ -587,7 +589,7 @@ construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
     # Set up weighted likelihood (edge)
     # !!!!! Replace this with apply
     wlik_1 <- function(prm) {
-      -1 * sum(sapply(c(1:length(dat_v2$s)), function(i) {
+      -1 * sum(sapply(c(1:n_vacc2), function(i) {
         dat_v2$weights[i] * log(pmax(
           prob_s(s=dat_v2$s[i], x=as.numeric(dat_v2[i,c(1:dim_x)]), prm), 1e-8
         ))
@@ -707,7 +709,7 @@ construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
 
       # Prep
       n_folds <- 5
-      folds <- sample(cut(c(1:length(dat_v2$s)), breaks=n_folds, labels=FALSE))
+      folds <- sample(cut(c(1:n_vacc2), breaks=n_folds, labels=FALSE))
       ks <- c(4,8,12,16) # !!!!! Make this an argument
       best <- list(k=999, max_log_lik=999)
 
@@ -800,33 +802,6 @@ construct_Phi_n <- function (dat_orig, dat, type="linear (mid)") {
   })
 
   return(fn)
-
-  # # n_orig <- attr(dat, "n_orig")
-  # n_orig <- sum(dat$weights) # !!!!!
-  # df <- data.frame(s=dat$s, weights=dat$weights)
-  # df <- dplyr::arrange(df, s)
-  # vals_x <- unique(df$s)
-  # vals_y <- c()
-  #
-  # for (j in 1:length(vals_x)) {
-  #   indices <- which(df$s==vals_x[j])
-  #   weights_j <- df$weights[indices]
-  #   new_y_val <- (1/n_orig) * sum(weights_j)
-  #   vals_y <- c(vals_y, new_y_val)
-  # }
-  # vals_y <- cumsum(vals_y)
-  #
-  # if (type=="step") {
-  #   method <- "constant"
-  # } else if (type=="linear (mid)") {
-  #   vals_x <- c(vals_x[1], vals_x[1:(length(vals_x)-1)]+diff(vals_x)/2,
-  #               vals_x[length(vals_x)])
-  #   vals_y <- c(0, vals_y[1:(length(vals_y)-1)], 1)
-  #   method <- "linear"
-  # }
-  #
-  # return(stats::approxfun(vals_x, vals_y, method=method, yleft=0, yright=1, f=0,
-  #                  ties="ordered"))
 
 }
 
@@ -921,7 +896,7 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
       }
     })
 
-    n <- length(dat$s)
+    n <- length(dat$s) # !!!!! n_vacc2 <- attr(dat, "n_vacc2")
 
     # Helper functions
     # !!!!! Can these vectors/functions be used elsewhere?
