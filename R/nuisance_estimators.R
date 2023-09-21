@@ -526,7 +526,7 @@ construct_omega_noS_n <- function(Q_noS_n, Qc_noS_n, t_0, grid) {
 construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
 
   dim_x <- attr(dat_v2, "dim_x")
-  n_vacc2 <- attr(dat, "n_vacc2")
+  n_vacc2 <- attr(dat_v2, "n_vacc2")
 
   if (z1) { dat_v2$weights <- rep(1, length(dat_v2$weights)) }
 
