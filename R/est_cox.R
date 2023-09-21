@@ -7,23 +7,6 @@ est_cox <- function(
     spline_df, spline_knots, edge_ind
 ) {
 
-  # # Setup
-  # if (verbose) {
-  #   print(paste("Check 0 (start):", Sys.time()))
-  #   pbapply::pboptions(type="txt", char="#", txt.width=40, style=3)
-  # } else {
-  #   pbapply::pboptions(type="none")
-  # }
-  # if (parallel) {
-  #   n_cores <- parallel::detectCores() - 1
-  #   cl <- parallel::makeCluster(n_cores)
-  #   if (verbose) {
-  #     print(cl)
-  #   }
-  # } else {
-  #   cl <- NULL
-  # }
-
   if (!methods::is(dat,"vaccine_dat")) {
     stop(paste0("`dat` must be an object of class 'vaccine_dat' returned by lo",
                 "ad_data()."))
@@ -37,8 +20,12 @@ est_cox <- function(
 
   if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
 
+  # Create filtered data objects
+  dat_v <- dat[dat$a==1,]
+  dat_p <- dat[dat$a==0,]
+
   # Create spline basis and function
-  dat$v$spl <- data.frame("s1"=dat$v$s)
+  dat_v_spl <- data.frame("s1"=dat_v$s)
   if ((!is.na(spline_df) && spline_df!=1) || !is.na(spline_knots[[1]])) {
 
     if (!is.na(spline_df) && !is.na(spline_knots)) {
@@ -49,22 +36,9 @@ est_cox <- function(
       stop("`spline_knots` must be a numeric vector of at least length 3.")
     }
 
-    # # Create spline basis
-    # Note: this method uses quantiles of the observed marker; however, we have
-    #   seen that this leads to improper variance estimation, and so we do not
-    #   use it.
-    # spl_basis <- splines::ns(
-    #   x = dat$v$s,
-    #   df = spline_df,
-    #   intercept = F,
-    #   Boundary.knots = stats::quantile(dat$v$s, c(0.05,0.95), na.rm=T)
-    # )
-    # spl_knots <- as.numeric(attr(spl_basis, "knots"))
-    # spl_bnd_knots <- as.numeric(attr(spl_basis, "Boundary.knots"))
-
     # Create spline basis
     if (!is.na(spline_df)) {
-      spl_bnd_knots <- as.numeric(stats::quantile(dat$v$s, c(0.05,0.95), na.rm=T))
+      spl_bnd_knots <- as.numeric(stats::quantile(dat_v$s, c(0.05,0.95), na.rm=T))
       spl_knots <- seq(spl_bnd_knots[1], spl_bnd_knots[2],
                        length.out=spline_df+1)[c(2:spline_df)]
     } else {
@@ -72,22 +46,22 @@ est_cox <- function(
       spl_knots <- spline_knots[c(2:(length(spline_knots)-1))]
     }
     spl_basis <- splines::ns(
-      x = dat$v$s,
+      x = dat_v$s,
       knots = spl_knots,
       intercept = F,
       Boundary.knots = spl_bnd_knots
     )
 
     for (i in c(1:(dim(spl_basis)[2]))) {
-      dat$v$spl[[paste0("s",i)]] <- spl_basis[,i]
+      dat_v_spl[[paste0("s",i)]] <- spl_basis[,i]
     }
     dim_s <- dim(spl_basis)[2]
 
     if (edge_ind) {
 
       dim_s <- dim_s + 1
-      min_s <- min(dat$v$s, na.rm=T)
-      dat$v$spl[,paste0("s",dim_s)] <- In(dat$v$s==min_s)
+      min_s <- min(dat_v$s, na.rm=T)
+      dat_v_spl[[paste0("s",dim_s)]] <- In(dat_v$s==min_s) # !!!!! Should this be dim_s+1 ?????
       s_to_spl <- function(s) {
         spl <- as.numeric(splines::ns(
           x = s,
@@ -116,8 +90,8 @@ est_cox <- function(
     if (edge_ind) {
 
       dim_s <- 2
-      min_s <- min(dat$v$s, na.rm=T)
-      dat$v$spl[,paste0("s",dim_s)] <- In(dat$v$s==min_s)
+      min_s <- min(dat_v$s, na.rm=T)
+      dat_v_spl[[paste0("s",dim_s)]] <- In(dat_v$s==min_s)
       s_to_spl <- function(s) { c(s, In(s==min_s)) }
 
     } else {
@@ -129,23 +103,23 @@ est_cox <- function(
 
   }
 
-  # Create phase-two data object (unrounded)
-  dat_v_ph2 <- ss(dat$v, which(dat$v$z==1))
+  # Create phase-two data objects (unrounded)
+  dat_v2 <- dat_v[dat_v$z==1,]
+  dat_v2_spl <- dat_v_spl[dat_v$z==1,, drop=F]
 
   # Alias random variables
-  WT <- dat_v_ph2$weights
-  ST <- dat_v_ph2$strata
-  N <- length(dat$v$s)
-  n <- length(dat_v_ph2$s)
-  X <- dat_v_ph2$x
-  SP <- dat_v_ph2$spl
+  WT <- dat_v2$weights
+  ST <- dat_v2$strata
+  N <- attr(dat, "n") # !!!!! Change to n
+  n <- attr(dat, "n_vacc2") # !!!!! Change to n_vacc2
+  dim_x <- attr(dat_v, "dim_x")
+  X <- dat_v2[,c(1:dim_x), drop=F]
+  class(X) <- "data.frame"
+  SP <- dat_v2_spl
   V_ <- t(as.matrix(cbind(X,SP)))
-  Y_ <- dat_v_ph2$y
-  D_ <- dat_v_ph2$delta
-
-  # Get dimensions
+  Y_ <- dat_v2$y
+  D_ <- dat_v2$delta
   dim_v <- dim(V_)[1]
-  dim_x <- attr(dat$v, "dim_x")
 
   # Create set of event times
   i_ev <- which(D_==1)
@@ -282,12 +256,12 @@ est_cox <- function(
   })()
 
   # Create p_n and p1_n vectors
-  n_strata <- max(dat$v$strata)
+  n_strata <- max(dat_v$strata)
   p_n <- c()
   p1_n <- c()
   for (c in c(1:n_strata)) {
-    p_n[c] <- mean(c==dat$v$strata)
-    p1_n[c] <- mean(c==dat$v$strata & dat$v$z==1)
+    p_n[c] <- mean(c==dat_v$strata)
+    p1_n[c] <- mean(c==dat_v$strata & dat_v$z==1)
   }
 
   # Influence function: beta_hat (est. weights)
@@ -295,7 +269,7 @@ est_cox <- function(
     .cache <- new.env()
 
     exp_terms <- list()
-    for (i in c(1:max(dat$v$strata))) {
+    for (i in c(1:max(dat_v$strata))) {
       js <- which(ST==i)
       if (length(js)>0) {
         exp_terms[[i]] <- (1/length(js)) * Reduce("+", lapply(js, function(j) {
@@ -436,7 +410,7 @@ est_cox <- function(
   res_cox <- list()
   Lambda_n_t_0 <- Lambda_n(t_0)
   res_cox$est_marg <- unlist(lapply(s_out, function(s) {
-    (1/N) * sum((apply(dat$v$x, 1, function(r) {
+    (1/N) * sum((apply(dat_v, 1, function(r) {
       x_i <- as.numeric(r[1:dim_x])
       s_spl <- s_to_spl(s)
       exp(-1*exp(sum(beta_n*c(x_i,s_spl)))*Lambda_n_t_0)
@@ -446,12 +420,11 @@ est_cox <- function(
   # Compute variance estimate
   if (ci_type!="none") {
 
-    dat_v_df <- as_df(dat$v, strata=T)
     res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
 
       # Precalculate pieces dependent on s
       s_spl <- s_to_spl(s)
-      K_n <- (1/N) * Reduce("+", apply2(dat_v_df, 1, function(r) {
+      K_n <- (1/N) * Reduce("+", apply2(dat_v, 1, function(r) {
         x_i <- as.numeric(r[1:dim_x])
         Q <- Q_n(c(x_i,s_spl))
         explin <- exp(sum(c(x_i,s_spl)*beta_n))
@@ -464,7 +437,7 @@ est_cox <- function(
       K_n2 <- K_n[2]
       K_n3 <- K_n[3:length(K_n)]
 
-      (1/N^2) * sum((apply(dat_v_df, 1, function(r) {
+      (1/N^2) * sum((apply(dat_v, 1, function(r) {
 
         x_i <- as.numeric(r[1:dim_x])
         if (!is.na(r[["s"]])) {
@@ -531,9 +504,7 @@ est_cox <- function(
   # Compute CVE
   if (cve) {
     res$cve <- list(s=s_out)
-    if (attr(dat, "groups")!="both") {
-      stop("Placebo group data not detected.")
-    }
+    if (attr(dat, "groups")!="both") { stop("Placebo group not detected.") }
     ov <- est_overall(dat=dat, t_0=t_0, method=placebo_risk_method, ve=F)
     risk_p <- ov[ov$group=="placebo","est"]
     se_p <- ov[ov$group=="placebo","se"] # This equals sd_p/n_orig

@@ -55,7 +55,7 @@
 #' @export
 est_ce <- function(
     dat, type="Cox", t_0, cr=TRUE, cve=FALSE,
-    s_out=seq(from=min(dat$v$s,na.rm=TRUE), to=max(dat$v$s,na.rm=TRUE), l=101),
+    s_out=seq(from=min(dat$s,na.rm=TRUE), to=max(dat$s,na.rm=TRUE), l=101),
     ci_type="transformed", placebo_risk_method="KM", return_extras=FALSE,
     params_cox=params_ce_cox(), params_np=params_ce_np()
 ) {
