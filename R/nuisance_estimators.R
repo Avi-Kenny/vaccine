@@ -17,6 +17,8 @@ construct_Q_n <- function(type, dat, vals, return_model=F) {
   if (type=="Cox") {
 
     x_names <- names(dat)[1:dim_x]
+    dat$delta2 <- 1 - dat$delta
+
     model_srv <- survival::coxph(
       formula = stats::formula(paste0("survival::Surv(y,delta)~",
                                paste(x_names,collapse="+"),"+s")),
@@ -27,7 +29,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F) {
     bh_srv <- survival::basehaz(model_srv, centered=F)
 
     model_cens <- survival::coxph(
-      formula = stats::formula(paste0("survival::Surv(y,delta)~",
+      formula = stats::formula(paste0("survival::Surv(y,delta2)~",
                                paste(x_names,collapse="+"),"+s")),
       data = dat,
       weights = weights
@@ -277,6 +279,7 @@ construct_Q_noS_n <- function(type, dat, vals, return_model=F) {
   if (type %in% c("Cox", "survML-G", "survML-L")) { # !!!!! Temporary to avoid R-CMD-CHECK failure
 
     x_names <- names(dat)[1:dim_x]
+    dat$delta2 <- 1 - dat$delta
 
     model_srv <- survival::coxph(
       formula = stats::formula(paste0("survival::Surv(y,delta)~",
@@ -287,7 +290,7 @@ construct_Q_noS_n <- function(type, dat, vals, return_model=F) {
     bh_srv <- survival::basehaz(model_srv, centered=F)
 
     model_cens <- survival::coxph(
-      formula = stats::formula(paste0("survival::Surv(y,delta)~",
+      formula = stats::formula(paste0("survival::Surv(y,delta2)~",
                                       paste(x_names,collapse="+"))),
       data = dat
     )
