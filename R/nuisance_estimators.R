@@ -10,19 +10,19 @@
 #' @return Conditional density estimator function
 #'
 #' @noRd
-construct_Q_n <- function(type, dat, vals, return_model=F) {
+construct_Q_n <- function(type, dat_v, vals, return_model=F) {
 
-  dim_x <- attr(dat,"dim_x")
+  dim_x <- attr(dat_v,"dim_x")
 
   if (type=="Cox") {
 
-    x_names <- names(dat)[1:dim_x]
-    dat$delta2 <- 1 - dat$delta
+    x_names <- names(dat_v)[1:dim_x]
+    dat_v$delta2 <- 1 - dat_v$delta
 
     model_srv <- survival::coxph(
       formula = stats::formula(paste0("survival::Surv(y,delta)~",
                                paste(x_names,collapse="+"),"+s")),
-      data = dat,
+      data = dat_v,
       weights = weights
     )
     coeffs_srv <- as.numeric(model_srv$coefficients)
@@ -31,7 +31,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F) {
     model_cens <- survival::coxph(
       formula = stats::formula(paste0("survival::Surv(y,delta2)~",
                                paste(x_names,collapse="+"),"+s")),
-      data = dat,
+      data = dat_v,
       weights = weights
     )
     coeffs_cens <- as.numeric(model_cens$coefficients)
@@ -91,17 +91,17 @@ construct_Q_n <- function(type, dat, vals, return_model=F) {
       }
     )
 
-    X <- dat[,c(1:dim_x,which(names(dat)=="s"))]
+    X <- dat_v[,c(1:dim_x,which(names(dat_v)=="s"))]
     class(X) <- "data.frame"
     srv <- survSuperLearner(
-      time = dat$y,
-      event = dat$delta,
+      time = dat_v$y,
+      event = dat_v$delta,
       X = X,
       newX = newX,
       new.times = new.times,
       event.SL.library = methods,
       cens.SL.library = methods,
-      obsWeights = dat$weights,
+      obsWeights = dat_v$weights,
       control = list(initWeightAlg=methods[1], max.SL.iter=10)
     )
 
@@ -166,9 +166,9 @@ construct_Q_n <- function(type, dat, vals, return_model=F) {
     new.times <- unique(vals$t)
 
     survML_args <- list(
-      time = dat$y,
-      event = dat$delta,
-      X = dat[,c(1:dim_x,which(names(dat)=="s"))],
+      time = dat_v$y,
+      event = dat_v$delta,
+      X = dat_v[,c(1:dim_x,which(names(dat_v)=="s"))],
       newX = newX,
       newtimes = new.times,
       bin_size = 0.05,
@@ -177,7 +177,7 @@ construct_Q_n <- function(type, dat, vals, return_model=F) {
         # SL.library = rep(c("SL.mean", "SL.glm", "SL.gam", "SL.earth"),2), # Note: rep() is to avoid a SuperLearner bug
         SL.library = rep(c("SL.mean", "SL.glm", "SL.gam"),2), # Note: rep() is to avoid a SuperLearner bug
         V = 5,
-        obsWeights = dat$weights
+        obsWeights = dat_v$weights
       )
     )
     if (type=="survML-G") {
