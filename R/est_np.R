@@ -436,7 +436,7 @@ est_np <- function(
     Qc_n_df <- Q_n_df
     for (ind in ind_sample) {
       for (t in grid$y) {
-        x_val <- as.numeric(dat_v[ind,c(1:dim_x)])
+        x_val <- as.numeric(dat_v_rd[ind,c(1:dim_x)])
         Q_val_s1 <- Q_n(t=t, x=x_val, s=s1)
         Q_val_s2 <- Q_n(t=t, x=x_val, s=s2)
         Q_val_s3 <- Q_n(t=t, x=x_val, s=s3)
