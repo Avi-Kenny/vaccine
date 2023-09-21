@@ -65,24 +65,19 @@ est_ce <- function(
   # !!!!! Move common functionality (e.g. data prep) into here
 
   if (type=="Cox") {
-    p <- params_cox
     ests <- est_cox(
       dat=dat, t_0=t_0, cr=cr, cve=cve, s_out=s_out, ci_type=ci_type,
       placebo_risk_method=placebo_risk_method, return_extras=return_extras,
-      spline_df=p$spline_df, spline_knots=p$spline_knots, edge_ind=p$edge_ind
+      spline_df=params_cox$spline_df, spline_knots=params_cox$spline_knots,
+      edge_ind=params_cox$edge_ind
     )
   }
 
   if (type=="NP") {
-    p <- params_np
-    params_np[["dir"]] <- NULL # !!!!!
-    params_np[["edge_corr"]] <- NULL # !!!!!
-    params_np[["grid_size"]] <- NULL # !!!!!
     ests <- est_np(
       dat=dat, t_0=t_0, cr=cr, cve=cve, s_out=s_out, ci_type=ci_type,
-      placebo_risk_method=placebo_risk_method, return_extras=return_extras, dir=p$dir,
-      edge_corr=p$edge_corr, params=params_np, grid_size=p$grid_size,
-      cf_folds=1
+      placebo_risk_method=placebo_risk_method, return_extras=return_extras,
+      params=params_np, cf_folds=1
     )
   }
 

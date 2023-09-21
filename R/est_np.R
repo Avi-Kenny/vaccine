@@ -6,8 +6,7 @@ est_np <- function(
     dat, t_0, cr=T, cve=F,
     s_out=seq(from=min(dat$s, na.rm=T), to=max(dat$s, na.rm=T), l=101),
     ci_type="transformed", placebo_risk_method="KM", return_extras=F,
-    dir="decr", edge_corr=F, params=list(), grid_size=list(y=101, s=101, x=5),
-    cf_folds=1
+    params=list(), cf_folds=1
 ) {
 
   if (!methods::is(dat,"vaccine_dat")) {
@@ -19,31 +18,25 @@ est_np <- function(
     stop("Vaccine group data not detected.")
   }
 
-  if (!(dir %in% c("decr", "incr"))) {
-    stop("`dir` must equal one of c('decr','incr').")
-  } else {
-    dir_factor <- ifelse(dir=="decr", -1, 1)
-  }
-
   # !!!!! Validate other inputs; import error handling function from SimEngine
 
   # Set params
   # !!!!! Make this returned by params_ce_np()
-  .default_params <- list(
-    surv_type = "survML-G",
-    density_type = "binning",
-    density_bins = 15,
-    deriv_type = "m-spline",
-    gamma_type = "Super Learner",
-    q_n_type = "zero", # standard
-    convex_type = "GCM",
-    mono_cis = T
-  )
+  .default_params <- params_ce_np()
+  .default_params$gamma_type <- "Super Learner" # !!!!! Move to params or hard-code
+  .default_params$q_n_type <- "zero" # !!!!! Temp; implement "standard"
+  .default_params$mono_cis <- T # !!!!! Move to params or hard-code
   for (i in c(1:length(.default_params))) {
     p_name <- names(.default_params)[i]
     if (is.null(params[[p_name]])) { params[[p_name]] <- .default_params[[i]] }
   }
   p <- params
+
+  if (!(p$dir %in% c("decr", "incr"))) {
+    stop("`dir` must equal one of c('decr','incr').")
+  } else {
+    dir_factor <- ifelse(p$dir=="decr", -1, 1)
+  }
 
   # Create filtered data objects, alias variables
   dat_v <- dat[dat$a==1,]
@@ -58,10 +51,10 @@ est_np <- function(
   s_shift <- -1 * s_min
   s_scale <- 1/(s_max-s_min)
   dat_v$s <- (dat_v$s+s_shift)*s_scale
-  grid <- create_grid(dat_v, grid_size, t_0) # !!!!! feed in dat instead ?????
+  grid <- create_grid(dat_v, p$grid_size, t_0) # !!!!! feed in dat instead ?????
 
   # Create additional filtered datasets
-  dat_v_rd <- round_dat(dat_v, grid, grid_size) # !!!!! see (1) above; also, make grid_size a param, like in est_med
+  dat_v_rd <- round_dat(dat_v, grid, p$grid_size) # !!!!! see (1) above; also, make grid_size a param, like in est_med
   dat_v2_rd <- dat_v_rd[dat_v_rd$z==1,]
   datx_v_rd <- dat_v_rd[, c(1:dim_x), drop=F]
   class(datx_v_rd) <- "data.frame"
@@ -93,7 +86,7 @@ est_np <- function(
   Qc_n <- srvSL$cens
 
   # Obtain minimum value (excluding edge point mass)
-  if (edge_corr) { s_min2 <- min(dat_v_rd$s[dat_v_rd$s!=0], na.rm=T) }
+  if (p$edge_corr) { s_min2 <- min(dat_v_rd$s[dat_v_rd$s!=0], na.rm=T) }
 
   # Compute various nuisance functions
   omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)
@@ -109,7 +102,7 @@ est_np <- function(
   Gamma_os_n <- construct_Gamma_os_n(dat_v_rd, omega_n, g_n, q_n, r_tilde_Mn)
 
   # Compute edge-corrected estimator and standard error
-  if (edge_corr) {
+  if (p$edge_corr) {
     p_n <- (1/n_vacc) * sum(dat_v2_rd$weights * In(dat_v2_rd$s!=0))
     g_sn <- construct_g_sn(dat_v2_rd, f_n_srv, g_n, p_n)
     r_Mn_edge_est <- r_Mn_edge(dat_v_rd, g_sn, g_n, p_n, Q_n, omega_n, t_0)
@@ -177,12 +170,12 @@ est_np <- function(
   }
 
   # Create edge-corrected r_Mn estimator
-  if (edge_corr) {
+  if (p$edge_corr) {
     r_Mn <- function(u) {
       if(u==0 || u<s_min2) {
         return(r_Mn_edge_est)
       } else {
-        if (dir=="decr") {
+        if (p$dir=="decr") {
           return(min(r_Mn_edge_est, r_Mn_Gr(u)))
         } else {
           return(max(r_Mn_edge_est, r_Mn_Gr(u)))
@@ -205,7 +198,7 @@ est_np <- function(
   } else {
 
     # Construct variance scale factor function
-    deriv_r_Mn <- construct_deriv_r_Mn(type=p$deriv_type, r_Mn, dir, grid)
+    deriv_r_Mn <- construct_deriv_r_Mn(type=p$deriv_type, r_Mn, p$dir, grid)
     tau_n <- construct_tau_n(dat_v_rd, deriv_r_Mn, gamma_n, f_sIx_n, g_zn)
 
     # Generate variance scale factor for each point
@@ -237,7 +230,7 @@ est_np <- function(
     }
 
     # CI edge correction
-    if (edge_corr) {
+    if (p$edge_corr) {
 
       se_edge_est <- sqrt(sigma2_edge_est/n_vacc)
       if (ci_type=="regular") {
@@ -262,7 +255,7 @@ est_np <- function(
         )
       }
 
-      if (dir=="decr") {
+      if (p$dir=="decr") {
         ind_edge <- In(r_Mn_edge_est<=ests_cr)
         ci_lo_cr <- ind_edge*pmin(ci_lo_cr,ci_lo_cr2) + (1-ind_edge)*ci_lo_cr
         ci_up_cr <- ind_edge*pmin(ci_up_cr,ci_up_cr2) + (1-ind_edge)*ci_up_cr
@@ -283,7 +276,7 @@ est_np <- function(
       new_lims <- monotonize_cis(
         ci_lo = ci_lo_cr,
         ci_up = ci_up_cr,
-        dir = dir,
+        dir = p$dir,
         type = "regular"
       )
       ci_lo_cr <- new_lims$ci_lo
@@ -356,7 +349,7 @@ est_np <- function(
       }
 
       # CI edge correction
-      if (edge_corr) {
+      if (p$edge_corr) {
 
         # Finite sample corrected SE estimate
         se_edge_est_cve <- sqrt(
@@ -387,7 +380,7 @@ est_np <- function(
           )
         }
 
-        if (dir=="decr") {
+        if (p$dir=="decr") {
           res$cve$ci_lower <- ind_edge*pmax(res$cve$ci_lower,ci_lo_cve2) +
             (1-ind_edge)*res$cve$ci_lower
           res$cve$ci_upper <- ind_edge*pmax(res$cve$ci_upper,ci_up_cve2) +
@@ -406,7 +399,7 @@ est_np <- function(
       }
 
       if (p$mono_cis) {
-        dir_opposite <- ifelse(dir=="decr", "incr", "decr")
+        dir_opposite <- ifelse(p$dir=="decr", "incr", "decr")
         new_lims <- monotonize_cis(
           ci_lo = res$cve$ci_lower,
           ci_up = res$cve$ci_upper,
@@ -474,7 +467,7 @@ est_np <- function(
     )
 
     # !!!!! TEMP
-    if (edge_corr) {
+    if (p$edge_corr) {
       res$extras$r_Mn_edge_est <- r_Mn_edge_est
       res$extras$r_Mn_0 <- r_Mn(0)
       res$extras$r_Mn_Gr_0 <- r_Mn_Gr(0)
