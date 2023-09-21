@@ -10,8 +10,7 @@ est_ce(
   t_0,
   cr = TRUE,
   cve = FALSE,
-  s_out = seq(from = min(dat$v$s, na.rm = TRUE), to = max(dat$v$s, na.rm = TRUE), l =
-    101),
+  s_out = seq(from = min(dat$s, na.rm = TRUE), to = max(dat$s, na.rm = TRUE), l = 101),
   ci_type = "transformed",
   placebo_risk_method = "KM",
   return_extras = FALSE,

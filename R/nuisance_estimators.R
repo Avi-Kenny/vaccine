@@ -16,6 +16,7 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
 
   if (type=="Cox") {
 
+    if (F) { weights <- NA } # Prevents CRAN error
     x_names <- names(dat_v)[1:dim_x]
     dat_v$delta2 <- 1 - dat_v$delta
 

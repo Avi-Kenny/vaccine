@@ -54,9 +54,10 @@ An object of class \code{vaccine_dat}.
 \description{
 This function takes in user-supplied data and returns a data
     object that can be read in by \code{\link{summary_stats}},
-    \code{\link{est_ce}}, and other estimation functions. Data is expected to
-    come from a two-phase sampling design and should be filtered to include
-    all phase-one individuals.
+    \code{\link{est_ce}}, \code{\link{est_med}}, and other estimation
+    functions. Data is expected to come from a vaccine clinical trial,
+    possibly involving two-phase sampling and possibly including a biomarker
+    of interest.
 }
 \examples{
 data(hvtn505)
