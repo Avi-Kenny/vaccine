@@ -70,6 +70,14 @@ est_med <- function(
 
   if (type=="NP") {
 
+    # Set params
+    .default_params <- params_med_np()
+    for (i in c(1:length(.default_params))) {
+      p_name <- names(.default_params)[i]
+      if (is.null(params_np[[p_name]])) { params_np[[p_name]] <- .default_params[[i]] }
+    }
+    p <- params_np
+
     # Create filtered data objects
     dat_v <- dat[dat$a==1,]
     dat_p <- dat[dat$a==0,]
@@ -81,14 +89,6 @@ est_med <- function(
     n <- attr(dat, "n")
     p_vacc <- n_vacc/n
     p_plac <- n_plac/n
-
-    # Set params
-    .default_params <- params_med_np()
-    for (i in c(1:length(.default_params))) {
-      p_name <- names(.default_params)[i]
-      if (is.null(params_np[[p_name]])) { params_np[[p_name]] <- .default_params[[i]] }
-    }
-    p <- params_np
 
     # Rescale S to lie in [0,1] and create grid for rounding
     s_min <- min(dat_v$s, na.rm=T)
