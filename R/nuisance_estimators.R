@@ -91,12 +91,10 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
       }
     )
 
-    X <- dat_v[,c(1:dim_x,which(names(dat_v)=="s"))]
-    class(X) <- "data.frame"
     srv <- survSuperLearner(
       time = dat_v$y,
       event = dat_v$delta,
-      X = X,
+      X = dat_v[,c(1:dim_x,which(names(dat_v)=="s"))],
       newX = newX,
       new.times = new.times,
       event.SL.library = methods,
@@ -1013,11 +1011,9 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
     SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.loess",
                     "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
 
-    X <- dat_v2[,c(1:dim_x,which(names(dat_v2)=="s"))]
-    class(X) <- "data.frame"
     model_sl <- SuperLearner::SuperLearner(
       Y = dat_v2$po,
-      X = X,
+      X = dat_v2[,c(1:dim_x,which(names(dat_v2)=="s"))],
       newX = newX,
       family = "gaussian",
       SL.library = SL.library,
@@ -1080,7 +1076,7 @@ construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
   # Fit SuperLearner regression
   model_sl <- SuperLearner::SuperLearner(
     Y = dat_v$z,
-    X = datx_v$x,
+    X = datx_v,
     newX = newX,
     family = "binomial",
     SL.library = SL.library,

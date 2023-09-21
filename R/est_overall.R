@@ -62,14 +62,12 @@ est_overall <- function(dat, t_0, method="Cox", risk=TRUE, ve=TRUE) { # ci_type=
 
       # Alias random variables
       N <- length(dat_grp$s)
+      dim_x <- attr(dat, "dim_x")
       X <- dat_grp[,c(1:dim_x), drop=F]
       V_ <- t(as.matrix(X))
       Y_ <- dat_grp$y
       D_ <- dat_grp$delta
-
-      # Get dimensions
       dim_v <- dim(V_)[1]
-      dim_x <- attr(dat, "dim_x")
 
       # Create set of event times
       i_ev <- which(D_==1)

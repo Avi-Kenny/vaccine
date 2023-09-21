@@ -195,7 +195,7 @@ ests_np <- est_ce(dat=dat, type="NP", t_0=578, cve=T,
                   params_np=params_ce_np(surv_type="Cox"))
 
 test_that("est_np (CR)", {
-  expect_equal(class(ests_cox), "vaccine_est")
+  expect_equal(class(ests_np), "vaccine_est")
   expect_equal(ests_np$cr$s[1], 0, tolerance=0.01)
   expect_equal(ests_np$cr$s[50], 1.15447, tolerance=0.01)
   expect_equal(ests_np$cr$est[1], 0.2692285, tolerance=0.01)
