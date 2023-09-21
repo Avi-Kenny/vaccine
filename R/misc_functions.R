@@ -141,51 +141,6 @@ round_dat <- function(dat, grid, grid_size) {
 
 
 
-#' Subset dat_orig according to indices
-#'
-#' @param dat_orig Dataset returned by `load_data`
-#' @param indices Indices to filter dataset by
-#' @return Filtered subsample of dataset
-#' @noRd
-ss <- function(dat_orig, indices) {
-
-  i <- indices
-  dat <- list(
-    y = dat_orig$y[i],
-    delta = dat_orig$delta[i],
-    s = dat_orig$s[i],
-    x = dat_orig$x[i,, drop=F],
-    weights = dat_orig$weights[i],
-    z = dat_orig$z[i]
-  )
-  if (!is.null(dat_orig$spl)) {
-    dat$spl <- dat_orig$spl[i,, drop=F]
-  }
-  if (!is.null(dat_orig$strata)) {
-    dat$strata <- dat_orig$strata[i]
-  }
-  attr(dat, "n_orig") <- attr(dat_orig, "n_orig")
-  attr(dat, "dim_x") <- attr(dat_orig, "dim_x")
-
-  return(dat)
-
-}
-
-
-
-#' Convert dat_orig or dat to a data frame
-#'
-#' @param d Either dat_orig or dat
-#' @return Data frame version of data object
-#' @noRd
-as_df <- function(d, strata=F) {
-  df <- cbind(d$x, s=d$s, y=d$y, delta=d$delta, z=d$z, weights=d$weights)
-  if (strata) { df$strata <- d$strata }
-  return(df)
-}
-
-
-
 #' Copy of apply function
 #'
 #' @noRd
