@@ -4,7 +4,7 @@
 #' @noRd
 est_np <- function(
     dat, t_0, cr=T, cve=F,
-    s_out=seq(from=min(dat$v$s, na.rm=T), to=max(dat$v$s, na.rm=T), l=101),
+    s_out=seq(from=min(dat$s, na.rm=T), to=max(dat$s, na.rm=T), l=101),
     ci_type="transformed", placebo_risk_method="KM", return_extras=F,
     dir="decr", edge_corr=F, params=list(), grid_size=list(y=101, s=101, x=5),
     cf_folds=1
@@ -58,7 +58,7 @@ est_np <- function(
   s_shift <- -1 * s_min
   s_scale <- 1/(s_max-s_min)
   dat_v$s <- (dat_v$s+s_shift)*s_scale
-  grid <- create_grid(dat_v, p$grid_size, t_0) # !!!!! feed in dat instead ?????
+  grid <- create_grid(dat_v, grid_size, t_0) # !!!!! feed in dat instead ?????
 
   # Create additional filtered datasets
   dat_v_rd <- round_dat(dat_v, grid, grid_size) # !!!!! see (1) above; also, make grid_size a param, like in est_med
