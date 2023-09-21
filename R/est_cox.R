@@ -110,8 +110,7 @@ est_cox <- function(
   # Alias random variables
   WT <- dat_v2$weights
   ST <- dat_v2$strata
-  N <- attr(dat, "n_vacc") # !!!!! Change to n_vacc
-  n <- attr(dat, "n_vacc2") # !!!!! Change to n_vacc2
+  n_vacc <- attr(dat, "n_vacc")
   dim_x <- attr(dat_v, "dim_x")
   X <- dat_v2[,c(1:dim_x), drop=F]
   class(X) <- "data.frame"
@@ -174,7 +173,7 @@ est_cox <- function(
         val <- .cache[[as.character(x)]]
         if (is.null(val)) {
           val <- (function(x) {
-            (1/N) * sum(WT*In(Y_>=x)*exp(LIN))
+            (1/n_vacc) * sum(WT*In(Y_>=x)*exp(LIN))
           })(x)
           .cache[[as.character(x)]] <- val
         }
@@ -188,7 +187,7 @@ est_cox <- function(
         val <- .cache[[as.character(x)]]
         if (is.null(val)) {
           val <- (function(x) {
-            (1/N) * as.numeric(V_ %*% (WT*In(Y_>=x)*exp(LIN)))
+            (1/n_vacc) * as.numeric(V_ %*% (WT*In(Y_>=x)*exp(LIN)))
           })(x)
           .cache[[as.character(x)]] <- val
         }
@@ -208,7 +207,7 @@ est_cox <- function(
                 if (!is.na(res[j,i])) {
                   res[i,j] <- res[j,i]
                 } else {
-                  res[i,j] <- (1/N)*sum(WT*In(Y_>=x)*V_[i,]*V_[j,]*exp(LIN))
+                  res[i,j] <- (1/n_vacc)*sum(WT*In(Y_>=x)*V_[i,]*V_[j,]*exp(LIN))
                 }
               }
             }
@@ -228,12 +227,12 @@ est_cox <- function(
   I_tilde <- Reduce("+", lapply(i_ev, function(i) {
     WT[i] * ( (S_2n(Y_[i])/S_0n(Y_[i])) - m_n(Y_[i]) %*% t(m_n(Y_[i])) )
   }))
-  I_tilde <- (1/N)*I_tilde
+  I_tilde <- (1/n_vacc)*I_tilde
   I_tilde_inv <- solve(I_tilde)
 
   # Score function (Cox model)
   l_n <- function(v_i,d_i,y_i) {
-    d_i*(v_i-m_n(y_i)) - (1/N)*Reduce("+", lapply(i_ev, function(j) {
+    d_i*(v_i-m_n(y_i)) - (1/n_vacc)*Reduce("+", lapply(i_ev, function(j) {
       (WT[j]*exp(sum(v_i*beta_n))*In(Y_[j]<=y_i) * (v_i-m_n(Y_[j]))) /
         S_0n(Y_[j])
     }))
@@ -308,7 +307,7 @@ est_cox <- function(
   })()
 
   # Nuisance constant: mu_n
-  mu_n <- -1 * (1/N) * as.numeric(Reduce("+", lapply(i_ev, function(j) {
+  mu_n <- -1 * (1/n_vacc) * as.numeric(Reduce("+", lapply(i_ev, function(j) {
     (WT[j] * In(Y_[j]<=t_0) * m_n(Y_[j])) / S_0n(Y_[j])
   })))
 
@@ -323,7 +322,7 @@ est_cox <- function(
           k_set <- which(ST==st_i)
           if (length(k_set)>0) {
             return(
-              (1/N) * (p1_n[st_i]-p_n[st_i]*z_i)/(p1_n[st_i])^2 * sum(
+              (1/n_vacc) * (p1_n[st_i]-p_n[st_i]*z_i)/(p1_n[st_i])^2 * sum(
                 unlist(lapply(k_set, function(k) {
                   In(Y_[k]>=y_j) * exp(sum(beta_n*V_[,k]))
                 }))
@@ -348,7 +347,7 @@ est_cox <- function(
           k_set <- which(ST==st_i)
           if (length(k_set)>0) {
             return(
-              (1/N) * (p1_n[st_i]-p_n[st_i]*z_i)/(p1_n[st_i])^2 * sum(
+              (1/n_vacc) * (p1_n[st_i]-p_n[st_i]*z_i)/(p1_n[st_i])^2 * sum(
                 unlist(lapply(k_set, function(k) {
                   ( D_[k] * In(Y_[k]<=t_0) ) / S_0n(Y_[k])
                 }))
@@ -364,7 +363,7 @@ est_cox <- function(
 
   # Breslow estimator
   Lambda_n <- function(t) {
-    (1/N) * sum(unlist(lapply(i_ev, function(i) {
+    (1/n_vacc) * sum(unlist(lapply(i_ev, function(i) {
       WT[i] * ( In(Y_[i]<=t) / S_0n(Y_[i]) )
     })))
   }
@@ -383,7 +382,7 @@ est_cox <- function(
       val <- .cache[[key]]
       if (is.null(val)) {
         val <- (function(v_i,z_i,d_i,y_i,wt_i,st_i) {
-          pc_4 <- (1/N) * sum(unlist(lapply(i_ev, function(j) {
+          pc_4 <- (1/n_vacc) * sum(unlist(lapply(i_ev, function(j) {
             ( WT[j] * In(Y_[j]<=t_0) * v_1n(st_i,z_i,Y_[j]) ) / (S_0n(Y_[j]))^2
           })))
           pc_5 <- sum(mu_n*infl_fn_beta(v_i,z_i,d_i,y_i,wt_i,st_i))
@@ -391,7 +390,7 @@ est_cox <- function(
 
           if (z_i==1) {
             pc_1 <- ( wt_i * d_i * In(y_i<=t_0) ) / S_0n(y_i)
-            pc_3 <- (1/N) * sum(unlist(lapply(i_ev, function(j) {
+            pc_3 <- (1/n_vacc) * sum(unlist(lapply(i_ev, function(j) {
               (WT[j]*In(Y_[j]<=t_0)*wt_i*In(y_i>=Y_[j])*exp(sum(beta_n*v_i))) /
                 (S_0n(Y_[j]))^2
             })))
@@ -410,7 +409,7 @@ est_cox <- function(
   res_cox <- list()
   Lambda_n_t_0 <- Lambda_n(t_0)
   res_cox$est_marg <- unlist(lapply(s_out, function(s) {
-    (1/N) * sum((apply(dat_v, 1, function(r) {
+    (1/n_vacc) * sum((apply(dat_v, 1, function(r) {
       x_i <- as.numeric(r[1:dim_x])
       s_spl <- s_to_spl(s)
       exp(-1*exp(sum(beta_n*c(x_i,s_spl)))*Lambda_n_t_0)
@@ -424,7 +423,7 @@ est_cox <- function(
 
       # Precalculate pieces dependent on s
       s_spl <- s_to_spl(s)
-      K_n <- (1/N) * Reduce("+", apply2(dat_v, 1, function(r) {
+      K_n <- (1/n_vacc) * Reduce("+", apply2(dat_v, 1, function(r) {
         x_i <- as.numeric(r[1:dim_x])
         Q <- Q_n(c(x_i,s_spl))
         explin <- exp(sum(c(x_i,s_spl)*beta_n))
@@ -437,7 +436,7 @@ est_cox <- function(
       K_n2 <- K_n[2]
       K_n3 <- K_n[3:length(K_n)]
 
-      (1/N^2) * sum((apply(dat_v, 1, function(r) {
+      (1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
 
         x_i <- as.numeric(r[1:dim_x])
         if (!is.na(r[["s"]])) {
