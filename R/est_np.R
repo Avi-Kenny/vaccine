@@ -27,14 +27,8 @@ est_np <- function(
 
   # !!!!! Validate other inputs; import error handling function from SimEngine
 
-  # Alias variables
-  dat_copy <- dat # Consider keeping this and changing old `dat` variable
-  dat_orig <- dat$v
-
-  if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
-
   # Set params
-  # Make this returned by params_ce_np()
+  # !!!!! Make this returned by params_ce_np()
   .default_params <- list(
     surv_type = "survML-G",
     density_type = "binning",
@@ -51,14 +45,26 @@ est_np <- function(
   }
   p <- params
 
-  # Rescale S to lie in [0,1] and create rounded data object
-  s_min <- min(dat_orig$s, na.rm=T)
-  s_max <- max(dat_orig$s, na.rm=T)
+  # Create filtered data objects, alias variables
+  dat_v <- dat[dat$a==1,]
+  dim_x <- attr(dat, "dim_x")
+  n_vacc <- attr(dat, "n_vacc")
+
+  if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
+
+  # Rescale S to lie in [0,1] and create grid for rounding
+  s_min <- min(dat_v$s, na.rm=T)
+  s_max <- max(dat_v$s, na.rm=T)
   s_shift <- -1 * s_min
   s_scale <- 1/(s_max-s_min)
-  dat_orig$s <- (dat_orig$s+s_shift)*s_scale
-  grid <- create_grid(dat_orig, grid_size, t_0)
-  dat_orig_rounded <- round_dat(dat_orig, grid, grid_size)
+  dat_v$s <- (dat_v$s+s_shift)*s_scale
+  grid <- create_grid(dat_v, p$grid_size, t_0) # !!!!! feed in dat instead ?????
+
+  # Create additional filtered datasets
+  dat_v_rd <- round_dat(dat_v, grid, grid_size) # !!!!! see (1) above; also, make grid_size a param, like in est_med
+  dat_v2_rd <- dat_v_rd[dat_v_rd$z==1,]
+  datx_v_rd <- dat_v_rd[, c(1:dim_x), drop=F]
+  class(datx_v_rd) <- "data.frame"
 
   # Rescale/round s_out and remove s_out points outside [0,1]
   s_out_orig <- s_out
@@ -70,68 +76,58 @@ est_np <- function(
   if (na_tail>0) { s_out <- s_out[-c((len_p-na_tail+1):len_p)] }
   s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] })
 
-  # Prepare precomputation values for conditional survival estimator
-  x_distinct <- dplyr::distinct(dat_orig_rounded$x)
+  # Precomputation values for conditional survival/censoring estimators
+  x_distinct <- dplyr::distinct(datx_v_rd)
   x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
   vals_pre <- expand.grid(t=grid$y, x_index=x_distinct$x_index, s=grid$s)
   vals_pre <- dplyr::inner_join(vals_pre, x_distinct, by="x_index")
   vals <- list(
     t = vals_pre$t,
-    x = subset(vals_pre, select=names(dat_orig_rounded$x)),
+    x = subset(vals_pre, select=names(datx_v_rd)),
     s = vals_pre$s
   )
 
-  # Create phase-two data object (unrounded)
-  dat <- ss(dat_orig_rounded, which(dat_orig_rounded$z==1)) # !!!!! uses the `dat` name again; change???
-
   # Fit conditional survival estimator
-  srvSL <- construct_Q_n(p$surv_type, dat, vals)
+  srvSL <- construct_Q_n(p$surv_type, dat_v2_rd, vals)
   Q_n <- srvSL$srv
   Qc_n <- srvSL$cens
 
-  # Use rounded data objects moving forward
-  dat_orig <- dat_orig_rounded
-
   # Obtain minimum value (excluding edge point mass)
-  if (edge_corr) { s_min2 <- min(dat_orig$s[dat_orig$s!=0], na.rm=T) }
+  if (edge_corr) { s_min2 <- min(dat_v_rd$s[dat_v_rd$s!=0], na.rm=T) }
 
   # Compute various nuisance functions
   omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)
-  f_sIx_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins, z1=F)
-  f_s_n <- construct_f_s_n(dat_orig, f_sIx_n)
+  f_sIx_n <- construct_f_sIx_n(dat_v2_rd, type=p$density_type, k=p$density_bins, z1=F)
+  f_s_n <- construct_f_s_n(dat_v_rd, f_sIx_n)
   g_n <- construct_g_n(f_sIx_n, f_s_n)
-  Phi_n <- construct_Phi_n(dat_orig, dat)
-  r_tilde_Mn <- construct_r_tilde_Mn(dat_orig, Q_n, t_0)
+  Phi_n <- construct_Phi_n(dat_v2_rd)
+  r_tilde_Mn <- construct_r_tilde_Mn(dat_v_rd, Q_n, t_0)
   f_n_srv <- construct_f_n_srv(Q_n, Qc_n, grid)
-  q_n <- construct_q_n(type=p$q_n_type, dat, omega_n, g_n, r_tilde_Mn,
+  q_n <- construct_q_n(type=p$q_n_type, dat_v2_rd, omega_n, g_n, r_tilde_Mn,
                        f_n_srv)
 
-  Gamma_os_n <- construct_Gamma_os_n(dat, dat_orig, omega_n, g_n,
-                                     q_n, r_tilde_Mn)
+  Gamma_os_n <- construct_Gamma_os_n(dat_v_rd, omega_n, g_n, q_n, r_tilde_Mn)
 
   # Compute edge-corrected estimator and standard error
-  n_orig <- attr(dat_orig, "n_orig")
   if (edge_corr) {
-    p_n <- (1/n_orig) * sum(dat$weights * In(dat$s!=0))
-    g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
-    r_Mn_edge_est <- r_Mn_edge(dat_orig, g_sn, g_n, p_n, Q_n, omega_n, t_0)
+    p_n <- (1/n_vacc) * sum(dat_v2_rd$weights * In(dat_v2_rd$s!=0))
+    g_sn <- construct_g_sn(dat_v2_rd, f_n_srv, g_n, p_n)
+    r_Mn_edge_est <- r_Mn_edge(dat_v_rd, g_sn, g_n, p_n, Q_n, omega_n, t_0)
     r_Mn_edge_est <- min(max(r_Mn_edge_est, 0), 1)
     infl_fn_r_Mn_edge <- construct_infl_fn_r_Mn_edge(Q_n, g_sn, omega_n, g_n,
                                                      r_Mn_edge_est, p_n, t_0)
-    dat_orig_df <- as_df(dat_orig)
-    dim_x <- attr(dat_orig, "dim_x")
-    sigma2_edge_est <- mean(apply(dat_orig_df, 1, function(r) {
+    sigma2_edge_est <- mean(apply(dat_v_rd, 1, function(r) {
       (infl_fn_r_Mn_edge(r[["z"]], r[["weights"]], r[["s"]],
                          as.numeric(r[1:dim_x]), r[["y"]], r[["delta"]]))^2
     }))
   }
 
   # Compute GCM (or least squares line) and extract its derivative
-  gcm_x_vals <- sapply(sort(unique(dat$s)), Phi_n)
+  gcm_x_vals <- sapply(sort(unique(dat_v2_rd$s)), Phi_n)
   indices_to_keep <- !base::duplicated(gcm_x_vals)
   gcm_x_vals <- gcm_x_vals[indices_to_keep]
   gcm_y_vals <- dir_factor *
-    sapply(sort(unique(dat$s))[indices_to_keep], Gamma_os_n)
+    sapply(sort(unique(dat_v2_rd$s))[indices_to_keep], Gamma_os_n)
 
   if (any(is.nan(gcm_y_vals)) || any(is.na(gcm_y_vals))) {
     stop("Gamma_os_n produced NAN or NA values.")
@@ -173,12 +169,11 @@ est_np <- function(
 
   # Compute variance component nuisance estimators
   if (ci_type!="none") {
-    f_sIx_z1_n <- construct_f_sIx_n(dat, type=p$density_type, k=p$density_bins,
+    f_sIx_z1_n <- construct_f_sIx_n(dat_v2_rd, type=p$density_type, k=p$density_bins,
                                     z1=T)
-    f_s_z1_n <- construct_f_s_n(dat_orig, f_sIx_z1_n)
-    gamma_n <- construct_gamma_n(dat_orig, dat, type="Super Learner", omega_n,
-                                 grid)
-    g_zn <- construct_g_zn(dat_orig, type="Super Learner", f_sIx_n, f_sIx_z1_n)
+    f_s_z1_n <- construct_f_s_n(dat_v_rd, f_sIx_z1_n)
+    gamma_n <- construct_gamma_n(dat_v_rd, type="Super Learner", omega_n, grid)
+    g_zn <- construct_g_zn(dat_v_rd, type="Super Learner", f_sIx_n, f_sIx_z1_n)
   }
 
   # Create edge-corrected r_Mn estimator
@@ -211,7 +206,7 @@ est_np <- function(
 
     # Construct variance scale factor function
     deriv_r_Mn <- construct_deriv_r_Mn(type=p$deriv_type, r_Mn, dir, grid)
-    tau_n <- construct_tau_n(deriv_r_Mn, gamma_n, f_sIx_n, g_zn, dat_orig)
+    tau_n <- construct_tau_n(dat_v_rd, deriv_r_Mn, gamma_n, f_sIx_n, g_zn)
 
     # Generate variance scale factor for each point
     tau_ns <- sapply(s_out, tau_n)
@@ -220,31 +215,31 @@ est_np <- function(
     # The 0.975 quantile of the Chernoff distribution occurs at roughly 1.00
     qnt <- 1.00
     if (ci_type=="regular") {
-      ci_lo_cr <- ests_cr - (qnt*tau_ns)/(n_orig^(1/3))
-      ci_up_cr <- ests_cr + (qnt*tau_ns)/(n_orig^(1/3))
+      ci_lo_cr <- ests_cr - (qnt*tau_ns)/(n_vacc^(1/3))
+      ci_up_cr <- ests_cr + (qnt*tau_ns)/(n_vacc^(1/3))
     } else if (ci_type=="truncated") {
-      ci_lo_cr <- pmax(ests_cr - (qnt*tau_ns)/(n_orig^(1/3)), 0)
-      ci_up_cr <- pmin(ests_cr + (qnt*tau_ns)/(n_orig^(1/3)), 1)
+      ci_lo_cr <- pmax(ests_cr - (qnt*tau_ns)/(n_vacc^(1/3)), 0)
+      ci_up_cr <- pmin(ests_cr + (qnt*tau_ns)/(n_vacc^(1/3)), 1)
     } else if (ci_type=="transformed") {
       ci_lo_cr <- expit(
-        logit(ests_cr) - qnt*deriv_logit(ests_cr)*(tau_ns/(n_orig^(1/3)))
+        logit(ests_cr) - qnt*deriv_logit(ests_cr)*(tau_ns/(n_vacc^(1/3)))
       )
       ci_up_cr <- expit(
-        logit(ests_cr) + qnt*deriv_logit(ests_cr)*(tau_ns/(n_orig^(1/3)))
+        logit(ests_cr) + qnt*deriv_logit(ests_cr)*(tau_ns/(n_vacc^(1/3)))
       )
     } else if (ci_type=="transformed 2") {
       ci_lo_cr <- expit2(
-        logit2(ests_cr) - qnt*deriv_logit2(ests_cr)*(tau_ns/(n_orig^(1/3)))
+        logit2(ests_cr) - qnt*deriv_logit2(ests_cr)*(tau_ns/(n_vacc^(1/3)))
       )
       ci_up_cr <- expit2(
-        logit2(ests_cr) + qnt*deriv_logit2(ests_cr)*(tau_ns/(n_orig^(1/3)))
+        logit2(ests_cr) + qnt*deriv_logit2(ests_cr)*(tau_ns/(n_vacc^(1/3)))
       )
     }
 
     # CI edge correction
     if (edge_corr) {
 
-      se_edge_est <- sqrt(sigma2_edge_est/n_orig)
+      se_edge_est <- sqrt(sigma2_edge_est/n_vacc)
       if (ci_type=="regular") {
         ci_lo_cr2 <- ests_cr[1] - 1.96*se_edge_est
         ci_up_cr2 <- ests_cr[1] + 1.96*se_edge_est
@@ -312,12 +307,10 @@ est_np <- function(
   if (cve) {
 
     res$cve <- list(s=s_out_orig)
-    if (attr(dat_copy, "groups")!="both") {
-      stop("Placebo group data not detected.")
-    }
-    ov <- est_overall(dat=dat_copy, t_0=t_0, method=placebo_risk_method, ve=F)
+    if (attr(dat_v, "groups")!="both") { stop("Placebo group not detected.") }
+    ov <- est_overall(dat=dat, t_0=t_0, method=placebo_risk_method, ve=F)
     risk_p <- ov[ov$group=="placebo","est"]
-    se_p <- ov[ov$group=="placebo","se"] # This equals sd_p/n_orig
+    se_p <- ov[ov$group=="placebo","se"] # This equals sd_p/n_vacc
     res$cve$est <- 1 - res$cr$est/risk_p
 
     if (ci_type=="none") {
@@ -337,7 +330,7 @@ est_np <- function(
       # Finite sample corrected SE estimate
       res$cve$se <- sqrt(
         ( res$cr$est^2/risk_p^4 ) * se_p^2 +
-          (qnt*tau_ns/(risk_p*n_orig^(1/3)))^2 * var_z
+          (qnt*tau_ns/(risk_p*n_vacc^(1/3)))^2 * var_z
       )
 
       if (ci_type=="regular") {
@@ -367,7 +360,7 @@ est_np <- function(
 
         # Finite sample corrected SE estimate
         se_edge_est_cve <- sqrt(
-          (ests_cr[1]^2/risk_p^4)*se_p^2 + (sigma2_edge_est/n_orig)/(risk_p^2)
+          (ests_cr[1]^2/risk_p^4)*se_p^2 + (sigma2_edge_est/n_vacc)/(risk_p^2)
         )
 
         if (ci_type=="regular") {
@@ -430,7 +423,7 @@ est_np <- function(
 
   if (return_extras) {
 
-    ind_sample <- sample(c(1:length(dat$z)), size=20)
+    ind_sample <- sample(c(1:attr(dat_v, "n_vacc2")), size=20)
     s1 <- min(grid$s)
     s3 <- max(grid$s)
     s2 <- grid$s[which.min(abs((s3-s1)/2-grid$s))]
@@ -443,7 +436,7 @@ est_np <- function(
     Qc_n_df <- Q_n_df
     for (ind in ind_sample) {
       for (t in grid$y) {
-        x_val <- as.numeric(dat$x[ind,])
+        x_val <- as.numeric(dat_v[ind,c(1:dim_x)])
         Q_val_s1 <- Q_n(t=t, x=x_val, s=s1)
         Q_val_s2 <- Q_n(t=t, x=x_val, s=s2)
         Q_val_s3 <- Q_n(t=t, x=x_val, s=s3)

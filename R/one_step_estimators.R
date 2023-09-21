@@ -1,14 +1,13 @@
 #' Construct Gamma_os_n primitive one-step estimator (based on EIF)
 #'
 #' @noRd
-construct_Gamma_os_n <- function(dat, dat_orig, omega_n, g_n, q_n, r_tilde_Mn) {
+construct_Gamma_os_n <- function(dat_v, omega_n, g_n, q_n, r_tilde_Mn) {
 
-  n_orig <- attr(dat_orig, "n_orig")
-  dim_x <- attr(dat_orig, "dim_x")
+  dat_v2 <- dat_v[dat_v$z==1,]
+  n_vacc <- attr(dat_v, "n_vacc")
+  dim_x <- attr(dat_v, "dim_x")
 
-  dat_df <- as_df(dat)
-  dat_orig_df <- as_df(dat_orig)
-  piece_1 <- as.numeric(apply(dat_df, 1, function(r) {
+  piece_1 <- as.numeric(apply(dat_v2, 1, function(r) {
     x <- as.numeric(r[1:dim_x])
     s <- r[["s"]]
     y <- r[["y"]]
@@ -21,19 +20,19 @@ construct_Gamma_os_n <- function(dat, dat_orig, omega_n, g_n, q_n, r_tilde_Mn) {
     }
     return((omega_n(x,s,y,delta)/g_n_val)+r_tilde_Mn(s))
   }))
-  piece_2 <- (1-dat_orig$weights)
+  piece_2 <- (1-dat_v$weights)
 
   # Remove large intermediate objects
   rm(omega_n,g_n,r_tilde_Mn)
 
   fnc <- function(u) {
 
-    q_n_do <- as.numeric(apply(dat_orig_df, 1, function(r) {
+    q_n_do <- as.numeric(apply(dat_v, 1, function(r) {
       q_n(as.numeric(r[1:dim_x]), r[["y"]], r[["delta"]], u)
     }))
 
-    return((1/n_orig) * sum(dat$weights * (In(dat$s<=u)*piece_1))
-           +(1/n_orig) * sum(piece_2*q_n_do))
+    return((1/n_vacc) * sum(dat_v2$weights * (In(dat_v2$s<=u)*piece_1))
+           + (1/n_vacc) * sum(piece_2*q_n_do))
 
   }
 

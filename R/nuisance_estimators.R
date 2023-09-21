@@ -756,12 +756,12 @@ construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
 #'     `construct_f_sIx_n`
 #' @return Marginal density estimator function
 #' @noRd
-construct_f_s_n <- function(dat_v_rd, f_sIx_n) {
+construct_f_s_n <- function(dat_v, f_sIx_n) {
 
-  n_vacc <- attr(dat_v_rd, "n_vacc")
-  datx_v_rd <- dat_v_rd[, c(1:dim_x), drop=F]
+  n_vacc <- attr(dat_v, "n_vacc")
+  datx_v <- dat_v[, c(1:dim_x), drop=F]
   memoise2(function(s) {
-    (1/n_vacc) * sum(apply(datx_v_rd, 1, function(r) {
+    (1/n_vacc) * sum(apply(datx_v, 1, function(r) {
       f_sIx_n(s,as.numeric(r))
     }))
   })
@@ -791,17 +791,17 @@ construct_g_n <- function(f_sIx_n, f_s_n) {
 #' @param type One of c("step", "linear (mid)")
 #' @return IPS-weighted CDF estimator function
 #' @noRd
-construct_Phi_n <- function (dat_orig, dat, type="linear (mid)") {
+construct_Phi_n <- function (dat_v2, dat, type="linear (mid)") {
 
   # !!!!! type currently ignored
 
-  n_orig <- attr(dat_orig, "n_orig")
+  n_vacc <- attr(dat_v2, "n_vacc")
 
-  fn <- memoise::memoise(function(x) { # !!!!! Switch to memoise2
-    (1/n_orig) * sum(dat$weights*In(dat$s<=x))
+  fnc <- memoise2(function(x) {
+    (1/n_vacc) * sum(dat_v2$weights*In(dat_v2$s<=x))
   })
 
-  return(fn)
+  return(memoise2(fnc))
 
 }
 
@@ -814,12 +814,13 @@ construct_Phi_n <- function (dat_orig, dat, type="linear (mid)") {
 #'     `construct_Q_n`
 #' @return G-computation estimator of theta_0
 #' @noRd
-construct_r_tilde_Mn <- function(dat_orig, Q_n, t_0) {
+construct_r_tilde_Mn <- function(dat_v, Q_n, t_0) {
 
-  n_orig <- attr(dat_orig, "n_orig")
+  n_vacc <- attr(dat_v, "n_vacc")
   memoise2(function(s) {
-    1 - (1/n_orig) * sum(apply(dat_orig$x, 1, function(x) {
-      Q_n(t_0, as.numeric(x), s)
+    1 - (1/n_vacc) * sum(apply(dat_v, 1, function(r) {
+      x <- as.numeric(r[1:dim_x])
+      return(Q_n(t_0, x, s))
     }))
   })
 
@@ -878,7 +879,7 @@ construct_f_n_srv <- function(Q_n, Qc_n, grid) {
 #' Construct q_n nuisance estimator function
 #'
 #' @noRd
-construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
+construct_q_n <- function(type="standard", dat_v2, omega_n, g_n, r_tilde_Mn,
                           f_n_srv) {
 
   if (type=="standard") {
@@ -896,18 +897,16 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
       }
     })
 
-    n <- length(dat$s) # !!!!! n_vacc2 <- attr(dat, "n_vacc2")
-
     # Helper functions
     # !!!!! Can these vectors/functions be used elsewhere?
     f_n_srv_s <- memoise2(function(y,delta,x) {
-      sapply(dat$s, function(s) { f_n_srv(y,delta,x,s) })
+      sapply(dat_v2$s, function(s) { f_n_srv(y,delta,x,s) })
     })
     q_n_star_s <- memoise2(function(y,delta,x,u) {
-      sapply(dat$s, function(s) { q_n_star(y,delta,x,s,u) })
+      sapply(dat_v2$s, function(s) { q_n_star(y,delta,x,s,u) })
     })
     g_n_s <- memoise2(function(x) {
-      sapply(dat$s, function(s) { g_n(s,x) })
+      sapply(dat_v2$s, function(s) { g_n(s,x) })
     })
 
     fnc <- function(x, y, delta, u) {
@@ -916,11 +915,11 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
       q_n_star_s <- q_n_star_s(y,delta,x,u)
       g_n_s <- g_n_s(x)
 
-      denom <- sum(dat$weights*f_n_srv_s*g_n_s)
+      denom <- sum(dat_v2$weights*f_n_srv_s*g_n_s)
       if (denom==0) {
         return (0)
       } else {
-        num <- sum(dat$weights*q_n_star_s*f_n_srv_s*g_n_s)
+        num <- sum(dat_v2$weights*q_n_star_s*f_n_srv_s*g_n_s)
         return(num/denom)
       }
 
@@ -943,14 +942,14 @@ construct_q_n <- function(type="standard", dat, omega_n, g_n, r_tilde_Mn,
 #' Construct estimator of nuisance g_sn
 #'
 #' @noRd
-construct_g_sn <- function(dat_v2_rd, f_n_srv, g_n, p_n) {
+construct_g_sn <- function(dat_v2, f_n_srv, g_n, p_n) {
 
-  n_vacc <- attr(dat_v2_rd, "n_vacc")
+  n_vacc <- attr(dat_v2, "n_vacc")
 
   return(memoise2(function(x, y, delta) {
     num <- f_n_srv(y, delta, x, 0) * g_n(s=0,x) * (1-p_n)
     den <- (1/n_vacc) * sum(
-      dat_v2_rd$weights * apply(dat_v2_rd, 1, function(r) {
+      dat_v2$weights * apply(dat_v2, 1, function(r) {
         f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x) # !!!!! Replace this with sapply
       })
     )
@@ -974,27 +973,29 @@ construct_g_sn <- function(dat_v2_rd, f_n_srv, g_n, p_n) {
 #'     `construct_f_sIx_n` among the observations for which z==1
 #' @return gamma_n nuisance estimator function
 #' @noRd
-construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n,
+construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
                               grid) {
 
+  dim_x <- attr(dat_v, "dim_x")
+  dat_v2 <- dat_v[dat_v$z==1,]
+  datx_v <- dat_v[, c(1:dim_x), drop=F]
+  class(datx_v) <- "data.frame"
+
   # Construct pseudo-outcomes
-  dat_df <- as_df(dat)
-  dim_x <- attr(dat_orig, "dim_x")
-  omega_n_d <- apply(dat_df, 1, function(r) {
+  omega_n_d <- apply(dat_v2, 1, function(r) {
     omega_n(as.numeric(r[1:dim_x]), r[["s"]], r[["y"]], r[["delta"]])
   })
-  dat_df$po <- (dat$weights*as.numeric(omega_n_d))^2
+  dat_v2$po <- (dat_v2$weights*as.numeric(omega_n_d))^2
 
   # Filter out infinite values
-  if (sum(!is.finite(dat_df$po))!=0) {
-    # dat_df <- dplyr::filter(dat_df, is.finite(po))
-    dat_df <- dat_df[which(is.finite(dat_df$po)),] # !!!!! New code (to avoid R CMD CHECK error)
-    warning(paste("gamma_n:", sum(!is.finite(dat_df$po)),
+  if (sum(!is.finite(dat_v2$po))!=0) {
+    dat_v2 <- dat_v2[which(is.finite(dat_v2$po)),]
+    warning(paste("gamma_n:", sum(!is.finite(dat_v2$po)),
                   "non-finite pseudo-outcome values"))
   }
 
   # Setup
-  x_distinct <- dplyr::distinct(dat_orig$x)
+  x_distinct <- dplyr::distinct(datx_v)
   x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
   newX <- expand.grid(x_index=x_distinct$x_index, s=grid$s)
   newX <- dplyr::inner_join(x_distinct, newX, by="x_index")
@@ -1009,8 +1010,8 @@ construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n,
                     "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
 
     model_sl <- SuperLearner::SuperLearner(
-      Y = dat_df$po,
-      X = cbind(dat_df[,c(1:dim_x), drop=F],s=dat_df$s),
+      Y = dat_v2$po,
+      X = dat_v2[,c(1:dim_x,which(names(dat_v2)=="s"))], # !!!!! New method of subsetting; remove this if this doesn't break
       newX = newX,
       family = "gaussian",
       SL.library = SL.library,
@@ -1041,7 +1042,7 @@ construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n,
   }
 
   # Remove large intermediate objects
-  rm(dat_orig,dat,omega_n)
+  rm(dat_v,dat_v2,datx_v,omega_n)
 
   return(memoise2(reg))
 
@@ -1052,7 +1053,7 @@ construct_gamma_n <- function(dat_orig, dat, type="Super Learner", omega_n,
 #' Construct estimator of g_z0(x,s) = P(Z=1|X=x,S=s)
 #'
 #' @noRd
-construct_g_zn <- function(dat_orig, type="Super Learner", f_sIx_n,
+construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
                            f_sIx_z1_n) {
 
   # Set library
@@ -1065,12 +1066,15 @@ construct_g_zn <- function(dat_orig, type="Super Learner", f_sIx_n,
   }
 
   # Create data objects
-  newX <- dplyr::distinct(dat_orig$x)
+  dim_x <- attr(dat_v, "dim_x")
+  datx_v <- dat_v[, c(1:dim_x), drop=F]
+  class(datx_v) <- "data.frame"
+  newX <- dplyr::distinct(datx_v)
 
   # Fit SuperLearner regression
   model_sl <- SuperLearner::SuperLearner(
-    Y = dat_orig$z,
-    X = dat_orig$x,
+    Y = dat_v$z,
+    X = datx_v$x,
     newX = newX,
     family = "binomial",
     SL.library = SL.library,
@@ -1078,7 +1082,6 @@ construct_g_zn <- function(dat_orig, type="Super Learner", f_sIx_n,
   )
 
   pred <- as.numeric(model_sl$SL.predict)
-  rm(model_sl)
 
   # Construct function
   newX$index <- c(1:nrow(newX))
@@ -1095,6 +1098,9 @@ construct_g_zn <- function(dat_orig, type="Super Learner", f_sIx_n,
     }
     return(pred[index])
   }
+
+  # Remove large intermediate objects
+  rm(dat_v,datx_v,model_sl)
 
   return(memoise2(function(x,s) { (f_sIx_z1_n(s,x)/f_sIx_n(s,x))*reg(x) }))
 
@@ -1178,16 +1184,16 @@ construct_deriv_r_Mn <- function(type="m-spline", r_Mn, dir, grid) {
 #' @param f_s_n Density estimator returned by `construct_f_s_n`
 #' @return Chernoff scale factor estimator function
 #' @noRd
-construct_tau_n <- function(deriv_r_Mn, gamma_n, f_sIx_n, g_zn,
-                            dat_orig) {
+construct_tau_n <- function(dat_v, deriv_r_Mn, gamma_n, f_sIx_n, g_zn) {
 
-  n_orig <- attr(dat_orig, "n_orig")
-  x <- dat_orig$x
-  return(Vectorize(function(u) {
-    abs(4*deriv_r_Mn(u) * (1/n_orig) * sum(apply(dat_orig$x, 1, function(x) {
-      x <- as.numeric(x)
+  n_vacc <- attr(dat_v, "n_vacc")
+  dim_x <- attr(dat_v, "dim_x")
+
+  return(function(u) {
+    abs(4*deriv_r_Mn(u) * (1/n_vacc) * sum(apply(dat_v, 1, function(r) {
+      x <- as.numeric(r[1:dim_x])
       return((gamma_n(x,u)*g_zn(x,u))/f_sIx_n(u,x))
     })))^(1/3)
-  }))
+  })
 
 }
