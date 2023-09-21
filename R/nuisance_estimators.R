@@ -91,10 +91,12 @@ construct_Q_n <- function(type, dat, vals, return_model=F) {
       }
     )
 
+    X <- dat[,c(1:dim_x,which(names(dat)=="s"))]
+    class(X) <- "data.frame"
     srv <- survSuperLearner(
       time = dat$y,
       event = dat$delta,
-      X = dat[,c(1:dim_x,which(names(dat)=="s"))],
+      X = X,
       newX = newX,
       new.times = new.times,
       event.SL.library = methods,
@@ -759,6 +761,7 @@ construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
 construct_f_s_n <- function(dat_v, f_sIx_n) {
 
   n_vacc <- attr(dat_v, "n_vacc")
+  dim_x <- attr(dat_v, "dim_x")
   datx_v <- dat_v[, c(1:dim_x), drop=F]
   memoise2(function(s) {
     (1/n_vacc) * sum(apply(datx_v, 1, function(r) {
@@ -817,6 +820,7 @@ construct_Phi_n <- function (dat_v2, dat, type="linear (mid)") {
 construct_r_tilde_Mn <- function(dat_v, Q_n, t_0) {
 
   n_vacc <- attr(dat_v, "n_vacc")
+  dim_x <- attr(dat_v, "dim_x")
   memoise2(function(s) {
     1 - (1/n_vacc) * sum(apply(dat_v, 1, function(r) {
       x <- as.numeric(r[1:dim_x])
@@ -1009,9 +1013,11 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
     SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.loess",
                     "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
 
+    X <- dat_v2[,c(1:dim_x,which(names(dat_v2)=="s"))]
+    class(X) <- "data.frame"
     model_sl <- SuperLearner::SuperLearner(
       Y = dat_v2$po,
-      X = dat_v2[,c(1:dim_x,which(names(dat_v2)=="s"))], # !!!!! New method of subsetting; remove this if this doesn't break
+      X = X,
       newX = newX,
       family = "gaussian",
       SL.library = SL.library,
