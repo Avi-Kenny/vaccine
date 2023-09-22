@@ -9,19 +9,7 @@ est_np <- function(
     params=list(), cf_folds=1
 ) {
 
-  if (!methods::is(dat,"vaccine_dat")) {
-    stop(paste0("`dat` must be an object of class 'vaccine_dat' returned by lo",
-                "ad_data()."))
-  }
-
-  if (!(attr(dat, "groups") %in% c("vaccine", "both"))) {
-    stop("Vaccine group data not detected.")
-  }
-
-  # !!!!! Validate other inputs; import error handling function from SimEngine
-
   # Set params
-  # !!!!! Make this returned by params_ce_np()
   .default_params <- params_ce_np()
   .default_params$gamma_type <- "Super Learner" # !!!!! Move to params or hard-code
   .default_params$q_n_type <- "zero" # !!!!! Temp; implement "standard"

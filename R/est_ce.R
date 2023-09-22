@@ -60,9 +60,14 @@ est_ce <- function(
     params_cox=params_ce_cox(), params_np=params_ce_np()
 ) {
 
-  # !!!!! Input validation
+  if (!methods::is(dat,"vaccine_dat")) {
+    stop(paste0("`dat` must be an object of class 'vaccine_dat' returned by lo",
+                "ad_data()."))
+  }
 
-  # !!!!! Move common functionality (e.g. data prep) into here
+  if (!(attr(dat, "groups") %in% c("vaccine", "both"))) {
+    stop("Vaccine group data not detected.")
+  }
 
   if (type=="Cox") {
     ests <- est_cox(

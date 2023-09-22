@@ -7,17 +7,6 @@ est_cox <- function(
     spline_df, spline_knots, edge_ind
 ) {
 
-  if (!methods::is(dat,"vaccine_dat")) {
-    stop(paste0("`dat` must be an object of class 'vaccine_dat' returned by lo",
-                "ad_data()."))
-  }
-
-  if (!(attr(dat, "groups") %in% c("vaccine", "both"))) {
-    stop("Vaccine group data not detected.")
-  }
-
-  # !!!!! Validate other inputs; import error handling function from SimEngine
-
   if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
 
   # Create filtered data objects

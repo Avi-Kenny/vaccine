@@ -152,8 +152,9 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
         stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
                     paste(x,collapse=","),"),s=",s,""))
       }
-      # return(cens_pred[row,col])
-      return(max(cens_pred[row,col], 0.001)) # !!!!! Correction to prevent unreasonably small probabilities
+      # Note: the max() function is to prevent unreasonably small censoring
+      #       probabilities from destabilizing estimates
+      return(max(cens_pred[row,col], 0.001))
 
     }
 
@@ -239,8 +240,9 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
         stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
                     paste(x,collapse=","),"),s=",s,""))
       }
-      # return(cens_pred[row,col])
-      return(max(cens_pred[row,col], 0.001)) # !!!!! Correction to prevent unreasonably small probabilities
+      # Note: the max() function is to prevent unreasonably small censoring
+      #       probabilities from destabilizing estimates
+      return(max(cens_pred[row,col], 0.001))
     }
 
   }
@@ -271,8 +273,6 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
 #'
 #' @noRd
 construct_Q_noS_n <- function(type, dat, vals, return_model=F) {
-
-  # !!!!! Merge this with construct_Q_n after data objects are harmonized
 
   dim_x <- attr(dat,"dim_x")
 
@@ -394,7 +394,9 @@ construct_Q_noS_n <- function(type, dat, vals, return_model=F) {
         stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
                     paste(x,collapse=","),")"))
       }
-      return(max(cens_pred[row,col], 0.001)) # !!!!! Correction to prevent unreasonably small probabilities
+      # Note: the max() function is to prevent unreasonably small censoring
+      #       probabilities from destabilizing estimates
+      return(max(cens_pred[row,col], 0.001))
     }
 
   }
@@ -447,7 +449,7 @@ construct_omega_n <- function(Q_n, Qc_n, t_0, grid) {
       return(sum(x_vals(x,s)[1:index]*y_vals(x,s)[1:index]))
     }
   }
-  # omega_integral <- memoise2(omega_integral) # !!!!! Maybe try un-memoising this
+  # omega_integral <- memoise2(omega_integral) # !!!!! Does this make a difference (for profiling)?
 
   fnc <- function(x,s,y,delta) {
     Q_n(t_0,x,s) * (
@@ -541,12 +543,9 @@ construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
     }
 
     # Set up weighted likelihood
-    # !!!!! Replace this with apply
     wlik <- function(prm) {
-      -1 * sum(sapply(c(1:n_vacc2), function(i) {
-        dat_v2$weights[i] * log(pmax(
-          dens_s(s=dat_v2$s[i], x=as.numeric(dat_v2[i,c(1:dim_x)]), prm), 1e-8
-        ))
+      -1 * sum(dat_v2$weights * apply(dat_v2, 1, function(r) {
+        log(pmax(dens_s(s=r[["s"]], x=as.numeric(r[1:dim_x]), prm), 1e-8))
       }))
     }
 
@@ -588,12 +587,9 @@ construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
     }
 
     # Set up weighted likelihood (edge)
-    # !!!!! Replace this with apply
     wlik_1 <- function(prm) {
-      -1 * sum(sapply(c(1:n_vacc2), function(i) {
-        dat_v2$weights[i] * log(pmax(
-          prob_s(s=dat_v2$s[i], x=as.numeric(dat_v2[i,c(1:dim_x)]), prm), 1e-8
-        ))
+      -1 * sum(dat_v2$weights * apply(dat_v2, 1, function(r) {
+        log(pmax(prob_s(s=r[["s"]], x=as.numeric(r[1:dim_x]), prm), 1e-8))
       }))
     }
 
@@ -606,18 +602,14 @@ construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
       warning("f_sIx_n: Rsolnp::solnp did not converge")
     }
     prm_1 <- opt_1$pars
-    # print("prm_1") # !!!!!
-    # print(prm_1) # !!!!!
 
     # Filter out observations with s==0
     dat_1 <- dat_v2[dat_v2$s!=0,]
 
     # Set up weighted likelihood (Normal)
     wlik_2 <- function(prm) {
-      -1 * sum(sapply(c(1:length(dat_1$s)), function(i) {
-        dat_1$weights[i] * log(pmax(
-          dens_s(s=dat_1$s[i], x=as.numeric(dat_1[i,c(1:dim_x)]), prm), 1e-8
-        ))
+      -1 * sum(dat_1$weights * apply(dat_1, 1, function(r) {
+        log(pmax(dens_s(s=r[["s"]], x=as.numeric(r[c(1:dim_x)]), prm), 1e-8))
       }))
     }
 
@@ -722,10 +714,9 @@ construct_f_sIx_n <- function(dat_v2, type, k=0, z1=F) {
           dat_train <- dat_v2[which(folds!=i),]
           dat_test <- dat_v2[which(folds==i),]
           dens <- create_dens(k, dat_train)
-          sum_log_lik <- sum_log_lik +
-            sum(log(sapply(c(1:length(dat_test$s)), function(j) {
-              dens(dat_test$s[j], as.numeric(dat_test[j,c(1:dim_x)]))
-            })))
+          sum_log_lik <- sum_log_lik + sum(log(apply(dat_test, 1, function(r) {
+            dens(r[["s"]], as.numeric(r[c(1:dim_x)]))
+          })))
         }
 
         if (sum_log_lik>best$max_log_lik || best$max_log_lik==999) {
@@ -951,11 +942,9 @@ construct_g_sn <- function(dat_v2, f_n_srv, g_n, p_n) {
 
   return(memoise2(function(x, y, delta) {
     num <- f_n_srv(y, delta, x, 0) * g_n(s=0,x) * (1-p_n)
-    den <- (1/n_vacc) * sum(
-      dat_v2$weights * apply(dat_v2, 1, function(r) {
-        f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x) # !!!!! Replace this with sapply
-      })
-    )
+    den <- (1/n_vacc) * sum(dat_v2$weights * sapply(dat_v2$s, function(s) {
+      f_n_srv(y,delta,x,s) * g_n(s,x)
+    }))
     if (den==0) { return(0) } else { return(num/den) }
   }))
 
