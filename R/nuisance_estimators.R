@@ -108,54 +108,20 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
     cens_pred <- srv$cens.SL.predict
     rm(srv)
 
-    # !!!!! Later consolidate these via a wrapper/constructor function
     fnc_srv <- function(t, x, s) {
-      r <- list()
-      for (i in 1:length(x)) {
-        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
-      }
-      if (methods::is(newX[["s"]][1],"factor")) {
-        r[[length(x)+1]] <- which(s==newX[["s"]])
-      } else {
-        r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
-      }
-      row <- Reduce(intersect, r)
+      row <- find_index(c(x,s), newX)
       col <- which.min(abs(t-new.times))
-      if (length(row)!=1) {
-        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
-                    paste(x,collapse=","),"),s=",s,""))
-      }
-      if (length(col)!=1) {
-        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
-                    paste(x,collapse=","),"),s=",s,""))
-      }
+      if (length(col)!=1) { stop("length(col)!=1") }
       return(srv_pred[row,col])
     }
 
     fnc_cens <- function(t, x, s) {
-      r <- list()
-      for (i in 1:length(x)) {
-        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
-      }
-      if (methods::is(newX[["s"]][1],"factor")) {
-        r[[length(x)+1]] <- which(s==newX[["s"]])
-      } else {
-        r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
-      }
-      row <- Reduce(intersect, r)
+      row <- find_index(c(x,s), newX)
       col <- which.min(abs(t-new.times))
-      if (length(row)!=1) {
-        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
-                    paste(x,collapse=","),"),s=",s,""))
-      }
-      if (length(col)!=1) {
-        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
-                    paste(x,collapse=","),"),s=",s,""))
-      }
+      if (length(col)!=1) { stop("length(col)!=1") }
       # Note: the max() function is to prevent unreasonably small censoring
       #       probabilities from destabilizing estimates
       return(max(cens_pred[row,col], 0.001))
-
     }
 
   }
@@ -198,48 +164,16 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
     }
 
     fnc_srv <- function(t, x, s) {
-      r <- list()
-      for (i in 1:length(x)) {
-        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
-      }
-      if (methods::is(newX[["s"]][1],"factor")) {
-        r[[length(x)+1]] <- which(s==newX[["s"]])
-      } else {
-        r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
-      }
-      row <- Reduce(intersect, r)
+      row <- find_index(c(x,s), newX)
       col <- which.min(abs(t-new.times))
-      if (length(row)!=1) {
-        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
-                    paste(x,collapse=","),"),s=",s,""))
-      }
-      if (length(col)!=1) {
-        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
-                    paste(x,collapse=","),"),s=",s,""))
-      }
+      if (length(col)!=1) { stop("length(col)!=1") }
       return(srv_pred[row,col])
     }
 
     fnc_cens <- function(t, x, s) {
-      r <- list()
-      for (i in 1:length(x)) {
-        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
-      }
-      if (methods::is(newX[["s"]][1],"factor")) {
-        r[[length(x)+1]] <- which(s==newX[["s"]])
-      } else {
-        r[[length(x)+1]] <- which(abs(s-newX[["s"]])<1e-8)
-      }
-      row <- Reduce(intersect, r)
+      row <- find_index(c(x,s), newX)
       col <- which.min(abs(t-new.times))
-      if (length(row)!=1) {
-        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
-                    paste(x,collapse=","),"),s=",s,""))
-      }
-      if (length(col)!=1) {
-        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
-                    paste(x,collapse=","),"),s=",s,""))
-      }
+      if (length(col)!=1) { stop("length(col)!=1") }
       # Note: the max() function is to prevent unreasonably small censoring
       #       probabilities from destabilizing estimates
       return(max(cens_pred[row,col], 0.001))
@@ -360,40 +294,17 @@ construct_Q_noS_n <- function(type, dat, vals, return_model=F) {
     cens_pred <- srv$cens.SL.predict
     rm(srv)
 
-    # !!!!! Later consolidate these via a wrapper/constructor function
     fnc_srv <- function(t, x) {
-      r <- list()
-      for (i in 1:length(x)) {
-        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
-      }
-      row <- Reduce(intersect, r)
+      row <- find_index(x, newX)
       col <- which.min(abs(t-new.times))
-      if (length(row)!=1) {
-        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
-                    paste(x,collapse=","),")"))
-      }
-      if (length(col)!=1) {
-        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
-                    paste(x,collapse=","),")"))
-      }
+      if (length(col)!=1) { stop("length(col)!=1") }
       return(srv_pred[row,col])
     }
 
     fnc_cens <- function(t, x) {
-      r <- list()
-      for (i in 1:length(x)) {
-        r[[i]] <- which(abs(x[i]-newX[[paste0("x",i)]])<1e-8)
-      }
-      row <- Reduce(intersect, r)
+      row <- find_index(x, newX)
       col <- which.min(abs(t-new.times))
-      if (length(row)!=1) {
-        stop(paste0("Error in Q_n (B); ", "t=",t,",x=(",
-                    paste(x,collapse=","),")"))
-      }
-      if (length(col)!=1) {
-        stop(paste0("Error in Q_n (C); ", "t=",t,",x=(",
-                    paste(x,collapse=","),")"))
-      }
+      if (length(col)!=1) { stop("length(col)!=1") }
       # Note: the max() function is to prevent unreasonably small censoring
       #       probabilities from destabilizing estimates
       return(max(cens_pred[row,col], 0.001))
@@ -1012,28 +923,14 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
     if (sum(pred<0)!=0) {
       warning(paste("gamma_n:", sum(pred<0), "negative predicted values"))
     }
-    # print(coef(model_sl))
-    rm(model_sl)
 
-    newX$index <- c(1:nrow(newX))
-    reg <- function(x,s) {
-      # Dynamically filter to select index
-      cond <- paste0("round(s,5)==",round(s,5))
-      for (i in c(1:length(x))) {
-        cond <- paste0(cond," & round(x",i,",5)==",round(x[i],5))
-      }
-      index <- (dplyr::filter(newX, eval(parse(text=cond))))$index
-      if (length(index)!=1) {
-        stop(paste0("Error in gamma_n; ", "x=(", paste(x,collapse=","), "), s=",
-                    s))
-      }
-      return(pred[index])
-    }
+    # Construct regression function
+    reg <- function(x,s) { pred[find_index(c(x,s), newX)] }
 
   }
 
   # Remove large intermediate objects
-  rm(dat_v,dat_v2,datx_v,omega_n)
+  rm(dat_v,dat_v2,datx_v,omega_n,model_sl)
 
   return(memoise2(reg))
 
@@ -1074,21 +971,8 @@ construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
 
   pred <- as.numeric(model_sl$SL.predict)
 
-  # Construct function
-  newX$index <- c(1:nrow(newX))
-  reg <- function(x) {
-    # Dynamically filter to select index
-    cond <- "1==1"
-    for (i in c(1:length(x))) {
-      cond <- paste0(cond," & round(x",i,",5)==",round(x[i],5))
-    }
-    index <- (dplyr::filter(newX, eval(parse(text=cond))))$index
-    if (length(index)!=1) {
-      stop(paste0("Error in g_zn; ",
-                  "x=(", paste(x,collapse=","), ")"))
-    }
-    return(pred[index])
-  }
+  # Construct regression function
+  reg <- function(x) { pred[find_index(x, newX)] }
 
   # Remove large intermediate objects
   rm(dat_v,datx_v,model_sl)

@@ -141,6 +141,26 @@ round_dat <- function(dat, grid, grid_size) {
 
 
 
+#' Find dataframe index of a row
+#'
+#' @param vec A numeric vector
+#' @param df A dataframe to search
+#' @return The index of the row of `df` at which `vec` is found
+#' @noRd
+find_index <- function(vec, df) {
+  vec <- as.numeric(vec)
+  r <- list()
+  for (i in c(1:4)) { r[[i]] <- which(abs(vec[i]-newX[,i])<1e-8) }
+  index <- Reduce(intersect, r)
+  if (length(index)!=1) {
+    if (length(index)==0) { stop("length(index)==0") }
+    if (length(index)>1) { stop("length(index)>1") }
+  }
+  return(index)
+}
+
+
+
 #' Copy of apply function
 #'
 #' @noRd
