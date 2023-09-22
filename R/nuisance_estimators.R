@@ -828,7 +828,6 @@ construct_r_tilde_Mn <- function(dat_v, Q_n, t_0) {
 construct_f_n_srv <- function(Q_n, Qc_n, grid) {
 
   # Helper function to calculate derivatives
-  # !!!!! Move outside?
   construct_surv_deriv <- function(Q) {
 
     max_index <- length(grid$y)
