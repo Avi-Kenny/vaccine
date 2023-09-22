@@ -150,7 +150,7 @@ round_dat <- function(dat, grid, grid_size) {
 find_index <- function(vec, df) {
   vec <- as.numeric(vec)
   r <- list()
-  for (i in c(1:4)) { r[[i]] <- which(abs(vec[i]-newX[,i])<1e-8) }
+  for (i in c(1:length(vec))) { r[[i]] <- which(abs(vec[i]-df[,i])<1e-8) }
   index <- Reduce(intersect, r)
   if (length(index)!=1) {
     if (length(index)==0) { stop("length(index)==0") }
