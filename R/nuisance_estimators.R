@@ -282,7 +282,7 @@ construct_Q_noS_n <- function(type, dat, vals, return_model=F) {
     srv <- survSuperLearner(
       time = dat$y,
       event = dat$delta,
-      X = dat[,c(1:dim_x)],
+      X = dat[,c(1:dim_x), drop=F],
       newX = newX,
       new.times = new.times,
       event.SL.library = methods,
