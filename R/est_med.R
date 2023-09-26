@@ -96,6 +96,7 @@ est_med <- function(
     s_shift <- -1 * s_min
     s_scale <- 1/(s_max-s_min)
     dat_v$s <- (dat_v$s+s_shift)*s_scale
+    dat$s <- ifelse(dat$a==1, (dat$s+s_shift)*s_scale, 0)
     grid <- create_grid(dat_v, p$grid_size, t_0) # !!!!! feed in dat instead (1)
 
     # Create rounded filtered data objects
