@@ -111,3 +111,35 @@ construct_infl_fn_risk_v <- function(dat_v_rd, Q_n, g_n, omega_n, q_tilde_n,
   return(memoise2(infl_fn))
 
 }
+
+
+
+#' Construct influence function corresponding to Kaplan-Meier estimator
+#'
+#' @param dat_combined Combined dataset; !!!!! TEMP
+#' @return Influence function estimator
+#' @note Used by est_med()
+#' @noRd
+construct_infl_fn_risk_v_v2 <- function(dat_v_rd, Q_noS_n_v, omega_noS_n_v, t_0,
+                                     p_vacc) {
+
+  dim_x <- attr(dat_v_rd, "dim_x")
+
+  mean_Q_n <- mean(apply(dat_v_rd, 1, function(r) {
+    Q_noS_n_v(t_0,as.numeric(r[1:dim_x]))
+  }))
+
+  infl_fn <- function(a,delta,y,x) {
+    if (a==0) {
+      return(0)
+    } else {
+      return((1/p_vacc)*(omega_noS_n_v(x,y,delta)-Q_noS_n_v(t_0,x)+mean_Q_n))
+    }
+  }
+
+  return(infl_fn)
+
+}
+
+
+

@@ -141,3 +141,26 @@ risk_overall_np_p <- function(dat_p_rd, Q_noS_n, omega_noS_n, t_0) {
   return(1+v)
 
 }
+
+
+
+#' Compute one-step estimator of overall risk (placebo group)
+#'
+#' @param TODO TO DO
+#' @return Value of one-step estimator
+#' @noRd
+risk_overall_np_v_v2 <- function(dat_v_rd, Q_noS_n_v, omega_noS_n_v, t_0) {
+
+  # !!!!! Port to est_overall
+
+  n_vacc <- attr(dat_v_rd, "n_vacc")
+  dim_x <- attr(dat_v_rd, "dim_x")
+
+  v <- (1/n_vacc) * sum(apply(dat_v_rd, 1, function(r) {
+    x <- as.numeric(r[1:dim_x])
+    omega_noS_n_v(x,r[["y"]],r[["delta"]])-Q_noS_n_v(t_0,x)
+  }))
+
+  return(1+v)
+
+}
