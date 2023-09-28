@@ -204,9 +204,9 @@ est_med <- function(
         omega_noS_n_v <- construct_omega_noS_n(Q_noS_n_v, Qc_noS_n_v, t_0, grid)
         risk_v_est <- risk_overall_np_v_v2(dat_v_rd, Q_noS_n_v, omega_noS_n_v,
                                            t_0)
-        print("!!!!! DEBUGGING !!!!!")
-        print(paste("risk_v_est:", risk_v_est))
-        print(paste("risk_p_est:", risk_p_est))
+        # print("!!!!! DEBUGGING !!!!!")
+        # print(paste("risk_v_est:", risk_v_est))
+        # print(paste("risk_p_est:", risk_p_est))
         infl_fn_risk_v <- construct_infl_fn_risk_v_v2(dat_v_rd, Q_noS_n_v, # !!!!! Should still work
                                                    omega_noS_n_v, t_0, p_vacc) # !!!!! Should still work
 
