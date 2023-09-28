@@ -182,26 +182,56 @@ est_med <- function(
       infl_fn_risk_p <- construct_infl_fn_risk_p(dat_p_rd, Q_noS_n, omega_noS_n,
                                                  t_0, p_plac)
 
-      q_tilde_n <- memoise2(function(x,y,delta) {
-        # !!!!! Replace with sapply
-        num <- sum(apply(dat_v2_rd, 1, function(r) {
-          r[["weights"]] * (omega_n(x,r[["s"]],y,delta)-Q_n(t_0,x,r[["s"]])) *
-            f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
-        }))
-        den <- sum(apply(dat_v2_rd, 1, function(r) {
-          r[["weights"]] * f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
-        }))
-        if (den==0) {
-          return(0)
-        } else {
-          return(num/den)
-        }
-      })
+      # !!!!! NEW CODE
+      if (T) {
 
-      risk_v_est <- risk_overall_np_v(dat_v_rd, g_n, Q_n, omega_n, f_n_srv,
-                                      q_tilde_n, t_0)
-      infl_fn_risk_v <- construct_infl_fn_risk_v(dat_v_rd, Q_n, g_n, omega_n,
-                                                 q_tilde_n, t_0, p_vacc)
+        # Precomputation values for conditional survival/censoring estimators
+        x_distinct_v <- dplyr::distinct(datx_v_rd)
+        x_distinct_v <- cbind("x_index"=c(1:nrow(x_distinct_v)), x_distinct_v)
+        vals_v_pre <- expand.grid(t=grid$y, x_index=x_distinct_v$x_index)
+        vals_v_pre <- dplyr::inner_join(vals_v_pre, x_distinct_v, by="x_index")
+        vals_v <- list(
+          t = vals_v_pre$t,
+          x = subset(vals_v_pre, select=names(datx_v_rd))
+        )
+
+        # Fit conditional survival estimator (placebo group)
+        srvSL_v <- construct_Q_noS_n(type=p$surv_type, dat_v_rd, vals_v)
+        Q_noS_n_v <- srvSL_v$srv
+        Qc_noS_n_v <- srvSL_v$cens
+
+        # Construct other nuisance estimators
+        omega_noS_n_v <- construct_omega_noS_n(Q_noS_n_v, Qc_noS_n_v, t_0, grid)
+        risk_v_est <- risk_overall_np_v_v2(dat_v_rd, Q_noS_n_v, omega_noS_n_v,
+                                           t_0)
+        # print("!!!!! DEBUGGING !!!!!")
+        # print(paste("risk_v_est:", risk_v_est))
+        # print(paste("risk_p_est:", risk_p_est))
+        infl_fn_risk_v <- construct_infl_fn_risk_v_v2(dat_v_rd, Q_noS_n_v, # !!!!! Should still work
+                                                   omega_noS_n_v, t_0, p_vacc) # !!!!! Should still work
+
+      }
+
+      # q_tilde_n <- memoise2(function(x,y,delta) {
+      #   # !!!!! Replace with sapply
+      #   num <- sum(apply(dat_v2_rd, 1, function(r) {
+      #     r[["weights"]] * (omega_n(x,r[["s"]],y,delta)-Q_n(t_0,x,r[["s"]])) *
+      #       f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
+      #   }))
+      #   den <- sum(apply(dat_v2_rd, 1, function(r) {
+      #     r[["weights"]] * f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
+      #   }))
+      #   if (den==0) {
+      #     return(0)
+      #   } else {
+      #     return(num/den)
+      #   }
+      # })
+
+      # risk_v_est <- risk_overall_np_v(dat_v_rd, g_n, Q_n, omega_n, f_n_srv,
+      #                                 q_tilde_n, t_0)
+      # infl_fn_risk_v <- construct_infl_fn_risk_v(dat_v_rd, Q_n, g_n, omega_n,
+      #                                            q_tilde_n, t_0, p_vacc)
 
       nde_est <- r_Mn_edge_est/risk_p_est
 
@@ -226,9 +256,10 @@ est_med <- function(
 
       sigma2_nie_est <- mean(apply(dat_rd, 1, function(r) {
         x <- as.numeric(r[1:dim_x])
-        if_v <- infl_fn_risk_v(a=r[["a"]], z=r[["z"]], weight=r[["weights"]],
-                               s=r[["s"]], x=x, y=r[["y"]],
-                               delta=r[["delta"]])
+        # if_v <- infl_fn_risk_v(a=r[["a"]], z=r[["z"]], weight=r[["weights"]],
+        #                        s=r[["s"]], x=x, y=r[["y"]],
+        #                        delta=r[["delta"]])
+        if_v <- infl_fn_risk_v(r[["a"]], r[["delta"]], r[["y"]], x)
         if_edge <- infl_fn_edge_2(r[["a"]], r[["z"]], r[["weights"]], r[["s"]], x, r[["y"]], r[["delta"]])
         return(((1/r_Mn_edge_est)*if_v-(risk_v_est/r_Mn_edge_est^2)*if_edge)^2)
       }), na.rm=T) # !!!!! Test getting rid of na.rm=T
@@ -251,9 +282,10 @@ est_med <- function(
         c_2 <- log(risk_v_est/r_Mn_edge_est) / risk_p_est
         c_3 <- (-1*log(rr)) / r_Mn_edge_est
         x <- as.numeric(r[1:dim_x])
-        if_v <- infl_fn_risk_v(a=r[["a"]], z=r[["z"]], weight=r[["weights"]],
-                               s=r[["s"]], x=x, y=r[["y"]],
-                               delta=r[["delta"]])
+        # if_v <- infl_fn_risk_v(a=r[["a"]], z=r[["z"]], weight=r[["weights"]],
+        #                        s=r[["s"]], x=x, y=r[["y"]],
+        #                        delta=r[["delta"]])
+        if_v <- infl_fn_risk_v(r[["a"]], r[["delta"]], r[["y"]], x)
         if_p <- infl_fn_risk_p(r[["a"]], r[["delta"]], r[["y"]], x)
         if_edge <- infl_fn_edge_2(a=r[["a"]], r[["z"]], r[["weights"]], r[["s"]], x, r[["y"]], r[["delta"]])
         return((1/(log(rr))^2*(c_1*if_v+c_2*if_p+c_3*if_edge))^2)
