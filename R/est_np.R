@@ -13,6 +13,7 @@ est_np <- function(
   .default_params <- params_ce_np()
   .default_params$gamma_type <- "Super Learner" # !!!!! Move to params or hard-code
   .default_params$q_n_type <- "zero" # !!!!! Temp; implement "standard"
+  # .default_params$q_n_type <- "standard" # !!!!! Temp; implement "standard"
   .default_params$mono_cis <- T # !!!!! Move to params or hard-code
   for (i in c(1:length(.default_params))) {
     p_name <- names(.default_params)[i]
@@ -78,7 +79,8 @@ est_np <- function(
 
   # Compute various nuisance functions
   omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)
-  f_sIx_n <- construct_f_sIx_n(dat_v2_rd, type=p$density_type, k=p$density_bins, z1=F)
+  f_sIx_n <- construct_f_sIx_n(dat_v2_rd, type=p$density_type, k=p$density_bins,
+                               z1=F)
   f_s_n <- construct_f_s_n(dat_v_rd, f_sIx_n)
   g_n <- construct_g_n(f_sIx_n, f_s_n)
   Phi_n <- construct_Phi_n(dat_v2_rd)
@@ -150,8 +152,8 @@ est_np <- function(
 
   # Compute variance component nuisance estimators
   if (ci_type!="none") {
-    f_sIx_z1_n <- construct_f_sIx_n(dat_v2_rd, type=p$density_type, k=p$density_bins,
-                                    z1=T)
+    f_sIx_z1_n <- construct_f_sIx_n(dat_v2_rd, type=p$density_type,
+                                    k=p$density_bins, z1=T)
     f_s_z1_n <- construct_f_s_n(dat_v_rd, f_sIx_z1_n)
     gamma_n <- construct_gamma_n(dat_v_rd, type="Super Learner", omega_n, grid)
     g_zn <- construct_g_zn(dat_v_rd, type="Super Learner", f_sIx_n, f_sIx_z1_n)

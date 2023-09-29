@@ -793,13 +793,15 @@ construct_q_n <- function(type="standard", dat_v2, omega_n, g_n, r_tilde_Mn,
       omega_n(x,s,y,delta)/g_n(s,x)+r_tilde_Mn(s)
     })
 
-    q_n_star <- memoise2(function(y,delta,x,s,u) {
+    # q_n_star <- memoise2(function(y,delta,x,s,u) {
+    q_n_star <- function(y,delta,x,s,u) {
       if (s>u) {
         return(0)
       } else {
         return(q_n_star_inner(x,y,delta,s))
       }
-    })
+    # })
+    }
 
     # Helper functions
     # !!!!! Can these vectors/functions be used elsewhere?
@@ -813,7 +815,7 @@ construct_q_n <- function(type="standard", dat_v2, omega_n, g_n, r_tilde_Mn,
       sapply(dat_v2$s, function(s) { g_n(s,x) })
     })
 
-    fnc <- function(x, y, delta, u) {
+    fnc <- function(x,y,delta,u) {
 
       f_n_srv_s <- f_n_srv_s(y,delta,x)
       q_n_star_s <- q_n_star_s(y,delta,x,u)
