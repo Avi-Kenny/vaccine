@@ -13,7 +13,8 @@ load_data(
   weights,
   ph2,
   strata = NA,
-  data
+  data,
+  covariates_ph2 = FALSE
 )
 }
 \arguments{
@@ -47,6 +48,9 @@ either integer (0/1) or Boolean (T/F) values.}
 identifiers (for two-phase sampling strata).}
 
 \item{data}{A dataframe containing the vaccine trial data.}
+
+\item{covariates_ph2}{A boolean; if at least one of the covariates is
+measured only in the phase-two cohort, set this to TRUE.}
 }
 \value{
 An object of class \code{vaccine_dat}.

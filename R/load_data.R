@@ -28,6 +28,8 @@
 #' @param strata A character string; the name of the variable containing strata
 #'     identifiers (for two-phase sampling strata).
 #' @param data A dataframe containing the vaccine trial data.
+#' @param covariates_ph2 A boolean; if at least one of the covariates is
+#'     measured only in the phase-two cohort, set this to TRUE.
 #' @return An object of class \code{vaccine_dat}.
 #' @examples
 #' data(hvtn505)
@@ -36,7 +38,8 @@
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' @export
 load_data <- function(
-  time, event, vacc, marker, covariates, weights, ph2, strata=NA, data
+  time, event, vacc, marker, covariates, weights, ph2, strata=NA, data,
+  covariates_ph2=FALSE
 ) {
 
   # To prevent R CMD CHECK notes
@@ -185,6 +188,7 @@ load_data <- function(
   class(dat) <- c("data.frame", "vaccine_dat")
   attr(dat, "groups") <- .groups
   attr(dat, "covariate_names") <- covariates
+  attr(dat, "covariates_ph2") <- covariates_ph2
   attr(dat, "dim_x") <- .dim_x
   attr(dat, "n") <- .n_v+.n_p
   attr(dat, "n_vacc") <- .n_v

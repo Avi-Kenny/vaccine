@@ -88,8 +88,8 @@ create_grid <- function(dat, grid_size, t_0) {
   grid$s <- round(seq(from=0, to=1, length.out=grid_size$s), 5)
   grid$x <- lapply(c(1:attr(dat,"dim_x")), function(i) {
     x_col <- as.numeric(dat[,i])
-    if (length(unique(x_col))>grid_size$x) {
-      return(round(seq(from=min(x_col), to=max(x_col),
+    if (length(unique(x_col[!is.na(x_col)]))>grid_size$x) {
+      return(round(seq(from=min(x_col, na.rm=T), to=max(x_col, na.rm=T),
                        length.out=grid_size$x), 5))
     } else {
       return(NA)
@@ -126,9 +126,13 @@ round_dat <- function(dat, grid, grid_size) {
   # Round `x`
   for (i in c(1:attr(dat,"dim_x"))) {
     x_col <- as.numeric(dat[,i])
-    if (length(unique(x_col))>grid_size$x) {
+    if (length(unique(x_col[!is.na(x_col)]))>grid_size$x) {
       dat[,i] <- sapply(x_col, function(x) {
-        grid$x[[i]][which.min(abs(grid$x[[i]]-x))]
+        if (is.na(x)) {
+          return(NA)
+        } else {
+          return(grid$x[[i]][which.min(abs(grid$x[[i]]-x))])
+        }
       })
     }
   }
