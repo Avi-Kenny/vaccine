@@ -99,9 +99,13 @@ load_data <- function(
           }
         }
 
-      }
+        assign(x=paste0(".",arg), value=val)
 
-      assign(x=paste0(".",arg), value=val)
+      } else {
+
+        .strata <- NA
+
+      }
 
     }
 
