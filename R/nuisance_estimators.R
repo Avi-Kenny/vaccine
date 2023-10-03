@@ -738,7 +738,7 @@ construct_r_tilde_Mn <- function(dat_v, Q_n, t_0) {
     datx_v2 <- dat_v2[, c(1:dim_x), drop=F]
     memoise2(function(s) {
       1 - (1/n_vacc) * sum(dat_v2$weights * apply(datx_v2, 1, function(x) {
-        Q_n(t_0, as.numeric(x, s))
+        Q_n(t_0, as.numeric(x), s)
       }))
     })
   } else {
@@ -978,7 +978,7 @@ construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
 
   # Create data objects
   dim_x <- attr(dat_v, "dim_x")
-  dat_v2 <- dat_v2[dat_v2$z==1,]
+  dat_v2 <- dat_v[dat_v$z==1,]
   datx_v <- dat_v[, c(1:dim_x), drop=F]
   datx_v2 <- dat_v2[, c(1:dim_x), drop=F]
   class(datx_v) <- "data.frame"
