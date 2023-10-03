@@ -419,6 +419,7 @@ est_cox <- function(
   if (ci_type!="none") {
 
     res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
+    # res_cox$var_est_marg <- unlist(lapply(s_out[length(s_out)], function(s) { # !!!!!
 
       # Precalculate pieces dependent on s
       s_spl <- s_to_spl(s)
@@ -475,7 +476,89 @@ est_cox <- function(
 
       }
 
-      (1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+      # !!!!!
+      if (F) {
+
+        vec1 <- (1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+
+          x_i <- as.numeric(r[1:dim_x])
+          if (!is.na(r[["s"]])) {
+            s_i <- s_to_spl(r[["s"]])
+          } else {
+            s_i <- NA
+          }
+          z_i <- r[["z"]]
+          d_i <- r[["delta"]]
+          y_i <- r[["y"]]
+          wt_i <- r[["weights"]]
+          st_i <- r[["strata"]]
+
+          pc_2 <- Lambda_n_t_0 * sum(
+            K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          )
+          pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          pc_4 <- K_n1
+
+          # if (ii==77) { browser() } # !!!!!
+          # ii <<- ii+1 # !!!!!
+
+          if (attr(dat, "covariates_ph2")) {
+            pc_1 <- wt_i * Q_n(c(x_i,s_spl))
+            den <- sum(ST==st_i)
+            k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
+            pc_5 <- k_n_i * K_n4(st_i,s)
+            return((pc_2+pc_3+pc_4-pc_1-pc_5)^2)
+          } else {
+            pc_1 <- Q_n(c(x_i,s_spl))
+            return((pc_2+pc_3+pc_4-pc_1)^2)
+          }
+
+        })))
+        var1 <- (1/n_vacc^2) * sum(vec1)
+
+        vec2 <- (1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+
+          x_i <- as.numeric(r[1:dim_x])
+          if (!is.na(r[["s"]])) {
+            s_i <- s_to_spl(r[["s"]])
+          } else {
+            s_i <- NA
+          }
+          z_i <- r[["z"]]
+          d_i <- r[["delta"]]
+          y_i <- r[["y"]]
+          wt_i <- r[["weights"]]
+          st_i <- r[["strata"]]
+
+          pc_2 <- Lambda_n_t_0 * sum(
+            K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          )
+          pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          pc_4 <- K_n1
+
+          # if (ii==77) { browser() } # !!!!!
+          # ii <<- ii+1 # !!!!!
+
+          if (attr(dat, "covariates_ph2")) {
+            pc_1 <- wt_i * Q_n(c(x_i,s_spl))
+            den <- sum(ST==st_i)
+            k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
+            pc_5 <- k_n_i * K_n4(st_i,s)
+            return((pc_2+pc_3+pc_4-pc_1-pc_5)^2)
+          } else {
+            pc_1 <- Q_n(c(x_i,s_spl))
+            return((pc_2+pc_3+pc_4-pc_1)^2)
+          }
+
+        })))
+        var2 <- (1/n_vacc^2) * sum(vec2)
+
+        browser()
+
+      }
+
+      # ii <- 1 # !!!!!
+      return((1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
 
         x_i <- as.numeric(r[1:dim_x])
         if (!is.na(r[["s"]])) {
@@ -495,9 +578,13 @@ est_cox <- function(
         pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
         pc_4 <- K_n1
 
+        # if (ii==77) { browser() } # !!!!!
+        # ii <<- ii+1 # !!!!!
+
         if (attr(dat, "covariates_ph2")) {
           pc_1 <- wt_i * Q_n(c(x_i,s_spl))
-          k_n_i <- (1-wt_i) / sum(ST==st_i)
+          den <- sum(ST==st_i)
+          k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
           pc_5 <- k_n_i * K_n4(st_i,s)
           return((pc_2+pc_3+pc_4-pc_1-pc_5)^2)
         } else {
@@ -505,7 +592,7 @@ est_cox <- function(
           return((pc_2+pc_3+pc_4-pc_1)^2)
         }
 
-      })))
+      }))))
 
     }))
 

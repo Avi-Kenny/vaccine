@@ -94,7 +94,8 @@ est_np <- function(
   # Compute edge-corrected estimator and standard error
   if (p$edge_corr) {
     if (attr(dat, "covariates_ph2")) {
-      stop("edge correction not yet available for covariates_ph2==T.")
+      # stop("edge correction not yet available for covariates_ph2==T.")
+      warning("edge correction not yet available for covariates_ph2==T.") # !!!!!
     }
     p_n <- (1/n_vacc) * sum(dat_v2_rd$weights * In(dat_v2_rd$s!=0))
     g_sn <- construct_g_sn(dat_v2_rd, f_n_srv, g_n, p_n)
