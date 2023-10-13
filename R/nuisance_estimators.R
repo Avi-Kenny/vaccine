@@ -920,7 +920,13 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
   }
 
   # Setup
-  x_distinct <- dplyr::distinct(datx_v)
+  if (attr(dat, "covariates_ph2")) {
+    datx_v2 <- dat_v2[, c(1:dim_x), drop=F]
+    class(datx_v2) <- "data.frame"
+    x_distinct <- dplyr::distinct(datx_v2)
+  } else {
+    x_distinct <- dplyr::distinct(datx_v)
+  }
   x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
   newX <- expand.grid(x_index=x_distinct$x_index, s=grid$s)
   newX <- dplyr::inner_join(x_distinct, newX, by="x_index")
@@ -983,10 +989,10 @@ construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
   datx_v2 <- dat_v2[, c(1:dim_x), drop=F]
   class(datx_v) <- "data.frame"
   class(datx_v2) <- "data.frame"
-  newX <- dplyr::distinct(datx_v)
 
   # Fit SuperLearner regression
   if (attr(dat, "covariates_ph2")) {
+    newX <- dplyr::distinct(datx_v2)
     model_sl <- SuperLearner::SuperLearner(
       Y = dat_v2$z,
       X = datx_v2,
@@ -996,6 +1002,7 @@ construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
       verbose = F
     )
   } else {
+    newX <- dplyr::distinct(datx_v)
     model_sl <- SuperLearner::SuperLearner(
       Y = dat_v$z,
       X = datx_v,
@@ -1100,9 +1107,16 @@ construct_tau_n <- function(dat_v, deriv_r_Mn, gamma_n, f_sIx_n, g_zn) {
 
   n_vacc <- attr(dat_v, "n_vacc")
   dim_x <- attr(dat_v, "dim_x")
+  dat_v2 <- dat_v[dat_v$z==1,]
+
+  if (attr(dat, "covariates_ph2")) {
+    dat_apply <- dat_v2
+  } else {
+    dat_apply <- dat_v
+  }
 
   return(function(u) {
-    abs(4*deriv_r_Mn(u) * (1/n_vacc) * sum(apply(dat_v, 1, function(r) {
+    abs(4*deriv_r_Mn(u) * (1/n_vacc) * sum(apply(dat_apply, 1, function(r) {
       x <- as.numeric(r[1:dim_x])
       return((gamma_n(x,u)*g_zn(x,u))/f_sIx_n(u,x))
     })))^(1/3)
