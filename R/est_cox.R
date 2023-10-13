@@ -356,6 +356,8 @@ est_cox <- function(
       WT[i] * ( In(Y_[i]<=t) / S_0n(Y_[i]) )
     })))
   }
+  # Lambda_n_alt <- survival::basehaz(model, centered=FALSE) # !!!!! Debugging
+  # browser() # !!!!! Debugging
 
   # Survival estimator (at a point)
   Q_n <- (function() {
@@ -419,7 +421,7 @@ est_cox <- function(
   if (ci_type!="none") {
 
     res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
-    # res_cox$var_est_marg <- unlist(lapply(s_out[length(s_out)], function(s) { # !!!!!
+    # res_cox$var_est_marg <- unlist(lapply(s_out[length(s_out)], function(s) { # !!!!! Debugging
 
       # Precalculate pieces dependent on s
       s_spl <- s_to_spl(s)
@@ -503,7 +505,6 @@ est_cox <- function(
           # ii <<- ii+1 # !!!!!
 
           if (attr(dat, "covariates_ph2")) {
-            pc_1 <- wt_i * Q_n(c(x_i,s_spl))
             den <- sum(ST==st_i)
             k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
             pc_5 <- k_n_i * K_n4(st_i,s)
@@ -560,7 +561,7 @@ est_cox <- function(
       # ii <- 1 # !!!!!
       return((1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
 
-        x_i <- as.numeric(r[1:dim_x])
+        x_i <- as.numeric(r[1:dim_x]) # This will include NAs if is.na(r[["s"]]) and covariates_ph2=T; make sure this doesn't cause issues
         if (!is.na(r[["s"]])) {
           s_i <- s_to_spl(r[["s"]])
         } else {
@@ -582,7 +583,11 @@ est_cox <- function(
         # ii <<- ii+1 # !!!!!
 
         if (attr(dat, "covariates_ph2")) {
-          pc_1 <- wt_i * Q_n(c(x_i,s_spl))
+          if (wt_i==0) {
+            pc_1 <- 0
+          } else {
+            pc_1 <- wt_i * Q_n(c(x_i,s_spl))
+          }
           den <- sum(ST==st_i)
           k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
           pc_5 <- k_n_i * K_n4(st_i,s)

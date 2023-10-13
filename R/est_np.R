@@ -59,7 +59,12 @@ est_np <- function(
   s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] })
 
   # Precomputation values for conditional survival/censoring estimators
-  x_distinct <- dplyr::distinct(datx_v_rd)
+  if (attr(dat, "covariates_ph2")) {
+    datx_v2_rd <- dat_v2_rd[, c(1:dim_x), drop=F]
+    x_distinct <- dplyr::distinct(datx_v2_rd)
+  } else {
+    x_distinct <- dplyr::distinct(datx_v_rd)
+  }
   x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
   vals_pre <- expand.grid(t=grid$y, x_index=x_distinct$x_index, s=grid$s)
   vals_pre <- dplyr::inner_join(vals_pre, x_distinct, by="x_index")

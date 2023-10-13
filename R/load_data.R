@@ -82,8 +82,10 @@ load_data <- function(
         }
 
         # No missing values allowed (except marker)
-        if (!(arg %in% c("marker", "weights"))) {
+        if (!(arg %in% c("marker", "weights", "covariates"))) {
           if (any(is.na(val))) { stop("NA values not allowed in `", arg, "`.") }
+        } else if (arg=="covariates") {
+          # !!!!! TO DO
         }
 
         # Validate: `time`, `marker`, `weights`
