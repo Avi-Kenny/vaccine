@@ -663,12 +663,23 @@ construct_f_s_n <- function(dat_v, f_sIx_n) {
 
   n_vacc <- attr(dat_v, "n_vacc")
   dim_x <- attr(dat_v, "dim_x")
-  datx_v <- dat_v[, c(1:dim_x), drop=F]
-  memoise2(function(s) {
-    (1/n_vacc) * sum(apply(datx_v, 1, function(r) {
-      f_sIx_n(s,as.numeric(r))
-    }))
-  })
+
+  if (attr(dat, "covariates_ph2")) {
+    dat_v2 <- dat_v[dat_v$z==1,]
+    datx_v2 <- dat_v2[, c(1:dim_x), drop=F]
+    memoise2(function(s) {
+      (1/n_vacc) * sum(dat_v2$weights * apply(datx_v2, 1, function(x) {
+        f_sIx_n(s,as.numeric(x))
+      }))
+    })
+  } else {
+    datx_v <- dat_v[, c(1:dim_x), drop=F]
+    memoise2(function(s) {
+      (1/n_vacc) * sum(apply(datx_v, 1, function(x) {
+        f_sIx_n(s,as.numeric(x))
+      }))
+    })
+  }
 
 }
 
@@ -722,12 +733,22 @@ construct_r_tilde_Mn <- function(dat_v, Q_n, t_0) {
 
   n_vacc <- attr(dat_v, "n_vacc")
   dim_x <- attr(dat_v, "dim_x")
-  memoise2(function(s) {
-    1 - (1/n_vacc) * sum(apply(dat_v, 1, function(r) {
-      x <- as.numeric(r[1:dim_x])
-      return(Q_n(t_0, x, s))
-    }))
-  })
+  if (attr(dat, "covariates_ph2")) {
+    dat_v2 <- dat_v[dat_v$z==1,]
+    datx_v2 <- dat_v2[, c(1:dim_x), drop=F]
+    memoise2(function(s) {
+      1 - (1/n_vacc) * sum(dat_v2$weights * apply(datx_v2, 1, function(x) {
+        Q_n(t_0, as.numeric(x), s)
+      }))
+    })
+  } else {
+    datx_v <- dat_v[, c(1:dim_x), drop=F]
+    memoise2(function(s) {
+      1 - (1/n_vacc) * sum(apply(datx_v, 1, function(x) {
+        Q_n(t_0, as.numeric(x), s)
+      }))
+    })
+  }
 
 }
 
@@ -899,7 +920,13 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
   }
 
   # Setup
-  x_distinct <- dplyr::distinct(datx_v)
+  if (attr(dat, "covariates_ph2")) {
+    datx_v2 <- dat_v2[, c(1:dim_x), drop=F]
+    class(datx_v2) <- "data.frame"
+    x_distinct <- dplyr::distinct(datx_v2)
+  } else {
+    x_distinct <- dplyr::distinct(datx_v)
+  }
   x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
   newX <- expand.grid(x_index=x_distinct$x_index, s=grid$s)
   newX <- dplyr::inner_join(x_distinct, newX, by="x_index")
@@ -957,19 +984,34 @@ construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
 
   # Create data objects
   dim_x <- attr(dat_v, "dim_x")
+  dat_v2 <- dat_v[dat_v$z==1,]
   datx_v <- dat_v[, c(1:dim_x), drop=F]
+  datx_v2 <- dat_v2[, c(1:dim_x), drop=F]
   class(datx_v) <- "data.frame"
-  newX <- dplyr::distinct(datx_v)
+  class(datx_v2) <- "data.frame"
 
   # Fit SuperLearner regression
-  model_sl <- SuperLearner::SuperLearner(
-    Y = dat_v$z,
-    X = datx_v,
-    newX = newX,
-    family = "binomial",
-    SL.library = SL.library,
-    verbose = F
-  )
+  if (attr(dat, "covariates_ph2")) {
+    newX <- dplyr::distinct(datx_v2)
+    model_sl <- SuperLearner::SuperLearner(
+      Y = dat_v2$z,
+      X = datx_v2,
+      newX = newX,
+      family = "binomial",
+      SL.library = SL.library,
+      verbose = F
+    )
+  } else {
+    newX <- dplyr::distinct(datx_v)
+    model_sl <- SuperLearner::SuperLearner(
+      Y = dat_v$z,
+      X = datx_v,
+      newX = newX,
+      family = "binomial",
+      SL.library = SL.library,
+      verbose = F
+    )
+  }
 
   pred <- as.numeric(model_sl$SL.predict)
 
@@ -1065,9 +1107,16 @@ construct_tau_n <- function(dat_v, deriv_r_Mn, gamma_n, f_sIx_n, g_zn) {
 
   n_vacc <- attr(dat_v, "n_vacc")
   dim_x <- attr(dat_v, "dim_x")
+  dat_v2 <- dat_v[dat_v$z==1,]
+
+  if (attr(dat, "covariates_ph2")) {
+    dat_apply <- dat_v2
+  } else {
+    dat_apply <- dat_v
+  }
 
   return(function(u) {
-    abs(4*deriv_r_Mn(u) * (1/n_vacc) * sum(apply(dat_v, 1, function(r) {
+    abs(4*deriv_r_Mn(u) * (1/n_vacc) * sum(apply(dat_apply, 1, function(r) {
       x <- as.numeric(r[1:dim_x])
       return((gamma_n(x,u)*g_zn(x,u))/f_sIx_n(u,x))
     })))^(1/3)

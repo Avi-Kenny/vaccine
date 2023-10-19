@@ -356,6 +356,8 @@ est_cox <- function(
       WT[i] * ( In(Y_[i]<=t) / S_0n(Y_[i]) )
     })))
   }
+  # Lambda_n_alt <- survival::basehaz(model, centered=FALSE) # !!!!! Debugging
+  # browser() # !!!!! Debugging
 
   # Survival estimator (at a point)
   Q_n <- (function() {
@@ -397,37 +399,169 @@ est_cox <- function(
   # Compute marginalized risk
   res_cox <- list()
   Lambda_n_t_0 <- Lambda_n(t_0)
-  res_cox$est_marg <- unlist(lapply(s_out, function(s) {
-    (1/n_vacc) * sum((apply(dat_v, 1, function(r) {
-      x_i <- as.numeric(r[1:dim_x])
-      s_spl <- s_to_spl(s)
-      exp(-1*exp(sum(beta_n*c(x_i,s_spl)))*Lambda_n_t_0)
-    })))
-  }))
+  if (attr(dat, "covariates_ph2")) {
+    res_cox$est_marg <- unlist(lapply(s_out, function(s) {
+      (1/n_vacc) * sum(dat_v2$weights * apply(dat_v2, 1, function(r) {
+        x_i <- as.numeric(r[1:dim_x])
+        s_spl <- s_to_spl(s)
+        exp(-1*exp(sum(beta_n*c(x_i,s_spl)))*Lambda_n_t_0)
+      }))
+    }))
+  } else {
+    res_cox$est_marg <- unlist(lapply(s_out, function(s) {
+      (1/n_vacc) * sum(apply(dat_v, 1, function(r) {
+        x_i <- as.numeric(r[1:dim_x])
+        s_spl <- s_to_spl(s)
+        exp(-1*exp(sum(beta_n*c(x_i,s_spl)))*Lambda_n_t_0)
+      }))
+    }))
+  }
 
   # Compute variance estimate
   if (ci_type!="none") {
 
     res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
+    # res_cox$var_est_marg <- unlist(lapply(s_out[length(s_out)], function(s) { # !!!!! Debugging
 
       # Precalculate pieces dependent on s
       s_spl <- s_to_spl(s)
-      K_n <- (1/n_vacc) * Reduce("+", apply2(dat_v, 1, function(r) {
-        x_i <- as.numeric(r[1:dim_x])
-        Q <- Q_n(c(x_i,s_spl))
-        explin <- exp(sum(c(x_i,s_spl)*beta_n))
-        K_n1 <- Q
-        K_n2 <- Q * explin
-        K_n3 <- Q * explin * c(x_i,s_spl)
-        return(c(K_n1,K_n2,K_n3))
-      }, simplify=F))
-      K_n1 <- K_n[1]
-      K_n2 <- K_n[2]
-      K_n3 <- K_n[3:length(K_n)]
+      if (attr(dat, "covariates_ph2")) {
 
-      (1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+        K_n <- (1/n_vacc) * Reduce("+", apply2(dat_v2, 1, function(r) {
+          wts <- r[["weights"]]
+          x_i <- as.numeric(r[1:dim_x])
+          Q <- Q_n(c(x_i,s_spl))
+          explin <- exp(sum(c(x_i,s_spl)*beta_n))
+          K_n1 <- wts * Q
+          K_n2 <- wts * Q * explin
+          K_n3 <- wts * Q * explin * c(x_i,s_spl)
+          return(c(K_n1,K_n2,K_n3))
+        }, simplify=F))
+        K_n1 <- K_n[1]
+        K_n2 <- K_n[2]
+        K_n3 <- K_n[3:length(K_n)]
 
-        x_i <- as.numeric(r[1:dim_x])
+        K_n4 <- (function() {
+          .cache <- new.env()
+          function(st_i,s) {
+            key <- paste(c(st_i,s), collapse=" ")
+            val <- .cache[[key]]
+            if (is.null(val)) {
+              val <- (function(st_i,s) {
+                k_set <- which(ST==st_i)
+                if (length(k_set)>0) {
+                  return(sum(unlist(lapply(k_set, function(k) {
+                    Q_n(c(as.numeric(X[k,]),s_spl))
+                  }))))
+                } else { return(0) }
+              })(st_i,s)
+              .cache[[key]] <- val
+            }
+            return(val)
+          }
+        })()
+
+      } else {
+
+        K_n <- (1/n_vacc) * Reduce("+", apply2(dat_v, 1, function(r) {
+          x_i <- as.numeric(r[1:dim_x])
+          Q <- Q_n(c(x_i,s_spl))
+          explin <- exp(sum(c(x_i,s_spl)*beta_n))
+          K_n1 <- Q
+          K_n2 <- Q * explin
+          K_n3 <- Q * explin * c(x_i,s_spl)
+          return(c(K_n1,K_n2,K_n3))
+        }, simplify=F))
+        K_n1 <- K_n[1]
+        K_n2 <- K_n[2]
+        K_n3 <- K_n[3:length(K_n)]
+
+      }
+
+      # !!!!!
+      if (F) {
+
+        vec1 <- (1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+
+          x_i <- as.numeric(r[1:dim_x])
+          if (!is.na(r[["s"]])) {
+            s_i <- s_to_spl(r[["s"]])
+          } else {
+            s_i <- NA
+          }
+          z_i <- r[["z"]]
+          d_i <- r[["delta"]]
+          y_i <- r[["y"]]
+          wt_i <- r[["weights"]]
+          st_i <- r[["strata"]]
+
+          pc_2 <- Lambda_n_t_0 * sum(
+            K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          )
+          pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          pc_4 <- K_n1
+
+          # if (ii==77) { browser() } # !!!!!
+          # ii <<- ii+1 # !!!!!
+
+          if (attr(dat, "covariates_ph2")) {
+            den <- sum(ST==st_i)
+            k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
+            pc_5 <- k_n_i * K_n4(st_i,s)
+            return((pc_2+pc_3+pc_4-pc_1-pc_5)^2)
+          } else {
+            pc_1 <- Q_n(c(x_i,s_spl))
+            return((pc_2+pc_3+pc_4-pc_1)^2)
+          }
+
+        })))
+        var1 <- (1/n_vacc^2) * sum(vec1)
+
+        vec2 <- (1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+
+          x_i <- as.numeric(r[1:dim_x])
+          if (!is.na(r[["s"]])) {
+            s_i <- s_to_spl(r[["s"]])
+          } else {
+            s_i <- NA
+          }
+          z_i <- r[["z"]]
+          d_i <- r[["delta"]]
+          y_i <- r[["y"]]
+          wt_i <- r[["weights"]]
+          st_i <- r[["strata"]]
+
+          pc_2 <- Lambda_n_t_0 * sum(
+            K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          )
+          pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          pc_4 <- K_n1
+
+          # if (ii==77) { browser() } # !!!!!
+          # ii <<- ii+1 # !!!!!
+
+          if (attr(dat, "covariates_ph2")) {
+            pc_1 <- wt_i * Q_n(c(x_i,s_spl))
+            den <- sum(ST==st_i)
+            k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
+            pc_5 <- k_n_i * K_n4(st_i,s)
+            return((pc_2+pc_3+pc_4-pc_1-pc_5)^2)
+          } else {
+            pc_1 <- Q_n(c(x_i,s_spl))
+            return((pc_2+pc_3+pc_4-pc_1)^2)
+          }
+
+        })))
+        var2 <- (1/n_vacc^2) * sum(vec2)
+
+        browser()
+
+      }
+
+      # ii <- 1 # !!!!!
+      return((1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+
+        x_i <- as.numeric(r[1:dim_x]) # This will include NAs if is.na(r[["s"]]) and covariates_ph2=T; make sure this doesn't cause issues
         if (!is.na(r[["s"]])) {
           s_i <- s_to_spl(r[["s"]])
         } else {
@@ -439,16 +573,31 @@ est_cox <- function(
         wt_i <- r[["weights"]]
         st_i <- r[["strata"]]
 
-        pc_1 <- Q_n(c(x_i,s_spl))
         pc_2 <- Lambda_n_t_0 * sum(
           K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
         )
         pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
         pc_4 <- K_n1
 
-        return((pc_1-pc_2-pc_3-pc_4)^2)
+        # if (ii==77) { browser() } # !!!!!
+        # ii <<- ii+1 # !!!!!
 
-      })))
+        if (attr(dat, "covariates_ph2")) {
+          if (wt_i==0) {
+            pc_1 <- 0
+          } else {
+            pc_1 <- wt_i * Q_n(c(x_i,s_spl))
+          }
+          den <- sum(ST==st_i)
+          k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
+          pc_5 <- k_n_i * K_n4(st_i,s)
+          return((pc_2+pc_3+pc_4-pc_1-pc_5)^2)
+        } else {
+          pc_1 <- Q_n(c(x_i,s_spl))
+          return((pc_2+pc_3+pc_4-pc_1)^2)
+        }
+
+      }))))
 
     }))
 

@@ -59,7 +59,13 @@ est_np <- function(
   s_out <- sapply(s_out, function(s) { grid$s[which.min(abs(grid$s-s))] })
 
   # Precomputation values for conditional survival/censoring estimators
-  x_distinct <- dplyr::distinct(datx_v_rd)
+  if (attr(dat, "covariates_ph2")) {
+    datx_v2_rd <- dat_v2_rd[, c(1:dim_x), drop=F]
+    class(datx_v2_rd) <- "data.frame"
+    x_distinct <- dplyr::distinct(datx_v2_rd)
+  } else {
+    x_distinct <- dplyr::distinct(datx_v_rd)
+  }
   x_distinct <- cbind("x_index"=c(1:nrow(x_distinct)), x_distinct)
   vals_pre <- expand.grid(t=grid$y, x_index=x_distinct$x_index, s=grid$s)
   vals_pre <- dplyr::inner_join(vals_pre, x_distinct, by="x_index")
@@ -93,6 +99,10 @@ est_np <- function(
 
   # Compute edge-corrected estimator and standard error
   if (p$edge_corr) {
+    if (attr(dat, "covariates_ph2")) {
+      # stop("edge correction not yet available for covariates_ph2==T.")
+      warning("edge correction not yet available for covariates_ph2==T.") # !!!!!
+    }
     p_n <- (1/n_vacc) * sum(dat_v2_rd$weights * In(dat_v2_rd$s!=0))
     g_sn <- construct_g_sn(dat_v2_rd, f_n_srv, g_n, p_n)
     r_Mn_edge_est <- r_Mn_edge(dat_v_rd, g_sn, g_n, p_n, Q_n, omega_n, t_0)
@@ -406,7 +416,11 @@ est_np <- function(
 
   if (return_extras) {
 
-    ind_sample <- sample(c(1:attr(dat_v, "n_vacc2")), size=20)
+    if (attr(dat, "covariates_ph2")) {
+      ind_sample <- sample(c(1:nrow(dat_v2_rd)), size=20)
+    } else {
+      ind_sample <- sample(c(1:nrow(dat_v_rd)), size=20)
+    }
     s1 <- min(grid$s)
     s3 <- max(grid$s)
     s2 <- grid$s[which.min(abs((s3-s1)/2-grid$s))]
@@ -419,7 +433,11 @@ est_np <- function(
     Qc_n_df <- Q_n_df
     for (ind in ind_sample) {
       for (t in grid$y) {
-        x_val <- as.numeric(dat_v_rd[ind,c(1:dim_x)])
+        if (attr(dat, "covariates_ph2")) {
+          x_val <- as.numeric(dat_v2_rd[ind,c(1:dim_x)])
+        } else {
+          x_val <- as.numeric(dat_v_rd[ind,c(1:dim_x)])
+        }
         Q_val_s1 <- Q_n(t=t, x=x_val, s=s1)
         Q_val_s2 <- Q_n(t=t, x=x_val, s=s2)
         Q_val_s3 <- Q_n(t=t, x=x_val, s=s3)
