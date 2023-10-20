@@ -2,7 +2,7 @@ Package: vaccine
 Type: Package
 Title: Statistical Tools for Immune Correlates Analysis of Vaccine Clinical
     Trial Data
-Version: 0.1.0
+Version: 1.0.0
 Authors@R: person("Avi", "Kenny", email = "avi.kenny@gmail.com", role = c("aut", "cre", "cph"))
 Description: Various semiparametric and nonparametric statistical tools for
     immune correlates analysis of vaccine clinical trial data. This includes
