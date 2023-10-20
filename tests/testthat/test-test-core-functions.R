@@ -27,7 +27,7 @@ test_that("load_data", {
   expect_equal(sum(dat[dat$a==1,"y"]), 391608)
   expect_equal(sum(dat[dat$a==0,"y"]), 380935)
   expect_equal(unique(dat$delta), c(0,1))
-  expect_equal(unique(dat$strata), c(1,2,NA))
+  expect_equal(sort(unique(dat$strata), na.last=T), c(1:8,NA))
   expect_equal(unique(dat$z), c(0,1))
 })
 

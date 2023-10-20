@@ -664,7 +664,7 @@ construct_f_s_n <- function(dat_v, f_sIx_n) {
   n_vacc <- attr(dat_v, "n_vacc")
   dim_x <- attr(dat_v, "dim_x")
 
-  if (attr(dat, "covariates_ph2")) {
+  if (attr(dat_v, "covariates_ph2")) {
     dat_v2 <- dat_v[dat_v$z==1,]
     datx_v2 <- dat_v2[, c(1:dim_x), drop=F]
     memoise2(function(s) {
@@ -733,7 +733,7 @@ construct_r_tilde_Mn <- function(dat_v, Q_n, t_0) {
 
   n_vacc <- attr(dat_v, "n_vacc")
   dim_x <- attr(dat_v, "dim_x")
-  if (attr(dat, "covariates_ph2")) {
+  if (attr(dat_v, "covariates_ph2")) {
     dat_v2 <- dat_v[dat_v$z==1,]
     datx_v2 <- dat_v2[, c(1:dim_x), drop=F]
     memoise2(function(s) {
@@ -920,7 +920,7 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
   }
 
   # Setup
-  if (attr(dat, "covariates_ph2")) {
+  if (attr(dat_v, "covariates_ph2")) {
     datx_v2 <- dat_v2[, c(1:dim_x), drop=F]
     class(datx_v2) <- "data.frame"
     x_distinct <- dplyr::distinct(datx_v2)
@@ -991,7 +991,7 @@ construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
   class(datx_v2) <- "data.frame"
 
   # Fit SuperLearner regression
-  if (attr(dat, "covariates_ph2")) {
+  if (attr(dat_v, "covariates_ph2")) {
     newX <- dplyr::distinct(datx_v2)
     model_sl <- SuperLearner::SuperLearner(
       Y = dat_v2$z,
@@ -1109,7 +1109,7 @@ construct_tau_n <- function(dat_v, deriv_r_Mn, gamma_n, f_sIx_n, g_zn) {
   dim_x <- attr(dat_v, "dim_x")
   dat_v2 <- dat_v[dat_v$z==1,]
 
-  if (attr(dat, "covariates_ph2")) {
+  if (attr(dat_v, "covariates_ph2")) {
     dat_apply <- dat_v2
   } else {
     dat_apply <- dat_v
