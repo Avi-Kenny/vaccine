@@ -99,7 +99,7 @@ load_data <- function(
           if (any(is.na(val))) { stop("NA values not allowed in `", arg, "`.") }
         } else if (arg=="covariates") {
           cond_1 <- any(is.na(val))
-          cond_2 <- any(is.na(val[as.logical(data[,ph2])]))
+          cond_2 <- any(is.na(val[as.logical(data[,ph2]),]))
           msg_1 <- "NA values not allowed in `covariates` (if covariates_ph2==F)."
           msg_2 <- paste0("NA values only allowed in `covariates` for which ph2==F (if covariates_ph2==T).")
           if (cond_1 && !covariates_ph2) { stop(msg) }
