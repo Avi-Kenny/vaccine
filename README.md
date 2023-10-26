@@ -18,10 +18,15 @@ Statistical tools for immune correlates analysis of vaccine clinical trial data
 
 ## Installation
 
-The latest stable version of **vaccine** can be installed from CRAN using `install.packages()`. The current development version can be installed using `devtools::install_github()`:
+The latest stable version of **vaccine** can be installed from CRAN using `install.packages()`:
 
 ```R
 install.packages("vaccine")
+```
+
+The current development version can be installed using `devtools::install_github()`:
+
+```R
 devtools::install_github(repo="Avi-Kenny/vaccine")
 ```
 
