@@ -8,7 +8,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-Various semiparametric and nonparametric statistical tools for immune correlates analysis of vaccine clinical trial data. This includes calculation of summary statistics and estimation of risk, vaccine efficacy, controlled risk, and controlled vaccine efficacy. See Gilbert P, Fong Y, Kenny A, and Carone, M (2022) \doi{10.1093/biostatistics/kxac24}.
+Various semiparametric and nonparametric statistical tools for immune correlates analysis of vaccine clinical trial data. This includes calculation of summary statistics and estimation of risk, vaccine efficacy, controlled effects (controlled risk and controlled vaccine efficacy), and mediation effects (natural direct effect, natural indirect effect, proporiton mediated). See Gilbert P, Fong Y, Kenny A, and Carone, M (2022) \doi{10.1093/biostatistics/kxac24} and Fay MP and Follmann DA (2023) \doi{10.48550/arXiv.2208.06465}.
 }
 \author{
 \strong{Maintainer}: Avi Kenny \email{avi.kenny@gmail.com} [copyright holder]
