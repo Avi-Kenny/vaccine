@@ -1132,64 +1132,20 @@ construct_tau_n <- function(dat_v, deriv_r_Mn, gamma_n, f_sIx_n, g_zn) {
 #' @param vals List of values to pre-compute function on; passed to
 #'     construct_superfunc()
 #' @return Estimator function of nuisance eta*_0
-construct_etastar_n <- function(Q_n, vals=NA, tmp) {
+#' @noRd
+construct_etastar_n <- function(Q_n, t_0, vals) {
 
   fnc <- function(u,x) {
-    u <- round(u,-log10(C$appx$s))
-    if (u==0) {
+    s_seq <- vals$s[vals$s<=u]
+    if (u==0 || length(s_seq)==0) {
       return(0)
     } else {
-      s_seq <- round(seq(C$appx$s,u,C$appx$s),-log10(C$appx$s))
-      integral <- C$appx$s * sum(sapply(s_seq, function(s) {
-        Q_n(C$t_0, x, s)
-      }))
+      integral <- 0.01 * sum(sapply(s_seq, function(s) { Q_n(t_0, x, s) }))
       return(u-integral)
     }
   }
 
-  return(construct_superfunc(fnc, aux=NA, vec=c(1,2), vals=vals))
-
-}
-
-
-
-#' Construct nuisance estimator of conditional density f(Y,Delta|X,S)
-#'
-#' @param Q_n xxx
-#' @param Qc_n xxx
-#' @param width xxx
-#' @param vals xxx
-#' @return nuisance estimator function
-construct_f_n_srv <- function(Q_n=NA, Qc_n=NA, width=40, vals=NA) {
-
-  # Helper function to calculate derivatives
-  surv_deriv <- function(Q_n) {
-    fnc <- function(t, x, s) {
-      t1 <- t - width/2
-      t2 <- t + width/2
-      if (t1<0) { t2<-width; t1<-0; }
-      if (t2>C$t_0) { t1<-C$t_0-width; t2<-C$t_0; }
-      t1 <- round(t1,-log10(C$appx$t_0))
-      t2 <- round(t2,-log10(C$appx$t_0))
-      ch_y <- Q_n(t2,x,s) - Q_n(t1,x,s)
-      return(ch_y/width)
-    }
-    return(construct_superfunc(fnc, aux=NA, vec=c(1,2,1), vals=NA))
-  }
-
-  # Calculate derivative estimators
-  Q_n_deriv <- surv_deriv(Q_n)
-  Qc_n_deriv <- surv_deriv(Qc_n)
-
-  fnc <- function(y, delta, x, s) {
-    if (delta==1) {
-      return(-1*Qc_n(y,x,s)*Q_n_deriv(y,x,s))
-    } else {
-      return(-1*Q_n(y,x,s)*Qc_n_deriv(y,x,s))
-    }
-  }
-
-  return(construct_superfunc(fnc, aux=NA, vec=c(1,1,2,1), vals=vals))
+  return(memoise2(fnc))
 
 }
 
@@ -1199,44 +1155,47 @@ construct_f_n_srv <- function(Q_n=NA, Qc_n=NA, width=40, vals=NA) {
 #'
 #' @param x x
 #' @return q_tilde_n nuisance estimator function
-construct_q_tilde_n <- function(type="new", f_n_srv=NA, f_sIx_n=NA,
-                                omega_n=NA, vals=NA) {
+#' @noRd
+construct_q_tilde_n <- function(type="new", f_n_srv, f_sIx_n, omega_n) {
 
   if (type=="new") {
 
-    seq_01 <- round(seq(C$appx$s,1,C$appx$s),-log10(C$appx$s))
+    # !!!!! TO DO
 
-    fnc <- function(x, y, delta, u) {
-
-      denom <- C$appx$s * sum(sapply(seq_01, function(s) {
-        f_n_srv(y, delta, x, s) * f_sIx_n(s,x)
-      }))
-
-      if (denom==0) {
-        return (0)
-      } else {
-        if (u==0) {
-          return(0)
-        } else {
-          seq_0u <- round(seq(C$appx$s,u,C$appx$s),-log10(C$appx$s))
-          num <- C$appx$s * sum(sapply(seq_0u, function(s) {
-            omega_n(x,s,y,delta) * f_n_srv(y, delta, x, s)
-          }))
-          return(num/denom)
-        }
-      }
-
-    }
+    # seq_01 <- round(seq(C$appx$s,1,C$appx$s),-log10(C$appx$s))
+    #
+    # fnc <- function(x, y, delta, u) {
+    #
+    #   denom <- C$appx$s * sum(sapply(seq_01, function(s) {
+    #     f_n_srv(y, delta, x, s) * f_sIx_n(s,x)
+    #   }))
+    #
+    #   if (denom==0) {
+    #     return (0)
+    #   } else {
+    #     if (u==0) {
+    #       return(0)
+    #     } else {
+    #       seq_0u <- round(seq(C$appx$s,u,C$appx$s),-log10(C$appx$s))
+    #       num <- C$appx$s * sum(sapply(seq_0u, function(s) {
+    #         omega_n(x,s,y,delta) * f_n_srv(y, delta, x, s)
+    #       }))
+    #       return(num/denom)
+    #     }
+    #   }
+    #
+    # }
 
   }
 
   if (type=="zero") {
 
     fnc <- function(x, y, delta, u) { 0 }
+    return(fnc) # !!!!! TEMP
 
   }
 
-  return(construct_superfunc(fnc, aux=NA, vec=c(2,1,1,0), vals=vals))
+  return(memoise2(fnc))
 
 }
 

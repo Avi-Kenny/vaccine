@@ -20,7 +20,7 @@ construct_Gamma_os_n <- function(dat_v, omega_n, g_n, q_n, r_tilde_Mn) {
     }
     return((omega_n(x,s,y,delta)/g_n_val)+r_tilde_Mn(s))
   }))
-  piece_2 <- (1-dat_v$weights)
+  piece_2 <- 1 - dat_v$weights
 
   # Remove large intermediate objects
   rm(omega_n,g_n,r_tilde_Mn)
@@ -178,26 +178,42 @@ risk_overall_np_v_v2 <- function(dat_v_rd, Q_noS_n_v, omega_noS_n_v, t_0) {
 #' @return Gamma_os_n estimator
 #' @notes This is a generalization of the one-step estimator from Westling &
 #'     Carone 2020
-construct_Theta_os_n <- function(dat, dat_orig, omega_n=NA, f_sIx_n=NA,
-                                 q_tilde_n=NA, etastar_n=NA, vals=NA) {
+#' @noRd
+construct_Theta_os_n <- function(dat_v, omega_n, f_sIx_n, q_tilde_n,
+                                 etastar_n) {
 
-  n_orig <- length(dat_orig$z)
-  piece_1 <- (dat$weights*omega_n(dat$x,dat$s,dat$y,dat$delta)) /
-    f_sIx_n(dat$s,dat$x)
-  piece_2 <- (1-dat_orig$weights)
+  dat_v2 <- dat_v[dat_v$z==1,]
+  n_vacc <- attr(dat_v, "n_vacc")
+  dim_x <- attr(dat_v, "dim_x")
+
+  piece_1 <- as.numeric(apply(dat_v2, 1, function(r) {
+    x <- as.numeric(r[1:dim_x])
+    s <- r[["s"]]
+    y <- r[["y"]]
+    delta <- r[["delta"]]
+    f_sIx_n_val <- f_sIx_n(s,x)
+    if (is.nan(f_sIx_n_val)) {
+      stop(paste0("One or more f_sIx_n_val values were NAN; density might be z",
+                  "ero. Try using a density estimator that guarantees positive",
+                  " density estimates."))
+    }
+    return((dat_v2$weights*omega_n(x,s,y,delta)) / f_sIx_n_val)
+  }))
 
   # Remove large intermediate objects
   rm(omega_n,f_sIx_n)
 
   fnc <- function(u) {
-    (1/(n_orig)) * sum(piece_1*In(dat$s<=u)) +
-      (1/n_orig) * sum(
-        piece_2 * q_tilde_n(dat_orig$x, dat_orig$y, dat_orig$delta, u) +
-          etastar_n(rep(u,length(dat_orig$z)),dat_orig$x)
-      )
+    (1/n_vacc) * sum(piece_1*In(dat_v2$s<=u)) +
+      (1/n_vacc) * sum(as.numeric(apply(dat_v, 1, function(r) {
+        weights <- r[["weights"]]
+        x <- as.numeric(r[1:dim_x])
+        y <- r[["y"]]
+        delta <- r[["delta"]]
+        return((1-weights) * q_tilde_n(x,y,delta,u) + etastar_n(u,x))
+      })))
   }
 
-  # !!!!! DEBUG
   if (F) {
 
     pc1 <- c()
@@ -224,9 +240,9 @@ construct_Theta_os_n <- function(dat, dat_orig, omega_n=NA, f_sIx_n=NA,
       geom_line() +
       labs(color="Piece")
 
-  }
+  } # !!!!! DEBUG
 
-  return(construct_superfunc(fnc, aux=NA, vec=T, vals=vals))
+  return(memoise2(fnc))
 
 }
 

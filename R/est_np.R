@@ -110,8 +110,7 @@ est_np <- function(
     }
 
     # Construct additional nuisance functions
-    etastar_n <- construct_etastar_n(Q_n, vals=NA)
-    f_n_srv <- construct_f_n_srv(Q_n=Q_n, Qc_n=Qc_n)
+    etastar_n <- construct_etastar_n(Q_n, t_0, vals)
     q_tilde_n <- construct_q_tilde_n(type=p$q_n_type, f_n_srv, f_sIx_n,
                                      omega_n)
     Theta_os_n <- construct_Theta_os_n(dat, dat_orig, omega_n, f_sIx_n,
