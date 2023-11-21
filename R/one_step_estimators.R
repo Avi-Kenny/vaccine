@@ -164,3 +164,71 @@ risk_overall_np_v_v2 <- function(dat_v_rd, Q_noS_n_v, omega_noS_n_v, t_0) {
   return(1+v)
 
 }
+
+
+
+#' Construct Theta_os_n primitive one-step estimator
+#'
+#' @param dat Subsample of dataset returned by ss() for which z==1
+#' @param vals List of values to pre-compute function on; passed to
+#'     construct_superfunc()
+#' @param omega_n A nuisance influence function returned by construct_omega_n()
+#' @param f_sIx_n Conditional density estimator returned by construct_f_sIx_n
+#' @param etastar_n A nuisance estimator returned by construct_etastar_n()
+#' @return Gamma_os_n estimator
+#' @notes This is a generalization of the one-step estimator from Westling &
+#'     Carone 2020
+construct_Theta_os_n <- function(dat, dat_orig, omega_n=NA, f_sIx_n=NA,
+                                 q_tilde_n=NA, etastar_n=NA, vals=NA) {
+
+  n_orig <- length(dat_orig$z)
+  piece_1 <- (dat$weights*omega_n(dat$x,dat$s,dat$y,dat$delta)) /
+    f_sIx_n(dat$s,dat$x)
+  piece_2 <- (1-dat_orig$weights)
+
+  # Remove large intermediate objects
+  rm(omega_n,f_sIx_n)
+
+  fnc <- function(u) {
+    (1/(n_orig)) * sum(piece_1*In(dat$s<=u)) +
+      (1/n_orig) * sum(
+        piece_2 * q_tilde_n(dat_orig$x, dat_orig$y, dat_orig$delta, u) +
+          etastar_n(rep(u,length(dat_orig$z)),dat_orig$x)
+      )
+  }
+
+  # !!!!! DEBUG
+  if (F) {
+
+    pc1 <- c()
+    pc2 <- c()
+    sm <- c()
+    for (u in round(seq(0,1,0.1),2)) {
+      pc1_ <- (1/(n_orig)) * sum(piece_1*In(dat$s<=u))
+      pc2_ <- (1/n_orig) * sum(
+        piece_2 * q_tilde_n(dat_orig$x, dat_orig$y, dat_orig$delta, u) +
+          etastar_n(rep(u,length(dat_orig$z)),dat_orig$x)
+      )
+      pc1 <- c(pc1, pc1_)
+      pc2 <- c(pc2, pc2_)
+      sm <- c(sm, pc1_+pc2_)
+    }
+
+    grid <- round(seq(0,1,0.1),2)
+    df_plot <- data.frame(
+      x = rep(grid, 3),
+      y = c(pc1,pc2,sm),
+      which = rep(c("omega piece", "etastar piece", "Theta_n (sum)"), each=11)
+    )
+    ggplot(df_plot, aes(x=x, y=y, color=factor(which))) +
+      geom_line() +
+      labs(color="Piece")
+
+  }
+
+  return(construct_superfunc(fnc, aux=NA, vec=T, vals=vals))
+
+}
+
+
+

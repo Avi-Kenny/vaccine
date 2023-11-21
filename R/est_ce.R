@@ -56,8 +56,8 @@
 est_ce <- function(
     dat, type="Cox", t_0, cr=TRUE, cve=FALSE,
     s_out=seq(from=min(dat$s,na.rm=TRUE), to=max(dat$s,na.rm=TRUE), l=101),
-    ci_type="transformed", placebo_risk_method="KM", return_extras=FALSE,
-    params_cox=params_ce_cox(), params_np=params_ce_np()
+    ci_type="transformed", placebo_risk_method="KM", return_p_value=FALSE,
+    return_extras=FALSE, params_cox=params_ce_cox(), params_np=params_ce_np()
 ) {
 
   if (!methods::is(dat,"vaccine_dat")) {
@@ -72,17 +72,17 @@ est_ce <- function(
   if (type=="Cox") {
     ests <- est_cox(
       dat=dat, t_0=t_0, cr=cr, cve=cve, s_out=s_out, ci_type=ci_type,
-      placebo_risk_method=placebo_risk_method, return_extras=return_extras,
-      spline_df=params_cox$spline_df, spline_knots=params_cox$spline_knots,
-      edge_ind=params_cox$edge_ind
+      placebo_risk_method=placebo_risk_method, return_p_value=return_p_value,
+      return_extras=return_extras, spline_df=params_cox$spline_df,
+      spline_knots=params_cox$spline_knots, edge_ind=params_cox$edge_ind
     )
   }
 
   if (type=="NP") {
     ests <- est_np(
       dat=dat, t_0=t_0, cr=cr, cve=cve, s_out=s_out, ci_type=ci_type,
-      placebo_risk_method=placebo_risk_method, return_extras=return_extras,
-      params=params_np, cf_folds=1
+      placebo_risk_method=placebo_risk_method, return_p_value=return_p_value,
+      return_extras=return_extras, params=params_np, cf_folds=1
     )
   }
 

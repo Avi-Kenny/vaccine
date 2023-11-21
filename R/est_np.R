@@ -3,10 +3,8 @@
 #' @description See docs for est_ce and params_ce_cox
 #' @noRd
 est_np <- function(
-    dat, t_0, cr=T, cve=F,
-    s_out=seq(from=min(dat$s, na.rm=T), to=max(dat$s, na.rm=T), l=101),
-    ci_type="transformed", placebo_risk_method="KM", return_extras=F,
-    params=list(), cf_folds=1
+    dat, t_0, cr, cve, s_out, ci_type, placebo_risk_method, return_p_value,
+    return_extras, params, cf_folds
 ) {
 
   # Set params
@@ -96,6 +94,162 @@ est_np <- function(
                        f_n_srv)
 
   Gamma_os_n <- construct_Gamma_os_n(dat_v_rd, omega_n, g_n, q_n, r_tilde_Mn)
+
+  if (return_p_value) {
+
+    # Helper function to compute P values
+    compute_p_val <- function(alt_type, beta_n, var_n) {
+      if (alt_type=="incr") {
+        p_val <- pnorm(beta_n, mean=0, sd=sqrt(var_n), lower.tail=FALSE)
+      } else if (alt_type=="decr") {
+        p_val <- pnorm(beta_n, mean=0, sd=sqrt(var_n))
+      } else if (alt_type=="two-tailed") {
+        p_val <- pchisq(beta_n^2/var_n, df=1, lower.tail=FALSE)
+      }
+      return(p_val)
+    }
+
+    # Construct additional nuisance functions
+    etastar_n <- construct_etastar_n(Q_n, vals=NA)
+    f_n_srv <- construct_f_n_srv(Q_n=Q_n, Qc_n=Qc_n)
+    q_tilde_n <- construct_q_tilde_n(type=p$q_n_type, f_n_srv, f_sIx_n,
+                                     omega_n)
+    Theta_os_n <- construct_Theta_os_n(dat, dat_orig, omega_n, f_sIx_n,
+                                       q_tilde_n, etastar_n)
+    infl_fn_Theta <- construct_infl_fn_Theta(omega_n, f_sIx_n, q_tilde_n,
+                                             etastar_n, Theta_os_n)
+    infl_fn_beta_n <- construct_infl_fn_beta_n(infl_fn_Theta)
+
+    # Functions needed for edge-corrected test
+    # p_n <- (1/n_vacc) * sum(dat$weights * In(dat$s!=0))
+    # f_s_n <- construct_f_s_n(dat_orig, vlist$S_grid, f_sIx_n)
+    # g_n <- construct_g_n(f_sIx_n, f_s_n)
+    # g_sn <- construct_g_sn(dat, f_n_srv, g_n, p_n)
+    # r_Mn_edge_est <- r_Mn_edge(dat_orig, dat, g_sn, g_n, p_n, Q_n, omega_n)
+    # infl_fn_r_Mn_edge <- construct_infl_fn_r_Mn_edge(Q_n, g_sn, omega_n, g_n,
+    #                                                  r_Mn_edge_est, p_n)
+    # infl_fn_beta_en <- construct_infl_fn_beta_en(infl_fn_Theta,
+    #                                              infl_fn_r_Mn_edge)
+
+    if (p$edge_corr) {
+
+      stop("Edge-corrected test not yet implemented.")
+
+      # # Construct pieces needed for beta_n
+      # u_mc <- round(seq(0.001,1,0.001),3)
+      # m <- length(u_mc)
+      # lambda_1 <- mean(u_mc) # ~1/2
+      # lambda_2 <- mean((u_mc)^2) # ~1/3
+      # lambda_3 <- mean((u_mc)^3) # ~1/4
+      # beta_n <- mean((
+      #   (lambda_1*lambda_2-lambda_3)*(u_mc-lambda_1) +
+      #     (lambda_2-lambda_1^2)*(u_mc^2-lambda_2)
+      # ) * Theta_os_n(u_mc))
+      # infl_fn_beta_n <- construct_infl_fn_beta_n(infl_fn_Theta)
+      #
+      # # Construct pieces needed for beta_en
+      # beta_en <- Theta_os_n(1) - r_Mn_edge_est
+      #
+      # # Calculate variance components
+      # sigma2_bn <- 0
+      # sigma2_ben <- 0
+      # cov_n <- 0
+      # for (i in c(1:n_vacc)) {
+      #   z_i <- dat_orig$z[i]
+      #   s_i <- dat_orig$s[i]
+      #   x_i <- as.numeric(dat_orig$x[i,])
+      #   y_i <- dat_orig$y[i]
+      #   delta_i <- dat_orig$delta[i]
+      #   weight_i <- dat_orig$weight[i]
+      #
+      #   if_bn <- infl_fn_beta_n(s_i, y_i, delta_i, weight_i, x_i)
+      #   if_ben <- infl_fn_beta_en(z_i, x_i, y_i, delta_i, s_i, weight_i)
+      #
+      #   sigma2_bn <- sigma2_bn + if_bn^2
+      #   sigma2_ben <- sigma2_ben + if_ben^2
+      #   cov_n <- cov_n + if_bn*if_ben
+      # }
+      # sigma_bn <- sqrt(sigma2_bn/n_vacc)
+      # sigma_ben <- sqrt(sigma2_ben/n_vacc)
+      # cov_n <- cov_n/n_vacc
+      # rho_n <- cov_n/(sigma_bn*sigma_ben)
+      #
+      # # Calculate combined test statistic
+      # beta_star_n <- sqrt(n_vacc/(2+2*rho_n)) *
+      #   (beta_n/sigma_bn + beta_en/sigma_ben)
+      #
+      # res[[length(res)+1]] <- list(
+      #   type = "combined 2",
+      #   p_val = compute_p_val(alt_type, beta_star_n, 1),
+      #   beta_n = beta_star_n,
+      #   var_n = 1
+      # )
+
+    } else {
+
+      # Compute test statistic and variance estimate
+      u_mc <- round(seq(0.001,1,0.001),3)
+      m <- length(u_mc)
+      lambda_1 <- mean(u_mc) # ~1/2
+      lambda_2 <- mean((u_mc)^2) # ~1/3
+      lambda_3 <- mean((u_mc)^3) # ~1/4
+
+      beta_n <- mean((
+        (lambda_1*lambda_2-lambda_3)*(u_mc-lambda_1) +
+          (lambda_2-lambda_1^2)*(u_mc^2-lambda_2)
+      ) * Theta_os_n(u_mc))
+
+      # var_n <- 0
+      # for (i in c(1:n_vacc)) {
+      #   var_n <- var_n + (
+      #     infl_fn_beta_n(dat_orig$s[i], dat_orig$y[i], dat_orig$delta[i],
+      #                    dat_orig$weight[i], as.numeric(dat_orig$x[i,]))
+      #   )^2
+      # }
+      # var_n <- var_n/n_vacc^2
+      var_n <- (1/n_vacc^2) * sum(apply(dat_v_rd, 1, function(r) {
+        (infl_fn_beta_n(r[["s"]], r[["y"]], r[["delta"]], r[["weights"]],
+                        as.numeric(r[1:dim_x])))^2
+      }))
+
+      test_res <- list(
+        p_val = compute_p_val(alt_type, beta_n, var_n),
+        beta_n = beta_n,
+        var_n = var_n
+      )
+
+    }
+
+    if (F) {
+      res$extras <- list(
+        Theta_1.0 = Theta_os_n(1),
+        r_Mn_0.0 = r_Mn_edge_est,
+        # var_edge = var_edge,
+        # sd_edge = sqrt(var_edge),
+        beta_n = beta_n,
+        beta_en = beta_en,
+        sigma_bn = sigma_bn,
+        sigma_ben = sigma_ben,
+        rho_n = rho_n
+      )
+
+      # res$extras <- list(
+      #   Theta_0.1 = Theta_os_n(0.1),
+      #   Theta_0.4 = Theta_os_n(0.4),
+      #   Theta_0.8 = Theta_os_n(0.8),
+      #   etastar_0.1 = mean(sapply(c(1:n_vacc), function(i) {
+      #     etastar_n(u=0.1, x=as.numeric(dat_orig$x[i,]))
+      #   })),
+      #   etastar_0.4 = mean(sapply(c(1:n_vacc), function(i) {
+      #     etastar_n(u=0.4, x=as.numeric(dat_orig$x[i,]))
+      #   })),
+      #   etastar_0.8 = mean(sapply(c(1:n_vacc), function(i) {
+      #     etastar_n(u=0.8, x=as.numeric(dat_orig$x[i,]))
+      #   }))
+      # )
+    } # DEBUG: return debugging components
+
+  }
 
   # Compute edge-corrected estimator and standard error
   if (p$edge_corr) {
@@ -452,6 +606,8 @@ est_np <- function(
         Qc_n_df[nrow(Qc_n_df)+1,] <- c(ind, t, s3, Qc_val_s3)
       }
     }
+
+    if (return_p_value) { res$p <- test_res$p_val }
 
     res$extras <- list(
       r_Mn = data.frame(

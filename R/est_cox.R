@@ -3,8 +3,8 @@
 #' @description See docs for est_ce and params_ce_cox
 #' @noRd
 est_cox <- function(
-    dat, t_0, cr, cve, s_out, ci_type, placebo_risk_method, return_extras,
-    spline_df, spline_knots, edge_ind
+    dat, t_0, cr, cve, s_out, ci_type, placebo_risk_method, return_p_value,
+    return_extras, spline_df, spline_knots, edge_ind
 ) {
 
   if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
