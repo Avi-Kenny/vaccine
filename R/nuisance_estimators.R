@@ -1140,7 +1140,7 @@ construct_etastar_n <- function(Q_n, t_0, vals) {
     if (u==0 || length(s_seq)==0) {
       return(0)
     } else {
-      integral <- 0.01 * sum(sapply(s_seq, function(s) { Q_n(t_0, x, s) }))
+      integral <- u * mean(sapply(s_seq, function(s) { Q_n(t_0, x, s) }))
       return(u-integral)
     }
   }

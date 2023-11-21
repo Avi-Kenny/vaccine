@@ -4,7 +4,7 @@
 #' @noRd
 est_np <- function(
     dat, t_0, cr, cve, s_out, ci_type, placebo_risk_method, return_p_value,
-    return_extras, params, cf_folds
+    return_extras, params, cf_folds, p_val_only=FALSE
 ) {
 
   # Set params
@@ -85,15 +85,16 @@ est_np <- function(
   omega_n <- construct_omega_n(Q_n, Qc_n, t_0, grid)
   f_sIx_n <- construct_f_sIx_n(dat_v2_rd, type=p$density_type, k=p$density_bins,
                                z1=F)
-  f_s_n <- construct_f_s_n(dat_v_rd, f_sIx_n)
-  g_n <- construct_g_n(f_sIx_n, f_s_n)
-  Phi_n <- construct_Phi_n(dat_v2_rd)
-  r_tilde_Mn <- construct_r_tilde_Mn(dat_v_rd, Q_n, t_0)
   f_n_srv <- construct_f_n_srv(Q_n, Qc_n, grid)
-  q_n <- construct_q_n(type=p$q_n_type, dat_v2_rd, omega_n, g_n, r_tilde_Mn,
-                       f_n_srv)
-
-  Gamma_os_n <- construct_Gamma_os_n(dat_v_rd, omega_n, g_n, q_n, r_tilde_Mn)
+  if (!p_val_only) {
+    f_s_n <- construct_f_s_n(dat_v_rd, f_sIx_n)
+    g_n <- construct_g_n(f_sIx_n, f_s_n)
+    Phi_n <- construct_Phi_n(dat_v2_rd)
+    r_tilde_Mn <- construct_r_tilde_Mn(dat_v_rd, Q_n, t_0)
+    q_n <- construct_q_n(type=p$q_n_type, dat_v2_rd, omega_n, g_n, r_tilde_Mn,
+                         f_n_srv)
+    Gamma_os_n <- construct_Gamma_os_n(dat_v_rd, omega_n, g_n, q_n, r_tilde_Mn)
+  }
 
   if (return_p_value) {
 
@@ -110,14 +111,20 @@ est_np <- function(
     }
 
     # Construct additional nuisance functions
+    chk(1) # !!!!!
     etastar_n <- construct_etastar_n(Q_n, t_0, vals)
+    chk(2) # !!!!!
     q_tilde_n <- construct_q_tilde_n(type=p$q_n_type, f_n_srv, f_sIx_n,
                                      omega_n)
-    Theta_os_n <- construct_Theta_os_n(dat, dat_orig, omega_n, f_sIx_n,
-                                       q_tilde_n, etastar_n)
+    chk(3) # !!!!!
+    Theta_os_n <- construct_Theta_os_n(dat_v_rd, omega_n, f_sIx_n, q_tilde_n,
+                                       etastar_n)
+    chk(4) # !!!!!
     infl_fn_Theta <- construct_infl_fn_Theta(omega_n, f_sIx_n, q_tilde_n,
                                              etastar_n, Theta_os_n)
+    chk(5) # !!!!!
     infl_fn_beta_n <- construct_infl_fn_beta_n(infl_fn_Theta)
+    chk(6) # !!!!!
 
     # Functions needed for edge-corrected test
     # p_n <- (1/n_vacc) * sum(dat$weights * In(dat$s!=0))
@@ -187,16 +194,19 @@ est_np <- function(
     } else {
 
       # Compute test statistic and variance estimate
-      u_mc <- round(seq(0.001,1,0.001),3)
+      chk(7) # !!!!!
+      u_mc <- round(seq(0.01,1,0.01),2)
       m <- length(u_mc)
       lambda_1 <- mean(u_mc) # ~1/2
       lambda_2 <- mean((u_mc)^2) # ~1/3
       lambda_3 <- mean((u_mc)^3) # ~1/4
+      chk(8) # !!!!!
 
       beta_n <- mean((
         (lambda_1*lambda_2-lambda_3)*(u_mc-lambda_1) +
           (lambda_2-lambda_1^2)*(u_mc^2-lambda_2)
       ) * Theta_os_n(u_mc))
+      chk(9) # !!!!!
 
       # var_n <- 0
       # for (i in c(1:n_vacc)) {
@@ -210,12 +220,18 @@ est_np <- function(
         (infl_fn_beta_n(r[["s"]], r[["y"]], r[["delta"]], r[["weights"]],
                         as.numeric(r[1:dim_x])))^2
       }))
+      chk(10) # !!!!!
 
       test_res <- list(
-        p_val = compute_p_val(alt_type, beta_n, var_n),
+        p_val = compute_p_val(alt_type=p$dir, beta_n, var_n),
         beta_n = beta_n,
         var_n = var_n
       )
+      chk(11) # !!!!!
+      chk(12.1, paste("P-val:", test_res$p_val)) # !!!!!
+      chk(12.2, paste("beta_n:", test_res$beta_n)) # !!!!!
+      chk(12.3, paste("var_n:", test_res$var_n)) # !!!!!
+      if (p_val_only) { return(list(p=test_res$p_val)) }
 
     }
 

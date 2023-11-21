@@ -245,6 +245,3 @@ construct_Theta_os_n <- function(dat_v, omega_n, f_sIx_n, q_tilde_n,
   return(memoise2(fnc))
 
 }
-
-
-
