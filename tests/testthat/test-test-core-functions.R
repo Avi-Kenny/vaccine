@@ -1,9 +1,10 @@
-set.seed(1)
 
 # Load data
+set.seed(1)
 data(hvtn505)
 hvtn505$x_ch <- sample(letters[1:5], size=nrow(hvtn505), replace=T)
 hvtn505$x_fac <- as.factor(hvtn505$x_ch)
+set.seed(1)
 hvtn505_sample <- hvtn505[sample(c(1:nrow(hvtn505)), size=1000),]
 dat <- load_data(
   time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt", marker="IgG_V2",
