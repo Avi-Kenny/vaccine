@@ -52,6 +52,10 @@ overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
 and "Cox" computes an estimate based on a marginalized Cox model survival
 curve. Only relevant if cve=TRUE.}
 
+\item{return_p_value}{Boolean; if TRUE, a P-value corresponding to the null
+hypothesis that the CVE curve is flat is returned. The type of P-value
+corresponds to the \code{type} argument.}
+
 \item{return_extras}{Boolean; if TRUE, objects useful for debugging are
 returned.}
 
