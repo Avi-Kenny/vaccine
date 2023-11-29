@@ -215,34 +215,6 @@ construct_Theta_os_n <- function(dat_v, omega_n, f_sIx_n, q_tilde_n,
       })))
   }
 
-  if (F) {
-
-    pc1 <- c()
-    pc2 <- c()
-    sm <- c()
-    for (u in round(seq(0,1,0.1),2)) {
-      pc1_ <- (1/(n_orig)) * sum(piece_1*In(dat$s<=u))
-      pc2_ <- (1/n_orig) * sum(
-        piece_2 * q_tilde_n(dat_orig$x, dat_orig$y, dat_orig$delta, u) +
-          etastar_n(rep(u,length(dat_orig$z)),dat_orig$x)
-      )
-      pc1 <- c(pc1, pc1_)
-      pc2 <- c(pc2, pc2_)
-      sm <- c(sm, pc1_+pc2_)
-    }
-
-    grid <- round(seq(0,1,0.1),2)
-    df_plot <- data.frame(
-      x = rep(grid, 3),
-      y = c(pc1,pc2,sm),
-      which = rep(c("omega piece", "etastar piece", "Theta_n (sum)"), each=11)
-    )
-    ggplot(df_plot, aes(x=x, y=y, color=factor(which))) +
-      geom_line() +
-      labs(color="Piece")
-
-  } # !!!!! DEBUG
-
   return(memoise2(fnc))
 
 }

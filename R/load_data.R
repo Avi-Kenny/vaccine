@@ -125,8 +125,8 @@ load_data <- function(
           cond_2 <- any(is.na(val[as.logical(data[,ph2]),]))
           msg_1 <- "NA values not allowed in `covariates` (if covariates_ph2==F)."
           msg_2 <- paste0("NA values only allowed in `covariates` for which ph2==F (if covariates_ph2==T).")
-          if (cond_1 && !covariates_ph2) { stop(msg) }
-          if (cond_1 && covariates_ph2) { stop(msg) }
+          if (cond_1 && !covariates_ph2) { stop(msg_1) }
+          if (cond_2 && covariates_ph2) { stop(msg_2) }
         }
 
         assign(x=paste0(".",arg), value=val)

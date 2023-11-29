@@ -101,11 +101,11 @@ est_np <- function(
     # Helper function to compute P values
     compute_p_val <- function(alt_type, beta_n, var_n) {
       if (alt_type=="incr") {
-        p_val <- pnorm(beta_n, mean=0, sd=sqrt(var_n), lower.tail=FALSE)
+        p_val <- stats::pnorm(beta_n, mean=0, sd=sqrt(var_n), lower.tail=FALSE)
       } else if (alt_type=="decr") {
-        p_val <- pnorm(beta_n, mean=0, sd=sqrt(var_n))
+        p_val <- stats::pnorm(beta_n, mean=0, sd=sqrt(var_n))
       } else if (alt_type=="two-tailed") {
-        p_val <- pchisq(beta_n^2/var_n, df=1, lower.tail=FALSE)
+        p_val <- stats::pchisq(beta_n^2/var_n, df=1, lower.tail=FALSE)
       }
       return(p_val)
     }
@@ -246,17 +246,17 @@ est_np <- function(
     }
 
     if (F) {
-      res$extras <- list(
-        Theta_1.0 = Theta_os_n(1),
-        r_Mn_0.0 = r_Mn_edge_est,
-        # var_edge = var_edge,
-        # sd_edge = sqrt(var_edge),
-        beta_n = beta_n,
-        beta_en = beta_en,
-        sigma_bn = sigma_bn,
-        sigma_ben = sigma_ben,
-        rho_n = rho_n
-      )
+      # res$extras <- list(
+      #   Theta_1.0 = Theta_os_n(1),
+      #   r_Mn_0.0 = r_Mn_edge_est,
+      #   # var_edge = var_edge,
+      #   # sd_edge = sqrt(var_edge),
+      #   beta_n = beta_n,
+      #   beta_en = beta_en,
+      #   sigma_bn = sigma_bn,
+      #   sigma_ben = sigma_ben,
+      #   rho_n = rho_n
+      # )
 
       # res$extras <- list(
       #   Theta_0.1 = Theta_os_n(0.1),

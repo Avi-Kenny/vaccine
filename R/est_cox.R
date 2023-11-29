@@ -15,6 +15,7 @@ est_cox <- function(
 
   # Create spline basis and function
   dat_v_spl <- data.frame("s1"=dat_v$s)
+  basic_cox_model <- F
   if ((!is.na(spline_df) && spline_df!=1) || !is.na(spline_knots[[1]])) {
 
     if (!is.na(spline_df) && !is.na(spline_knots)) {
@@ -87,6 +88,7 @@ est_cox <- function(
 
       dim_s <- 1
       s_to_spl <- function(s) { s }
+      basic_cox_model <- T
 
     }
 
@@ -122,6 +124,16 @@ est_cox <- function(
   )
   coeffs <- model$coefficients
   beta_n <- as.numeric(coeffs)
+  if (return_p_value) {
+    if (basic_cox_model) {
+      test_res <- list(p=summary(model)$coefficients["s1","Pr(>|z|)"])
+    } else {
+      p_msg <- paste0("Cox-based P-values are only available for the basic Cox",
+                      " model (i.e., not for the spline model or the edge indi",
+                      "cator model).")
+      test_res <- list(p=p_msg)
+    }
+  }
 
   if (any(is.na(coeffs))) {
 
@@ -687,7 +699,8 @@ est_cox <- function(
 
   }
 
-  # Return extras
+  # Return P-value and/or extras
+  if (return_p_value) { res$p <- test_res$p }
   if (return_extras) { res$extras <- list(model=model) }
 
   return(res)
