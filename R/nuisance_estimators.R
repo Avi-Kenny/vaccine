@@ -1133,14 +1133,20 @@ construct_tau_n <- function(dat_v, deriv_r_Mn, gamma_n, f_sIx_n, g_zn) {
 #'     construct_superfunc()
 #' @return Estimator function of nuisance eta*_0
 #' @noRd
-construct_etastar_n <- function(Q_n, t_0, vals) {
+construct_etastar_n <- function(Q_n, t_0, grid) {
+
+  int_values <- memoise2(function(x) {
+    sapply(grid$s, function(s) { Q_n(t_0, x, s) })
+  })
 
   fnc <- function(u,x) {
-    s_seq <- vals$s[vals$s<=u]
-    if (u==0 || length(s_seq)==0) {
+    indices <- which(grid$s<=u)
+    # s_seq <- vals$s[indices]
+    if (u==0 || length(indices)==0) {
       return(0)
     } else {
-      integral <- u * mean(sapply(s_seq, function(s) { Q_n(t_0, x, s) }))
+      # integral <- u * mean(sapply(s_seq, function(s) { Q_n(t_0, x, s) }))
+      integral <- u * mean(int_values(x)[indices])
       return(u-integral)
     }
   }

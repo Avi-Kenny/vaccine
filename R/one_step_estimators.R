@@ -191,13 +191,14 @@ construct_Theta_os_n <- function(dat_v, omega_n, f_sIx_n, q_tilde_n,
     s <- r[["s"]]
     y <- r[["y"]]
     delta <- r[["delta"]]
+    weight <- r[["weights"]]
     f_sIx_n_val <- f_sIx_n(s,x)
     if (is.nan(f_sIx_n_val)) {
       stop(paste0("One or more f_sIx_n_val values were NAN; density might be z",
                   "ero. Try using a density estimator that guarantees positive",
                   " density estimates."))
     }
-    return((dat_v2$weights*omega_n(x,s,y,delta)) / f_sIx_n_val)
+    return((weight*omega_n(x,s,y,delta)) / f_sIx_n_val)
   }))
 
   # Remove large intermediate objects

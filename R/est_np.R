@@ -111,20 +111,14 @@ est_np <- function(
     }
 
     # Construct additional nuisance functions
-    chk(1) # !!!!!
-    etastar_n <- construct_etastar_n(Q_n, t_0, vals)
-    chk(2) # !!!!!
+    etastar_n <- construct_etastar_n(Q_n, t_0, grid)
     q_tilde_n <- construct_q_tilde_n(type=p$q_n_type, f_n_srv, f_sIx_n,
                                      omega_n)
-    chk(3) # !!!!!
     Theta_os_n <- construct_Theta_os_n(dat_v_rd, omega_n, f_sIx_n, q_tilde_n,
                                        etastar_n)
-    chk(4) # !!!!!
     infl_fn_Theta <- construct_infl_fn_Theta(omega_n, f_sIx_n, q_tilde_n,
                                              etastar_n, Theta_os_n)
-    chk(5) # !!!!!
     infl_fn_beta_n <- construct_infl_fn_beta_n(infl_fn_Theta)
-    chk(6) # !!!!!
 
     # Functions needed for edge-corrected test
     # p_n <- (1/n_vacc) * sum(dat$weights * In(dat$s!=0))
@@ -194,44 +188,60 @@ est_np <- function(
     } else {
 
       # Compute test statistic and variance estimate
-      chk(7) # !!!!!
       u_mc <- round(seq(0.01,1,0.01),2)
       m <- length(u_mc)
       lambda_1 <- mean(u_mc) # ~1/2
       lambda_2 <- mean((u_mc)^2) # ~1/3
       lambda_3 <- mean((u_mc)^3) # ~1/4
-      chk(8) # !!!!!
-
       beta_n <- mean((
         (lambda_1*lambda_2-lambda_3)*(u_mc-lambda_1) +
           (lambda_2-lambda_1^2)*(u_mc^2-lambda_2)
-      ) * Theta_os_n(u_mc))
-      chk(9) # !!!!!
+      ) * sapply(u_mc, Theta_os_n))
 
-      # var_n <- 0
-      # for (i in c(1:n_vacc)) {
-      #   var_n <- var_n + (
-      #     infl_fn_beta_n(dat_orig$s[i], dat_orig$y[i], dat_orig$delta[i],
-      #                    dat_orig$weight[i], as.numeric(dat_orig$x[i,]))
-      #   )^2
-      # }
-      # var_n <- var_n/n_vacc^2
+      # !!!!! DEBUGGING
+      if (F) {
+
+        # browser() # !!!!!
+        sd_n_0.2 <- sqrt((1/n_vacc^2) * sum(apply(dat_v_rd, 1, function(r) {
+          infl_fn_Theta(u=0.2, x=as.numeric(r[1:dim_x]), y=r[["y"]],
+                        delta=r[["delta"]], s=r[["s"]], weight=r[["weights"]])^2
+        })))
+        sd_n_0.5 <- sqrt((1/n_vacc^2) * sum(apply(dat_v_rd, 1, function(r) {
+          infl_fn_Theta(u=0.5, x=as.numeric(r[1:dim_x]), y=r[["y"]],
+                        delta=r[["delta"]], s=r[["s"]], weight=r[["weights"]])^2
+        })))
+        sd_n_0.8 <- sqrt((1/n_vacc^2) * sum(apply(dat_v_rd, 1, function(r) {
+          infl_fn_Theta(u=0.8, x=as.numeric(r[1:dim_x]), y=r[["y"]],
+                        delta=r[["delta"]], s=r[["s"]], weight=r[["weights"]])^2
+        })))
+
+        res_temp <- list(
+          Theta_n_0.2 = Theta_os_n(0.2),
+          Theta_n_0.5 = Theta_os_n(0.5),
+          Theta_n_0.8 = Theta_os_n(0.8),
+          sd_n_0.2 = sd_n_0.2,
+          sd_n_0.5 = sd_n_0.5,
+          sd_n_0.8 = sd_n_0.8
+        )
+        return(res_temp)
+
+      }
+
       var_n <- (1/n_vacc^2) * sum(apply(dat_v_rd, 1, function(r) {
         (infl_fn_beta_n(r[["s"]], r[["y"]], r[["delta"]], r[["weights"]],
                         as.numeric(r[1:dim_x])))^2
       }))
-      chk(10) # !!!!!
 
       test_res <- list(
-        p_val = compute_p_val(alt_type=p$dir, beta_n, var_n),
+        # p = compute_p_val(alt_type=p$dir, beta_n, var_n),
+        p = compute_p_val(alt_type="two-tailed", beta_n, var_n),
         beta_n = beta_n,
-        var_n = var_n
+        sd_n = sqrt(var_n)
       )
-      chk(11) # !!!!!
-      chk(12.1, paste("P-val:", test_res$p_val)) # !!!!!
-      chk(12.2, paste("beta_n:", test_res$beta_n)) # !!!!!
-      chk(12.3, paste("var_n:", test_res$var_n)) # !!!!!
-      if (p_val_only) { return(list(p=test_res$p_val)) }
+      if (p_val_only) {
+        # return(list(p=test_res$p))
+        return(test_res) # !!!!!
+      }
 
     }
 
@@ -622,7 +632,7 @@ est_np <- function(
       }
     }
 
-    if (return_p_value) { res$p <- test_res$p_val }
+    if (return_p_value) { res$p <- test_res$p }
 
     res$extras <- list(
       r_Mn = data.frame(
