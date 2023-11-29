@@ -1,7 +1,9 @@
+set.seed(1)
 
 # Load data
 data(hvtn505)
-set.seed(1)
+hvtn505$x_ch <- sample(letters[1:5], size=nrow(hvtn505), replace=T)
+hvtn505$x_fac <- as.factor(hvtn505$x_ch)
 hvtn505_sample <- hvtn505[sample(c(1:nrow(hvtn505)), size=1000),]
 dat <- load_data(
   time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt", marker="IgG_V2",
@@ -14,6 +16,20 @@ dat_sample <- load_data(
   time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt", marker="IgG_V2",
   covariates=c("age","BMI","bhvrisk"), weights="wt", ph2="casecontrol",
   data=hvtn505_sample
+)
+
+# Make sure factor columns are handled correctly
+dat_fac <- load_data(
+  time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt", marker="IgG_V2",
+  covariates=c("age","BMI","x_fac"), weights="wt", ph2="casecontrol",
+  data=hvtn505
+)
+
+# Make sure character columns are handled correctly
+dat_ch <- load_data(
+  time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt", marker="IgG_V2",
+  covariates=c("age","BMI","x_ch"), weights="wt", ph2="casecontrol",
+  data=hvtn505
 )
 
 test_that("load_data", {
@@ -29,6 +45,23 @@ test_that("load_data", {
   expect_equal(unique(dat$delta), c(0,1))
   expect_equal(sort(unique(dat$strata), na.last=T), c(1:8,NA))
   expect_equal(unique(dat$z), c(0,1))
+})
+
+test_that("load_data (character/factor columns)", {
+  expect_equal(length(dat_fac), 14)
+  expect_equal(length(dat_ch), 14)
+  expect_equal(attr(dat_fac, "covariate_names"),
+               c("age", "BMI", paste0("x_fac_",c(1:5))))
+  expect_equal(attr(dat_ch, "covariate_names"),
+               c("age", "BMI", paste0("x_ch_",c(1:5))))
+  expect_equal(attr(dat_fac, "dim_x"), 7)
+  expect_equal(attr(dat_ch, "dim_x"), 7)
+  expect_equal(names(dat_fac)[1:7], paste0("x",c(1:7)))
+  expect_equal(names(dat_ch)[1:7], paste0("x",c(1:7)))
+  expect_equal(sort(unique(dat_fac$x3)), c(0,1))
+  expect_equal(sort(unique(dat_fac$x7)), c(0,1))
+  expect_equal(sort(unique(dat_ch$x3)), c(0,1))
+  expect_equal(sort(unique(dat_ch$x7)), c(0,1))
 })
 
 ss <- summary_stats(dat, quietly=TRUE)

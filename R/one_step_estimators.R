@@ -176,7 +176,7 @@ risk_overall_np_v_v2 <- function(dat_v_rd, Q_noS_n_v, omega_noS_n_v, t_0) {
 #' @param f_sIx_n Conditional density estimator returned by construct_f_sIx_n
 #' @param etastar_n A nuisance estimator returned by construct_etastar_n()
 #' @return Gamma_os_n estimator
-#' @notes This is a generalization of the one-step estimator from Westling &
+#' @note This is a generalization of the one-step estimator from Westling &
 #'     Carone 2020
 #' @noRd
 construct_Theta_os_n <- function(dat_v, omega_n, f_sIx_n, q_tilde_n,

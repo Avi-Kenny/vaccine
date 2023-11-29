@@ -76,7 +76,30 @@ load_data <- function(
 
         # Assign column(s) to val
         if (arg=="covariates") {
+
           val <- data[,var, drop=F]
+          val2 <- list()
+
+          # Convert factor/character columns
+          for (col in names(val)) {
+            if (is.numeric(val[,col])) {
+              val2[[col]] <- val[,col]
+            } else if (is.logical(val[,col])) {
+              val2[[col]] <- as.integer(val[,col])
+            } else if (is.factor(val[,col]) || is.character(val[,col])) {
+              tmp_col <- as.integer(as.factor(val[,col]))
+              tmp_unique <- unique(tmp_col)
+              tmp_size <- length(tmp_unique)
+              for (i in c(1:tmp_size)) {
+                col_new <- paste0(col, "_", i)
+                val2[[col_new]] <- as.integer(tmp_col==tmp_unique[i])
+              }
+            } else {
+              stop(paste0("The data type of column `", col, "` is not supported."))
+            }
+          }
+          val <- as.data.frame(val2)
+          x_names <- names(val)
         } else {
           val <- data[,var]
         }
@@ -135,8 +158,10 @@ load_data <- function(
   # Rename covariate dataframe to c("x1", "x2", ...)
   names(.covariates) <- paste0("x", c(1:.dim_x))
 
-  # !!!!! convert factors to dummy columns; import code from VaxCurve
+  # !!!!! Warning/error if there is only one unique level or too many (>15) unique levels
+  # !!!!! Warning/error if there are numbers passed in as character strings
   # !!!!! Check what processing we have to do to strata (e.g. convert to integers)
+  # !!!!! Convert booleans to integers (0 or 1) for all coolumns (incl covariates)
   # !!!!! Store two copies of covariates; one for Cox model and one for NPCVE etc.
   # !!!!! Also maybe store a combined version of the dataset (or have a helper function to combine)?
 
@@ -198,7 +223,7 @@ load_data <- function(
   # Create and return data object
   class(dat) <- c("data.frame", "vaccine_dat")
   attr(dat, "groups") <- .groups
-  attr(dat, "covariate_names") <- covariates
+  attr(dat, "covariate_names") <- x_names
   attr(dat, "covariates_ph2") <- covariates_ph2
   attr(dat, "dim_x") <- .dim_x
   attr(dat, "n") <- .n_v+.n_p
