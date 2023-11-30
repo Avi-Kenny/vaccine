@@ -4,7 +4,7 @@
 #' @noRd
 est_cox <- function(
     dat, t_0, cr, cve, s_out, ci_type, placebo_risk_method, return_p_value,
-    return_extras, spline_df, spline_knots, edge_ind
+    return_extras, spline_df, spline_knots, edge_ind, p_val_only=FALSE
 ) {
 
   if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
@@ -133,6 +133,7 @@ est_cox <- function(
                       "cator model).")
       test_res <- list(p=p_msg)
     }
+    if (p_val_only) { return(test_res) }
   }
 
   if (any(is.na(coeffs))) {

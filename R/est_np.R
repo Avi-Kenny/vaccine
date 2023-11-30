@@ -234,13 +234,13 @@ est_np <- function(
 
       test_res <- list(
         # p = compute_p_val(alt_type=p$dir, beta_n, var_n),
-        p = compute_p_val(alt_type="two-tailed", beta_n, var_n),
+        p = compute_p_val(alt_type="two-tailed", beta_n, var_n), # !!!!! TEMP; two-tailed
         beta_n = beta_n,
         sd_n = sqrt(var_n)
       )
       if (p_val_only) {
-        # return(list(p=test_res$p))
-        return(test_res) # !!!!!
+        return(list(p=test_res$p))
+        # return(test_res) # !!!!!
       }
 
     }
@@ -319,7 +319,7 @@ est_np <- function(
       f = 0
     )
   } else if (p$convex_type=="CLS") {
-    # !!!!! This section is experimental; theory not yet developed
+    # This approach is experimental; asymptotic theory not yet developed
     gcm <- function(x) { 1 } # Ignored
     fit <- simest::cvx.lse.reg(t=gcm_x_vals, z=gcm_y_vals)
     pred_x <- round(seq(0,1,0.001),3)
