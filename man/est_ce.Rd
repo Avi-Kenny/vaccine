@@ -92,5 +92,5 @@ ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 \references{
 Gilbert P, Fong Y, Kenny A, and Carone, M (2022). A Controlled
     Effects Approach to Assessing Immune Correlates of Protection.
-    <doi:10.1093/biostatistics/kxac24>
+    <doi:10.1093/biostatistics/kxac024>
 }

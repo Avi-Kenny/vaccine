@@ -56,7 +56,7 @@ est_overall(dat=dat, t_0=578, method="Cox")
 
 ```
 
-The `est_ce` function allows us to compute controlled effects curves; see [Gilbert, Fong, Kenny, and Carone 2022](https://academic.oup.com/biostatistics/advance-article/doi/10.1093/biostatistics/kxac24/6644798) for more detail.
+The `est_ce` function allows us to compute controlled effects curves; see [Gilbert, Fong, Kenny, and Carone 2022](https://academic.oup.com/biostatistics/article-abstract/24/4/850/7320953) for more detail.
 
 ```{r}
 

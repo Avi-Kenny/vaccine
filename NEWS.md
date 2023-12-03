@@ -1,3 +1,13 @@
+# vaccine 1.1.0
+
+### Major changes
+
+- In `est_ce`, added the option `return_p_value`; if set to `TRUE`, a P-value will be returned corresponding to the null hypothesis that the CVE curve (or equivalently, the CR curve in the vaccine group) is constant. If `type='Cox'` is specified, this will be a Wald-type test using the estimated Cox model parameter vector. If `type='NP'`, this will be a nonparametric test assuming monotonicity of the curve.
+
+### Minor changes
+
+- Fixed importing of factor/character variables in `load_data`.
+
 # vaccine 1.0.0
 
 ### Major changes
