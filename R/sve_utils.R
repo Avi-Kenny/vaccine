@@ -314,12 +314,10 @@ est_sve <- function(ve_dat,
   cop_sve_uprci_logscale <- cop_sve_psi_logscale - stderr_ci_mult
 
   # summarize output
-  cop_sve_est <- cop_risk_est$param_est %>%
-    mutate(
-      ci_lwr = 1 - exp(cop_sve_lwrci_logscale),
-      psi = 1 - exp(cop_sve_psi_logscale),
-      ci_upr = 1 - exp(cop_sve_uprci_logscale)
-    )
+  cop_sve_est <- data.table::copy(cop_risk_est$param_est)
+  cop_sve_est[, ci_lwr := 1 - exp(cop_sve_lwrci_logscale)]
+  cop_sve_est[, psi := 1 - exp(cop_sve_psi_logscale)]
+  cop_sve_est[, ci_upr := 1 - exp(cop_sve_uprci_logscale)]
 
   # construct MSM point estimate on logRR scale
   if (weighting == "variance") {
@@ -340,9 +338,11 @@ est_sve <- function(ve_dat,
   msm_var <- diag(stats::cov(msm_eif))
   msm_stderr <- sqrt(msm_var / ve_dat[, .N])
 
+  browser()
   # build confidence intervals and hypothesis tests for EIF(msm)
   ci_msm_param <- msm_stderr %*% t(c(-wald_ci_mult, wald_ci_mult)) + msm_param
-  pval_msm_param <- 2 * stats::pnorm(-abs(msm_param / msm_stderr))
+  stat_msm_param <- msm_param / msm_stderr
+  pval_msm_param <- 2 * stats::pnorm(abs(stat_msm_param), lower.tail = FALSE)
 
   # create summary table for MSM estimates
   msm_results <- data.table::as.data.table(list(
@@ -421,8 +421,7 @@ plot_sve <- function(x, ...) {
   }
 
   # create plot
-  p_msm <- x$param_est %>%
-    ggplot(aes_string(x = "delta", y = "psi")) +
+  p_msm <- ggplot(x$param_est, aes_string(x = "delta", y = "psi")) +
     geom_point(size = 3, alpha = 0.75) +
     geom_ci +
     geom_line(
