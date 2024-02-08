@@ -103,7 +103,7 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none",
 
   plot <- ggplot2::ggplot(df_plot, ggplot2::aes(x=x, y=y, color=curve, fill=curve))
 
-  if (!missing(density)) {
+  # if (!missing(density)) {
     # plot <- plot +
     #   ggplot2::geom_density(
     #     ggplot2::aes(x=x),
@@ -118,11 +118,7 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none",
     # # dens <- density(x=density$s[inds], weights=density$weights[inds])
     # # df_plot2 <- data.frame(x=dens$x, y=dens$y, color=NA, fill=NA)
     # # plot <- plot + geom_area(data=df_plot2, fill="forestgreen", alpha=0.5, color="white")
-
-
-
-  }
-
+  # }
 
   # curve_colors <- c("darkgrey", "darkorchid3", "firebrick3", "deepskyblue3",
   #                   "darkgreen", "darkorange")
@@ -146,5 +142,47 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none",
   # !!!!! Cut off at quantiles
 
   return(plot)
+
+}
+
+
+
+#' Trim data for plotting/reporting
+#'
+#' @description Removes a subset of estimates returned by \code{\link{est_ce}}
+#' @param ests An object of class \code{"vaccine_est"} returned by
+#'     \code{\link{est_ce}}.
+#' @param dat The data object originally passed into \code{\link{est_ce}}.
+#' @param quantiles A vector of length 2 representing the quantiles of the
+#'     marker distribution at which to trim the data; if, for example,
+#'     \code{quantiles=c(0.1,0.9)} is specified, values outside the 10% and 90%
+#'     (weighted) quantiles of the marker distribution will be trimmed.
+#' @return A modified copy of \code{ests} with the data trimmed.
+#' @examples
+#' data(hvtn505)
+#' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+#'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
+#'                  weights="wt", ph2="casecontrol", data=hvtn505)
+#' \donttest{
+#' ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
+#' ests_cox <- trim(ests_cox, dat=dat, quantiles=c(0.1,0.9))
+#' plot_ce(ests_cox, density_type="kde")
+#' }
+#' @export
+trim <- function(ests, dat, quantiles) {
+
+  dat_v <- dat[dat$a==1,]
+  cutoffs <- quantile(dat_v$s, na.rm=T, probs=quantiles) # !!!!! Make this weighted
+
+  for (i in c(1:length(ests))) {
+    if (names(ests)[i] %in% c("cr", "cve")) {
+      inds_to_keep <- which(ests[[i]]$s>=cutoffs[[1]] & ests[[i]]$s<=cutoffs[[2]])
+      for (v in c("s", "est", "se", "ci_lower", "ci_upper")) {
+        ests[[i]][[v]] <- ests[[i]][[v]][inds_to_keep]
+      }
+    }
+  }
+
+  return(ests)
 
 }
