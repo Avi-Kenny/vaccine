@@ -4,7 +4,14 @@
 \alias{plot_ce}
 \title{Plotting controlled effect curves}
 \usage{
-plot_ce(..., which = "CR", labels = NA, density = NA)
+plot_ce(
+  ...,
+  which = "CR",
+  labels = NA,
+  density_type = "none",
+  hist_bins = NA,
+  dat = NA
+)
 }
 \arguments{
 \item{...}{One or more objects of class \code{"vaccine_est"} returned by
@@ -16,10 +23,19 @@ curves.}
 \item{labels}{A character vector of labels corresponding to the estimate
 objects.}
 
-\item{density}{A list with keys \code{s} and \code{weights} used to construct
-and plot a kernel estimate of the marker density. \code{s} gives a vector
-of marker values and \code{weights} gives the corresponding
-inverse-probability-of-sampling weights.}
+\item{density_type}{One of c("none", "kde", "kde edge", "histogram").
+Controls the type of estimator used for the background marker density
+plot. For "none", no density plot is displayed. For "kde", a weighted
+kernel density estimator is used. For "kde edge", a modified version of
+"kde" is used that allows for a possible point mass at the left edge of
+the marker distribution. For "histogram", a histogram estimator is used.}
+
+\item{hist_bins}{If density_type="histogram", this value controls the number
+of bins used to construct the histogram.}
+
+\item{dat}{The data object originally passed into \code{\link{est_ce}}. It is
+only necessary to pass this in if \code{density_type} is not set to
+"none".}
 }
 \value{
 A plot of CR/CVE estimates

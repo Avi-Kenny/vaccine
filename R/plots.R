@@ -7,10 +7,17 @@
 #'     curves.
 #' @param labels A character vector of labels corresponding to the estimate
 #'     objects.
-#' @param density A list with keys \code{s} and \code{weights} used to construct
-#'     and plot a kernel estimate of the marker density. \code{s} gives a vector
-#'     of marker values and \code{weights} gives the corresponding
-#'     inverse-probability-of-sampling weights.
+#' @param density_type One of c("none", "kde", "kde edge", "histogram").
+#'     Controls the type of estimator used for the background marker density
+#'     plot. For "none", no density plot is displayed. For "kde", a weighted
+#'     kernel density estimator is used. For "kde edge", a modified version of
+#'     "kde" is used that allows for a possible point mass at the left edge of
+#'     the marker distribution. For "histogram", a histogram estimator is used.
+#' @param hist_bins If density_type="histogram", this value controls the number
+#'     of bins used to construct the histogram.
+#' @param dat The data object originally passed into \code{\link{est_ce}}. It is
+#'     only necessary to pass this in if \code{density_type} is not set to
+#'     "none".
 #' @return A plot of CR/CVE estimates
 #' @examples
 #' data(hvtn505)
@@ -23,7 +30,8 @@
 #' plot_ce(ests_cox, ests_np)
 #' }
 #' @export
-plot_ce <- function(..., which="CR", labels=NA, density=NA) {
+plot_ce <- function(..., which="CR", labels=NA, density_type="none",
+                    hist_bins=NA, dat=NA) {
 
   if (!(which %in% c("CR", "CVE"))) {
     stop("`which` must equal one of c('CR','CVE').")
@@ -34,11 +42,16 @@ plot_ce <- function(..., which="CR", labels=NA, density=NA) {
                 "o `plot_ce`."))
   }
 
+  if (density_type!="none" && !is.na(dat)) {
+    stop("If `density_type` is not set to 'none', `dat` must also be provided.")
+  }
+
   # !!!!! Add to examples:
   # plot_ce(ests_cox, ests_np, density=list(s=dat_v$s, weights=dat_v$weights))
 
   # To prevent R CMD CHECK notes
-  x <- y <- ci_lower <- ci_upper <- NULL; rm(x,y,ci_lower,ci_upper);
+  x <- y <- ci_lower <- ci_upper <- curve <- NULL
+  rm(x, y, ci_lower, ci_upper, curve)
 
   df_plot <- data.frame(
     x = double(),
@@ -58,9 +71,9 @@ plot_ce <- function(..., which="CR", labels=NA, density=NA) {
                   "of class 'vaccine_est'."))
     }
     if (which=="CR") {
-      if (class(obj$cve)=="NULL") {
+      if (class(obj$cr)=="NULL") {
         stop(paste0("CR estimates not present in one or more `vaccine_est` obj",
-                    "ects; try rerunning `est_ce` with cve=TRUE."))
+                    "ects; try rerunning `est_ce` with cr=TRUE."))
       } else {
         df_add <- data.frame(
           x = obj$cr$s,
@@ -91,20 +104,23 @@ plot_ce <- function(..., which="CR", labels=NA, density=NA) {
   plot <- ggplot2::ggplot(df_plot, ggplot2::aes(x=x, y=y, color=curve, fill=curve))
 
   if (!missing(density)) {
-    plot <- plot +
-      ggplot2::geom_density(
-        ggplot2::aes(x=x),
-        data = data.frame(x=density$s),
-        inherit.aes = F,
-        fill = "forestgreen",
-        alpha = 0.3,
-        color = NA
-      )
-    # plot
-    # inds <- which(!is.na(density$s))
-    # dens <- density(x=density$s[inds], weights=density$weights[inds])
-    # df_plot2 <- data.frame(x=dens$x, y=dens$y, color=NA, fill=NA)
-    # plot <- plot + geom_area(data=df_plot2, fill="forestgreen", alpha=0.5, color="white")
+    # plot <- plot +
+    #   ggplot2::geom_density(
+    #     ggplot2::aes(x=x),
+    #     data = data.frame(x=density$s),
+    #     inherit.aes = F,
+    #     fill = "forestgreen",
+    #     alpha = 0.3,
+    #     color = NA
+    #   )
+    # # plot
+    # # inds <- which(!is.na(density$s))
+    # # dens <- density(x=density$s[inds], weights=density$weights[inds])
+    # # df_plot2 <- data.frame(x=dens$x, y=dens$y, color=NA, fill=NA)
+    # # plot <- plot + geom_area(data=df_plot2, fill="forestgreen", alpha=0.5, color="white")
+
+
+
   }
 
 
@@ -120,7 +136,7 @@ plot_ce <- function(..., which="CR", labels=NA, density=NA) {
   plot <- plot + ggplot2::geom_line() +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=ci_lower, ymax=ci_upper), # color="darkorchid3", fill="darkorchid3"
                          alpha = 0.1, linetype = "dotted") +
-    ggplot2::labs(title=labs$title, x="log(S)", y=labs$y, color="",
+    ggplot2::labs(title=labs$title, x="S", y=labs$y, color="",
                   fill="") +
     ggplot2::theme(
       legend.position = "bottom"
