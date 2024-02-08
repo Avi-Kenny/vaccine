@@ -4,7 +4,7 @@
 \alias{plot_ce}
 \title{Plotting controlled effect curves}
 \usage{
-plot_ce(..., which, labels = NA, density = NA)
+plot_ce(..., which = "CR", labels = NA, density = NA)
 }
 \arguments{
 \item{...}{One or more objects of class \code{"vaccine_est"} returned by
