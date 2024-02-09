@@ -10,7 +10,9 @@ plot_ce(
   labels = NA,
   density_type = "none",
   hist_bins = NA,
-  dat = NA
+  dat = NA,
+  zoom_x = "zoom in",
+  zoom_y = "zoom out"
 )
 }
 \arguments{
@@ -36,6 +38,17 @@ of bins used to construct the histogram.}
 \item{dat}{The data object originally passed into \code{\link{est_ce}}. It is
 only necessary to pass this in if \code{density_type} is not set to
 "none".}
+
+\item{zoom_x}{Either one of c("zoom in", "zoom out") or a vector of
+length 2. Controls the zooming on the X-axis. The default "zoom in" will
+set the zoom limits to the plot estimates. Choosing "zoom out" will set
+the zoom limits to show the entire distribution of the marker. Entering a
+vector of length 2 will set the left and right zoom limits explicitly.}
+
+\item{zoom_y}{Either "zoom out" or a vector of length 2. Controls the zooming
+on the Y-axis. The default "zoom out" will show the entire vertical range
+of the estimates. Entering a vector of length 2 will set the lower and
+upper zoom limits explicitly.}
 }
 \value{
 A plot of CR/CVE estimates

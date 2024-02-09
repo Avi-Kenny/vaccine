@@ -18,6 +18,15 @@
 #' @param dat The data object originally passed into \code{\link{est_ce}}. It is
 #'     only necessary to pass this in if \code{density_type} is not set to
 #'     "none".
+#' @param zoom_x Either one of c("zoom in", "zoom out") or a vector of
+#'     length 2. Controls the zooming on the X-axis. The default "zoom in" will
+#'     set the zoom limits to the plot estimates. Choosing "zoom out" will set
+#'     the zoom limits to show the entire distribution of the marker. Entering a
+#'     vector of length 2 will set the left and right zoom limits explicitly.
+#' @param zoom_y Either "zoom out" or a vector of length 2. Controls the zooming
+#'     on the Y-axis. The default "zoom out" will show the entire vertical range
+#'     of the estimates. Entering a vector of length 2 will set the lower and
+#'     upper zoom limits explicitly.
 #' @return A plot of CR/CVE estimates
 #' @examples
 #' data(hvtn505)
@@ -31,7 +40,10 @@
 #' }
 #' @export
 plot_ce <- function(..., which="CR", labels=NA, density_type="none",
-                    hist_bins=NA, dat=NA) {
+                    hist_bins=NA, dat=NA, zoom_x="zoom in", zoom_y="zoom out") {
+
+  # !!!!! Check dat
+  # !!!!! Move all error handling into a function
 
   if (!(which %in% c("CR", "CVE"))) {
     stop("`which` must equal one of c('CR','CVE').")
@@ -46,6 +58,24 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none",
     stop("If `density_type` is not set to 'none', `dat` must also be provided.")
   }
 
+  if (!(length(zoom_x) %in% c(1,2)) ||
+      (length(zoom_x)==2 && !(class(zoom_x)=="numeric")) ||
+      (length(zoom_x)==1 && !(zoom_x %in% c("zoom out", "zoom in")))) {
+    stop(paste0("`zoom_x` must equal either 'zoom in' or 'zoom out', or be a n",
+                "umeric vector of length 2."))
+  }
+
+  if (length(zoom_x)==1 && zoom_x=="zoom out" && missing(dat)) {
+    stop("If `zoom_x` is set to 'zoom out', `dat` must be provided as well.")
+  }
+
+  if (!(length(zoom_y) %in% c(1,2)) ||
+      (length(zoom_y)==2 && !(class(zoom_y)=="numeric")) ||
+      (length(zoom_y)==1 && zoom_y!="zoom out")) {
+    stop(paste0("`zoom_y` must equal 'zoom out' or be a numeric vector ",
+                "of length 2."))
+  }
+
   # !!!!! Add to examples:
   # plot_ce(ests_cox, ests_np, density=list(s=dat_v$s, weights=dat_v$weights))
 
@@ -57,7 +87,8 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none",
     x = double(),
     y = double(),
     ci_lower = double(),
-    ci_upper = double()
+    ci_upper = double(),
+    curve = character()
   )
 
   if (missing(labels)) {
@@ -137,9 +168,38 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none",
     ggplot2::theme(
       legend.position = "bottom"
     )
-  #
 
-  # !!!!! Cut off at quantiles
+  # X-axis zoom
+  z_x <- rep(NA,2)
+  if (length(zoom_x)==2) {
+    z_x <- zoom_x
+  } else {
+    if (zoom_x=="zoom in") {
+      z_x[1] <- min(df_plot$x)
+      z_x[2] <- max(df_plot$x)
+    } else if (zoom_x=="zoom out") {
+      z_x[1] <- min(dat$s, na.rm=T)
+      z_x[2] <- max(dat$s, na.rm=T)
+    }
+    # Add 5% padding to zoom
+    z_x[1] <- z_x[1] - 0.05*(z_x[2]-z_x[1])
+    z_x[2] <- z_x[2] + 0.05*(z_x[2]-z_x[1])
+  }
+
+  # Y-axis zoom
+  z_y <- rep(NA,2)
+  if (length(zoom_y)==2) {
+    z_y <- zoom_y
+  } else if (zoom_y=="zoom out") {
+    zz <- dplyr::filter(df_plot, x>=z_x[1] & x<=z_x[2])
+    z_y[1] <- ifelse(which=="CVE", min(zz$ci_lower, na.rm=T), 0)
+    z_y[2] <- max(zz$ci_upper, na.rm=T)
+    # Add 5% padding to zoom
+    z_y[1] <- z_y[1] - 0.05*(z_y[2]-z_y[1])
+    z_y[2] <- z_y[2] + 0.05*(z_y[2]-z_y[1])
+  }
+
+  plot <- plot + ggplot2::coord_cartesian(xlim=z_x, ylim=z_y, expand=F)
 
   return(plot)
 
