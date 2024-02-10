@@ -7,14 +7,12 @@
 #'     curves.
 #' @param labels A character vector of labels corresponding to the estimate
 #'     objects.
-#' @param density_type One of c("none", "kde", "kde edge", "histogram").
+#' @param density_type One of c("none", "kde", "kde edge").
 #'     Controls the type of estimator used for the background marker density
 #'     plot. For "none", no density plot is displayed. For "kde", a weighted
 #'     kernel density estimator is used. For "kde edge", a modified version of
 #'     "kde" is used that allows for a possible point mass at the left edge of
-#'     the marker distribution. For "histogram", a histogram estimator is used.
-#' @param hist_bins If density_type="histogram", this value controls the number
-#'     of bins used to construct the histogram.
+#'     the marker distribution.
 #' @param dat The data object originally passed into \code{\link{est_ce}}. It is
 #'     only necessary to pass this in if \code{density_type} is not set to
 #'     "none".
@@ -39,36 +37,32 @@
 #' plot_ce(ests_cox, ests_np)
 #' }
 #' @export
-plot_ce <- function(..., which="CR", labels=NA, density_type="none",
-                    hist_bins=NA, dat=NA, zoom_x="zoom in", zoom_y="zoom out") {
+plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
+                    zoom_x="zoom in", zoom_y="zoom out") {
 
   # !!!!! Check dat
   # !!!!! Move all error handling into a function
 
+  # Error handling
   if (!(which %in% c("CR", "CVE"))) {
     stop("`which` must equal one of c('CR','CVE').")
   }
-
   if (length(list(...))==0) {
     stop(paste0("One or more objects of class 'vaccine_est' must be passed int",
                 "o `plot_ce`."))
   }
-
-  if (density_type!="none" && !is.na(dat)) {
+  if (density_type!="none" && missing(dat)) {
     stop("If `density_type` is not set to 'none', `dat` must also be provided.")
   }
-
   if (!(length(zoom_x) %in% c(1,2)) ||
       (length(zoom_x)==2 && !(class(zoom_x)=="numeric")) ||
       (length(zoom_x)==1 && !(zoom_x %in% c("zoom out", "zoom in")))) {
     stop(paste0("`zoom_x` must equal either 'zoom in' or 'zoom out', or be a n",
                 "umeric vector of length 2."))
   }
-
   if (length(zoom_x)==1 && zoom_x=="zoom out" && missing(dat)) {
     stop("If `zoom_x` is set to 'zoom out', `dat` must be provided as well.")
   }
-
   if (!(length(zoom_y) %in% c(1,2)) ||
       (length(zoom_y)==2 && !(class(zoom_y)=="numeric")) ||
       (length(zoom_y)==1 && zoom_y!="zoom out")) {
@@ -132,44 +126,8 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none",
     counter <- counter + 1
   }
 
-  plot <- ggplot2::ggplot(df_plot, ggplot2::aes(x=x, y=y, color=curve, fill=curve))
-
-  # if (!missing(density)) {
-    # plot <- plot +
-    #   ggplot2::geom_density(
-    #     ggplot2::aes(x=x),
-    #     data = data.frame(x=density$s),
-    #     inherit.aes = F,
-    #     fill = "forestgreen",
-    #     alpha = 0.3,
-    #     color = NA
-    #   )
-    # # plot
-    # # inds <- which(!is.na(density$s))
-    # # dens <- density(x=density$s[inds], weights=density$weights[inds])
-    # # df_plot2 <- data.frame(x=dens$x, y=dens$y, color=NA, fill=NA)
-    # # plot <- plot + geom_area(data=df_plot2, fill="forestgreen", alpha=0.5, color="white")
-  # }
-
-  # curve_colors <- c("darkgrey", "darkorchid3", "firebrick3", "deepskyblue3",
-  #                   "darkgreen", "darkorange")
-  curve_colors <- c("darkgreen", "darkorange")
-
-  if (which=="CR") {
-    labs <- list(title="Controlled Risk", y="Risk")
-  } else {
-    labs <- list(title="Controlled Vaccine Efficacy", y="CVE")
-  }
-  plot <- plot + ggplot2::geom_line() +
-    ggplot2::geom_ribbon(ggplot2::aes(ymin=ci_lower, ymax=ci_upper), # color="darkorchid3", fill="darkorchid3"
-                         alpha = 0.1, linetype = "dotted") +
-    ggplot2::labs(title=labs$title, x="S", y=labs$y, color="",
-                  fill="") +
-    ggplot2::theme(
-      legend.position = "bottom"
-    )
-
-  # X-axis zoom
+  # Set X-axis zoom values
+  dat_v <- dat[dat$a==1,]
   z_x <- rep(NA,2)
   if (length(zoom_x)==2) {
     z_x <- zoom_x
@@ -178,15 +136,16 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none",
       z_x[1] <- min(df_plot$x)
       z_x[2] <- max(df_plot$x)
     } else if (zoom_x=="zoom out") {
-      z_x[1] <- min(dat$s, na.rm=T)
-      z_x[2] <- max(dat$s, na.rm=T)
+      browser() # !!!!!
+      z_x[1] <- min(dat_v$s, na.rm=T)
+      z_x[2] <- max(dat_v$s, na.rm=T)
     }
     # Add 5% padding to zoom
     z_x[1] <- z_x[1] - 0.05*(z_x[2]-z_x[1])
     z_x[2] <- z_x[2] + 0.05*(z_x[2]-z_x[1])
   }
 
-  # Y-axis zoom
+  # Set Y-axis zoom values
   z_y <- rep(NA,2)
   if (length(zoom_y)==2) {
     z_y <- zoom_y
@@ -199,7 +158,83 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none",
     z_y[2] <- z_y[2] + 0.05*(z_y[2]-z_y[1])
   }
 
-  plot <- plot + ggplot2::coord_cartesian(xlim=z_x, ylim=z_y, expand=F)
+  # Construct KDE dataframe
+  if (density_type!="none") {
+
+    min_s <- min(dat_v$s, na.rm=T)
+    p_edge <- mean(dat_v$s==min_s, na.rm=T) # !!!!! Make this weighted
+    if (p_edge<0.03 & density_type=="kde edge") { density_type <- "kde" }
+
+    if (density_type=="kde") {
+
+      # !!!!! For now, accessing data globally; change
+      # dens_height <- 0.6 * (z_y[2]/1.05-z_y[1]) # !!!!! Check this line
+      dens_height <- 0.6 * (z_y[2]-z_y[1]) # !!!!! Check this line
+      df_dens <- data.frame(
+        s = dat_v$s[!is.na(dat_v$s)],
+        weights = dat_v$weights[!is.na(dat_v$s)]
+      )
+      df_dens$weights <- df_dens$weights / sum(df_dens$weights)
+      dens <- suppressWarnings(stats::density(
+        x = df_dens$s,
+        bw = "ucv",
+        # adjust = 2, # !!!!!
+        weights = df_dens$weights
+      ))
+      kde_data <- data.frame(
+        x = dens$x,
+        ymin = z_y[1],
+        ymax = dens_height * (dens$y/max(dens$y)) + z_y[1]
+      )
+
+    } else {
+
+      stop("TO DO")
+
+    }
+
+  }
+
+  # Set plot labels
+  if (which=="CR") {
+    labs <- list(title="Controlled Risk", y="Risk")
+  } else {
+    labs <- list(title="Controlled Vaccine Efficacy", y="CVE")
+  }
+
+  # Set up ggplot2 object
+  plot <- ggplot2::ggplot(
+    df_plot,
+    ggplot2::aes(x=x, y=y, color=curve, fill=curve)
+  ) +
+    ggplot2::coord_cartesian(xlim=z_x, ylim=z_y, expand=F)
+
+  # Plot background KDE
+  if (density_type!="none") {
+    plot <- plot + geom_ribbon(
+      aes(x=x, ymin=ymin, ymax=ymax),
+      data = kde_data,
+      inherit.aes = F,
+      color = "white",
+      fill = "orange", # "forestgreen"
+      alpha = 0.3
+    )
+  }
+
+  # Primary plot
+  plot <- plot + ggplot2::geom_line() +
+    ggplot2::geom_ribbon(ggplot2::aes(ymin=ci_lower, ymax=ci_upper), # color="darkorchid3", fill="darkorchid3"
+                         alpha = 0.1, linetype = "dotted") +
+    ggplot2::labs(title=labs$title, x="S", y=labs$y, color="",
+                  fill="") +
+    ggplot2::theme(
+      legend.position = "bottom"
+    )
+
+  # Implement these eventually
+  # # curve_colors <- c("darkgrey", "darkorchid3", "firebrick3", "deepskyblue3",
+  # #                   "darkgreen", "darkorange")
+  # curve_colors <- c("darkgreen", "darkorange")
 
   return(plot)
 
