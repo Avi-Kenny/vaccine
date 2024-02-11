@@ -136,7 +136,6 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
       z_x[1] <- min(df_plot$x)
       z_x[2] <- max(df_plot$x)
     } else if (zoom_x=="zoom out") {
-      browser() # !!!!!
       z_x[1] <- min(dat_v$s, na.rm=T)
       z_x[2] <- max(dat_v$s, na.rm=T)
     }
@@ -167,9 +166,7 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
 
     if (density_type=="kde") {
 
-      # !!!!! For now, accessing data globally; change
-      # dens_height <- 0.6 * (z_y[2]/1.05-z_y[1]) # !!!!! Check this line
-      dens_height <- 0.6 * (z_y[2]-z_y[1]) # !!!!! Check this line
+      dens_height <- 0.6 * (z_y[2]-z_y[1])
       df_dens <- data.frame(
         s = dat_v$s[!is.na(dat_v$s)],
         weights = dat_v$weights[!is.na(dat_v$s)]
