@@ -5,8 +5,6 @@
 #'     \code{\link{est_ce}}.
 #' @param which One of c("CR", "CVE"); controls whether to plot CR curves or CVE
 #'     curves.
-#' @param labels A character vector of labels corresponding to the estimate
-#'     objects.
 #' @param density_type One of c("none", "kde", "kde edge").
 #'     Controls the type of estimator used for the background marker density
 #'     plot. For "none", no density plot is displayed. For "kde", a weighted
@@ -37,7 +35,7 @@
 #' plot_ce(ests_cox, ests_np)
 #' }
 #' @export
-plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
+plot_ce <- function(..., which="CR", density_type="none", dat=NA,
                     zoom_x="zoom in", zoom_y="zoom out") {
 
   # !!!!! Check dat
@@ -55,7 +53,7 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
     stop("If `density_type` is not set to 'none', `dat` must also be provided.")
   }
   if (!(length(zoom_x) %in% c(1,2)) ||
-      (length(zoom_x)==2 && !(class(zoom_x)=="numeric")) ||
+      (length(zoom_x)==2 && !methods::is(zoom_x, "numeric")) ||
       (length(zoom_x)==1 && !(zoom_x %in% c("zoom out", "zoom in")))) {
     stop(paste0("`zoom_x` must equal either 'zoom in' or 'zoom out', or be a n",
                 "umeric vector of length 2."))
@@ -64,7 +62,7 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
     stop("If `zoom_x` is set to 'zoom out', `dat` must be provided as well.")
   }
   if (!(length(zoom_y) %in% c(1,2)) ||
-      (length(zoom_y)==2 && !(class(zoom_y)=="numeric")) ||
+      (length(zoom_y)==2 && !methods::is(zoom_y, "numeric")) ||
       (length(zoom_y)==1 && zoom_y!="zoom out")) {
     stop(paste0("`zoom_y` must equal 'zoom out' or be a numeric vector ",
                 "of length 2."))
@@ -74,57 +72,10 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
   # plot_ce(ests_cox, ests_np, density=list(s=dat_v$s, weights=dat_v$weights))
 
   # To prevent R CMD CHECK notes
-  x <- y <- ci_lower <- ci_upper <- curve <- NULL
-  rm(x, y, ci_lower, ci_upper, curve)
+  x <- y <- ci_lower <- ci_upper <- curve <- ymin <- ymax <- NULL
+  rm(x, y, ci_lower, ci_upper, curve, ymin, ymax)
 
-  df_plot <- data.frame(
-    x = double(),
-    y = double(),
-    ci_lower = double(),
-    ci_upper = double(),
-    curve = character()
-  )
-
-  if (missing(labels)) {
-    labels <- sapply(substitute(list(...))[-1], deparse)
-  }
-
-  counter <- 1
-  for (obj in list(...)) {
-    if (class(obj)!="vaccine_est") {
-      stop(paste0("One or more of the objects passed into `plot_ce` is not of ",
-                  "of class 'vaccine_est'."))
-    }
-    if (which=="CR") {
-      if (class(obj$cr)=="NULL") {
-        stop(paste0("CR estimates not present in one or more `vaccine_est` obj",
-                    "ects; try rerunning `est_ce` with cr=TRUE."))
-      } else {
-        df_add <- data.frame(
-          x = obj$cr$s,
-          y = obj$cr$est,
-          ci_lower = obj$cr$ci_lower,
-          ci_upper = obj$cr$ci_upper,
-          curve = labels[counter]
-        )
-      }
-    } else if (which=="CVE") {
-      if (class(obj$cve)=="NULL") {
-        stop(paste0("CVE estimates not present in one or more `vaccine_est` ob",
-                    "jects; try rerunning `est_ce` with cve=TRUE."))
-      } else {
-        df_add <- data.frame(
-          x = obj$cve$s,
-          y = obj$cve$est,
-          ci_lower = obj$cve$ci_lower,
-          ci_upper = obj$cve$ci_upper,
-          curve = labels[counter]
-        )
-      }
-    }
-    df_plot <- rbind(df_plot,df_add)
-    counter <- counter + 1
-  }
+  df_plot <- as_table(..., which=which)
 
   # Set X-axis zoom values
   z_x <- rep(NA,2)
@@ -268,7 +219,7 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
 trim <- function(ests, dat, quantiles) {
 
   dat_v <- dat[dat$a==1,]
-  cutoffs <- quantile(dat_v$s, na.rm=T, probs=quantiles) # !!!!! Make this weighted quantile
+  cutoffs <- stats::quantile(dat_v$s, na.rm=T, probs=quantiles) # !!!!! Make this weighted quantile
 
   for (i in c(1:length(ests))) {
     if (names(ests)[i] %in% c("cr", "cve")) {
@@ -280,5 +231,82 @@ trim <- function(ests, dat, quantiles) {
   }
 
   return(ests)
+
+}
+
+
+
+#' Create table of estimates
+#'
+#' @description Format estimates returned by \code{\link{est_ce}} as a table
+#' @param ... One or more objects of class \code{"vaccine_est"} returned by
+#'     \code{\link{est_ce}}.
+#' @param which One of c("CR", "CVE"); controls whether the table contains CR or
+#'     CVE values.
+#' @return A table of CR or CVE values
+#' @examples
+#' data(hvtn505)
+#' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+#'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
+#'                  weights="wt", ph2="casecontrol", data=hvtn505)
+#' \donttest{
+#' ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
+#' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
+#' ests_table <- as_table(ests_cox, ests_np)
+#' head(ests_table)
+#' }
+#' @export
+as_table <- function(..., which="CR") {
+
+  # !!!!! Move all error handling into a function
+
+  df_ests <- data.frame(
+    x = double(),
+    y = double(),
+    ci_lower = double(),
+    ci_upper = double(),
+    curve = character()
+  )
+
+  labels <- sapply(substitute(list(...))[-1], deparse)
+
+  counter <- 1
+  for (obj in list(...)) {
+    if (!methods::is(obj, "vaccine_est")) {
+      stop(paste0("One or more of the objects passed into `plot_ce` is not of ",
+                  "of class 'vaccine_est'."))
+    }
+    if (which=="CR") {
+      if (methods::is(obj$cr, "NULL")) {
+        stop(paste0("CR estimates not present in one or more `vaccine_est` obj",
+                    "ects; try rerunning `est_ce` with cr=TRUE."))
+      } else {
+        df_add <- data.frame(
+          x = obj$cr$s,
+          y = obj$cr$est,
+          ci_lower = obj$cr$ci_lower,
+          ci_upper = obj$cr$ci_upper,
+          curve = labels[counter]
+        )
+      }
+    } else if (which=="CVE") {
+      if (methods::is(obj$cve, "NULL")) {
+        stop(paste0("CVE estimates not present in one or more `vaccine_est` ob",
+                    "jects; try rerunning `est_ce` with cve=TRUE."))
+      } else {
+        df_add <- data.frame(
+          x = obj$cve$s,
+          y = obj$cve$est,
+          ci_lower = obj$cve$ci_lower,
+          ci_upper = obj$cve$ci_upper,
+          curve = labels[counter]
+        )
+      }
+    }
+    df_ests <- rbind(df_ests,df_add)
+    counter <- counter + 1
+  }
+
+  return(df_ests)
 
 }

@@ -7,7 +7,6 @@
 plot_ce(
   ...,
   which = "CR",
-  labels = NA,
   density_type = "none",
   dat = NA,
   zoom_x = "zoom in",
@@ -20,9 +19,6 @@ plot_ce(
 
 \item{which}{One of c("CR", "CVE"); controls whether to plot CR curves or CVE
 curves.}
-
-\item{labels}{A character vector of labels corresponding to the estimate
-objects.}
 
 \item{density_type}{One of c("none", "kde", "kde edge").
 Controls the type of estimator used for the background marker density

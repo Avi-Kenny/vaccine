@@ -3,6 +3,7 @@
 ### Major changes
 
 - Added the `trim` function, which can be used in conjunction with the `plot_ce` function to truncate the display of estimate objects produced by `est_ce`. Specifically, estimates with X-coordinates that lie outside specified quantiles of the observed distribution of the marker are removed. See package vignette and examples.
+- Added the `as_table` function, which formats estimate objects produced using `est_ce` as a table.
 
 ### Minor changes
 
