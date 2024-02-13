@@ -127,7 +127,6 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
   }
 
   # Set X-axis zoom values
-  dat_v <- dat[dat$a==1,]
   z_x <- rep(NA,2)
   if (length(zoom_x)==2) {
     z_x <- zoom_x
@@ -136,6 +135,7 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
       z_x[1] <- min(df_plot$x)
       z_x[2] <- max(df_plot$x)
     } else if (zoom_x=="zoom out") {
+      dat_v <- dat[dat$a==1,]
       z_x[1] <- min(dat_v$s, na.rm=T)
       z_x[2] <- max(dat_v$s, na.rm=T)
     }
@@ -160,6 +160,7 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
   # Construct KDE dataframe
   if (density_type!="none") {
 
+    dat_v <- dat[dat$a==1,]
     min_s <- min(dat_v$s, na.rm=T)
     p_edge <- mean(dat_v$s==min_s, na.rm=T) # !!!!! Make this weighted
     if (p_edge<0.03 & density_type=="kde edge") { density_type <- "kde" }
