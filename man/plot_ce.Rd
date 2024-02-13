@@ -9,7 +9,6 @@ plot_ce(
   which = "CR",
   labels = NA,
   density_type = "none",
-  hist_bins = NA,
   dat = NA,
   zoom_x = "zoom in",
   zoom_y = "zoom out"
@@ -25,15 +24,12 @@ curves.}
 \item{labels}{A character vector of labels corresponding to the estimate
 objects.}
 
-\item{density_type}{One of c("none", "kde", "kde edge", "histogram").
+\item{density_type}{One of c("none", "kde", "kde edge").
 Controls the type of estimator used for the background marker density
 plot. For "none", no density plot is displayed. For "kde", a weighted
 kernel density estimator is used. For "kde edge", a modified version of
 "kde" is used that allows for a possible point mass at the left edge of
-the marker distribution. For "histogram", a histogram estimator is used.}
-
-\item{hist_bins}{If density_type="histogram", this value controls the number
-of bins used to construct the histogram.}
+the marker distribution.}
 
 \item{dat}{The data object originally passed into \code{\link{est_ce}}. It is
 only necessary to pass this in if \code{density_type} is not set to

@@ -7,23 +7,20 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{R, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
 ```
 
-```{r setup}
-
+```{R setup}
 library(vaccine)
-
 ```
 
 The `load_data` function takes in raw data and creates a data object that can be accepted by various estimation functions. We use publicly-avaliable data from the HVTN 505 HIV vaccine efficacy trial as our example.
 
-```{r}
-
+```{R}
 data(hvtn505)
 
 dat <- load_data(
@@ -36,47 +33,59 @@ dat <- load_data(
   ph2 = "casecontrol",
   data = hvtn505
 )
-
 ```
 
 The `summary_stats` function gives us some useful summaries of the dataset.
 
-```{r}
-
+```{R}
 summary_stats(dat)
-
 ```
 
 The `est_overall` function allows us to estimate overall risk in the placebo and vaccine groups, as well as estimate vaccine efficacy, using either a nonparametric Kaplan-Meier estimator or a marginalized Cox model.
 
-```{r}
-
+```{R}
 est_overall(dat=dat, t_0=578, method="KM")
 est_overall(dat=dat, t_0=578, method="Cox")
-
 ```
 
 The `est_ce` function allows us to compute controlled effects curves; see [Gilbert, Fong, Kenny, and Carone 2022](https://academic.oup.com/biostatistics/article-abstract/24/4/850/7320953) for more detail.
 
-```{r}
-
+```{R}
 ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
 ests_np <- est_ce(dat=dat, type="NP", t_0=578)
-
 ```
 
-The `plot_ce` function produces basic plots of CR or CVE curves. These are returned as ggplot2 objects, so they can be further customized as needed.
+The `plot_ce` function produces basic plots of CR or CVE curves.
 
 ```{R}
-
 plot_ce(ests_cox, ests_np)
-
 ```
 
-Use the `density` option to add a kernel density estimate of the distribution of the marker.
+Use the `density` option to add a kernel density estimate of the distribution of the marker to the plot background.
 
 ```{R}
+plot_ce(ests_cox, ests_np, density_type="kde", dat=dat)
+```
 
-plot_ce(ests_cox, ests_np, density=list(s=dat$v$s, weights=dat$v$weights))
+Use the `trim` function to truncate the display of the curves, based on quantiles of the marker distribution. It is recommended to truncate the display of the nonparametric curves, as estimates can be biased towards the endpoints of the marker distribution.
+
+```{R}
+ests_cox <- trim(ests_cox, dat=dat, quantiles=c(0.05,0.95))
+ests_np <- trim(ests_np, dat=dat, quantiles=c(0.1,0.9))
+plot_ce(ests_cox, ests_np, density_type="kde", dat=dat)
+```
+
+Plots generated using `plot_ce` can be further customized using `ggplot2` functions. For example, we change the plot labels and colors as follows.
+
+```{R}
+library(ggplot2)
+my_plot <- plot_ce(ests_cox, ests_np, density_type="kde", dat=dat)
+
+my_plot +
+  labs(x="IgG Env (S)") +
+  scale_color_manual(labels = c("Cox model", "Nonparametric"),
+                     values = c("darkorchid3", "deepskyblue3")) +
+  scale_fill_manual(labels = c("Cox model", "Nonparametric"),
+                    values = c("darkorchid3", "deepskyblue3"))
 
 ```
