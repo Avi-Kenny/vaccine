@@ -262,13 +262,13 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
 #' \donttest{
 #' ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
 #' ests_cox <- trim(ests_cox, dat=dat, quantiles=c(0.1,0.9))
-#' plot_ce(ests_cox, density_type="kde")
+#' plot_ce(ests_cox, density_type="kde". dat=dat)
 #' }
 #' @export
 trim <- function(ests, dat, quantiles) {
 
   dat_v <- dat[dat$a==1,]
-  cutoffs <- quantile(dat_v$s, na.rm=T, probs=quantiles) # !!!!! Make this weighted
+  cutoffs <- quantile(dat_v$s, na.rm=T, probs=quantiles) # !!!!! Make this weighted quantile
 
   for (i in c(1:length(ests))) {
     if (names(ests)[i] %in% c("cr", "cve")) {
