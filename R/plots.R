@@ -220,18 +220,21 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
   }
 
   # Primary plot
-  plot <- plot + ggplot2::geom_line() +
+  plot <- plot +
+    ggplot2::geom_line() +
     ggplot2::geom_ribbon(ggplot2::aes(ymin=ci_lower, ymax=ci_upper), # color="darkorchid3", fill="darkorchid3"
                          alpha = 0.1, linetype = "dotted") +
     ggplot2::labs(title=labs$title, x="S", y=labs$y, color="",
                   fill="") +
     ggplot2::theme(
-      legend.position = "bottom"
+      legend.position = "bottom",
+      panel.background = ggplot2::element_blank(),
+      panel.border = ggplot2::element_rect(color="#bbbbbb", fill=NA)
     )
 
   # Implement these eventually
-  # # curve_colors <- c("darkgrey", "darkorchid3", "firebrick3", "deepskyblue3",
-  # #                   "darkgreen", "darkorange")
+  curve_colors <- c("darkgrey", "darkorchid3", "firebrick3", "deepskyblue3",
+                    "darkgreen", "darkorange")
   # curve_colors <- c("darkgreen", "darkorange")
 
   return(plot)
