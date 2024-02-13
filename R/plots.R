@@ -209,8 +209,8 @@ plot_ce <- function(..., which="CR", labels=NA, density_type="none", dat=NA,
 
   # Plot background KDE
   if (density_type!="none") {
-    plot <- plot + geom_ribbon(
-      aes(x=x, ymin=ymin, ymax=ymax),
+    plot <- plot + ggplot2::geom_ribbon(
+      ggplot2::aes(x=x, ymin=ymin, ymax=ymax),
       data = kde_data,
       inherit.aes = F,
       color = "white",
