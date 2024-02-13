@@ -22,7 +22,7 @@ dat <- load_data(
   time = "HIVwk28preunblfu",
   event = "HIVwk28preunbl",
   vacc = "trt",
-  marker = "IgG_env",
+  marker = "IgG_V2",
   covariates = c("age","BMI","bhvrisk"),
   weights = "wt",
   ph2 = "casecontrol",
@@ -73,12 +73,11 @@ ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 #> 4.2.3
 #> Loading required package: nnls
 #> Loading required package: gam
-#> Warning: package 'gam' was built under R version 4.2.3
 #> Loading required package: splines
 #> Loading required package: foreach
-#> Loaded gam 1.22-2
+#> Loaded gam 1.22-3
 #> Super Learner
-#> Version: 2.0-28
+#> Version: 2.0-28.1
 #> Package created on 2021-05-04
 ```
 
@@ -91,6 +90,10 @@ plot_ce(ests_cox, ests_np)
 ![Plot of controlled risk (CR) curves](cr_curves.png)
 
 Use the `density` option to add a kernel density estimate of the distribution of the marker to the plot background.
+
+```r
+plot_ce(ests_cox, ests_np, density_type="kde", dat=dat)
+```
 
 ![Plot of controlled risk (CR) curves with KDE](cr_curves_with_kde.png)
 
@@ -111,12 +114,25 @@ library(ggplot2)
 my_plot <- plot_ce(ests_cox, ests_np, density_type="kde", dat=dat)
 
 my_plot +
-  labs(x="IgG Env (S)") +
+  labs(x="IgG Binding to V1V2") +
   scale_color_manual(labels = c("Cox model", "Nonparametric"),
                      values = c("darkorchid3", "deepskyblue3")) +
   scale_fill_manual(labels = c("Cox model", "Nonparametric"),
                     values = c("darkorchid3", "deepskyblue3"))
-
 ```
 
 ![Plot of controlled risk (CR) curves, trimmed](cr_curves_styled.png)
+
+To view estimates in tabular format, use the `as_table` function.
+
+```r
+ests_table <- as_table(ests_cox, ests_np)
+head(ests_table)
+#>            x         y   ci_lower  ci_upper    curve
+#> 1 0.02356062 0.1531213 0.07439247 0.2891413 ests_cox
+#> 2 0.04712124 0.1513980 0.07449740 0.2833745 ests_cox
+#> 3 0.07068186 0.1496917 0.07459291 0.2777089 ests_cox
+#> 4 0.09424248 0.1480023 0.07467853 0.2721456 ests_cox
+#> 5 0.11780310 0.1463297 0.07475377 0.2666853 ests_cox
+#> 6 0.14136372 0.1446737 0.07481808 0.2613289 ests_cox
+```
