@@ -1,3 +1,13 @@
+# vaccine 1.2.0
+
+### Major changes
+
+- Added the `trim` function, which can be used in conjunction with the `plot_ce` function to truncate the display of estimate objects produced by `est_ce`. Specifically, estimates with X-coordinates that lie outside specified quantiles of the observed distribution of the marker are removed. See package vignette and examples.
+
+### Minor changes
+
+- Implemented various changes to the `plot_ce` function: added background kernel density plotting, changed default plot styling, fixed a bug that caused CR plots to be displayed instead of CVE plots when `plot_ce(..., which="CVE")` was called, and added to the plotting section of the main package vignette.
+
 # vaccine 1.1.0
 
 ### Major changes
