@@ -31,6 +31,6 @@ dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 \donttest{
 ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
 ests_cox <- trim(ests_cox, dat=dat, quantiles=c(0.1,0.9))
-plot_ce(ests_cox, density_type="kde". dat=dat)
+plot_ce(ests_cox, density_type="kde", dat=dat)
 }
 }
