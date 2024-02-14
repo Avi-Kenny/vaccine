@@ -71,7 +71,7 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
 
     # Prevents CRAN Note
     if (F) {
-      x <- earth::earth
+      # x <- earth::earth
       x <- glmnet::glmnet
       x <- e1071::svm
     }
@@ -937,7 +937,9 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
 
     # Fit SuperLearner regression
     do.call("library", list("SuperLearner"))
-    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.loess",
+    # SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.loess",
+    #                 "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
+    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.loess",
                     "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
 
     model_sl <- SuperLearner::SuperLearner(
@@ -976,7 +978,9 @@ construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
   # Set library
   if (type=="Super Learner") {
     do.call("library", list("SuperLearner"))
-    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.nnet",
+    # SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.nnet",
+    #                 "SL.glmnet")
+    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.nnet",
                     "SL.glmnet")
   } else if (type=="logistic") {
     SL.library <- c("SL.glm")
