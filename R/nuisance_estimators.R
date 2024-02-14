@@ -974,6 +974,12 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
 construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
                            f_sIx_z1_n) {
 
+  # Prevents CRAN Note
+  if (F) {
+    x <- ranger::ranger
+    x <- gam::gam
+  }
+
   # Set library
   if (type=="Super Learner") {
     do.call("library", list("SuperLearner"))

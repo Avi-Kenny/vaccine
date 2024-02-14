@@ -261,3 +261,14 @@ p <- plot_ce(ests_np)
 test_that("plot_ce", {
   expect_equal(class(p), c("gg", "ggplot"))
 })
+
+# # Should produce errors
+# plot_ce(which="CVE")
+# plot_ce(list(x=999), which="CVE")
+# plot_ce(ests_cox, which="CVE", zoom_x=c(1,2,3))
+# plot_ce(ests_cox, which="CVE", zoom_x="wrong")
+# plot_ce(ests_cox, which="CVE", zoom_y=c(1,2,3))
+# plot_ce(ests_cox, which="CVE", zoom_y="wrong")
+# plot_ce(ests_cox3, which="CVE", zoom_x="zoom out")
+# plot_ce(ests_cox3, which="CVE", zoom_x=2, dat=dat)
+# plot_ce(ests_cox, density_type="kde")
