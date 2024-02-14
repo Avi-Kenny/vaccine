@@ -939,8 +939,8 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
     do.call("library", list("SuperLearner"))
     # SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.loess",
     #                 "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
-    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.loess",
-                    "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
+    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.loess", # Changed on 2024-02-13
+                    "SL.svm")
 
     model_sl <- SuperLearner::SuperLearner(
       Y = dat_v2$po,

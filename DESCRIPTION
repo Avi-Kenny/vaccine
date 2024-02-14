@@ -33,7 +33,9 @@ Imports:
     survML (>= 0.0.0.9000),
     truncnorm (>= 1.0.8),
     e1071 (>= 1.7.12),
-    glmnet (>= 4.1.6)
+    glmnet (>= 4.1.6),
+    gam (>= 1.22.3),
+    ranger (>= 0.16.0)
 Suggests: 
     knitr,
     rmarkdown,
