@@ -4,3 +4,5 @@
 
 ## R CMD check results
 * There were no ERRORs or WARNINGs.
+
+This minor patch is to fix a bug accidentally introduced with the update from version 1.1.0 to version 1.2.0.
