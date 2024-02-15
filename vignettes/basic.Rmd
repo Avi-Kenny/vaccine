@@ -87,7 +87,7 @@ The `plot_ce` function produces basic plots of CR or CVE curves.
 plot_ce(ests_cox, ests_np)
 ```
 
-![Plot of controlled risk (CR) curves](cr_curves.png)
+![ ](cr_curves.png)
 
 Use the `density` option to add a kernel density estimate of the distribution of the marker to the plot background.
 
@@ -95,7 +95,7 @@ Use the `density` option to add a kernel density estimate of the distribution of
 plot_ce(ests_cox, ests_np, density_type="kde", dat=dat)
 ```
 
-![Plot of controlled risk (CR) curves with KDE](cr_curves_with_kde.png)
+![ ](cr_curves_with_kde.png)
 
 Use the `trim` function to truncate the display of the curves, based on quantiles of the marker distribution. It is recommended to truncate the display of the nonparametric curves, as estimates can be biased towards the endpoints of the marker distribution.
 
@@ -105,7 +105,7 @@ ests_np <- trim(ests_np, dat=dat, quantiles=c(0.1,0.9))
 plot_ce(ests_cox, ests_np, density_type="kde", dat=dat)
 ```
 
-![Plot of controlled risk (CR) curves, trimmed](cr_curves_trimmed.png)
+![ ](cr_curves_trimmed.png)
 
 Plots generated using `plot_ce` can be further customized using `ggplot2` functions. For example, we change the plot labels and colors as follows.
 
@@ -121,7 +121,7 @@ my_plot +
                     values = c("darkorchid3", "deepskyblue3"))
 ```
 
-![Plot of controlled risk (CR) curves, trimmed](cr_curves_styled.png)
+![ ](cr_curves_styled.png)
 
 To view estimates in tabular format, use the `as_table` function.
 
