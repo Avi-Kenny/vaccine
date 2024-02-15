@@ -939,7 +939,7 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
     do.call("library", list("SuperLearner"))
     # SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.loess",
     #                 "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
-    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.svm") # Changed on 2024-02-13
+    SL.library <- c("SL.mean", "SL.mean", "SL.gam", "SL.ranger", "SL.svm") # Changed on 2024-02-13; SL.mean written twice to avoid SuperLearner bug
 
     model_sl <- SuperLearner::SuperLearner(
       Y = dat_v2$po,
@@ -987,7 +987,7 @@ construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
     #                 "SL.glmnet")
     # SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.nnet",
     #                 "SL.glmnet")
-    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.svm") # Changed 2024-02-13
+    SL.library <- c("SL.mean", "SL.mean", "SL.gam", "SL.ranger", "SL.svm") # Changed 2024-02-13; SL.mean written twice to avoid SuperLearner bug
   } else if (type=="logistic") {
     SL.library <- c("SL.glm")
   }
