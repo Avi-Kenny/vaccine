@@ -115,10 +115,10 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA,
     min_s <- min(dat_v$s, na.rm=T)
     p_edge <- mean(dat_v$s==min_s, na.rm=T) # !!!!! Make this weighted
     if (p_edge<0.03 & density_type=="kde edge") { density_type <- "kde" }
+    dens_height <- 0.6 * (z_y[2]-z_y[1])
 
     if (density_type=="kde") {
 
-      dens_height <- 0.6 * (z_y[2]-z_y[1])
       df_dens <- data.frame(
         s = dat_v$s[!is.na(dat_v$s)],
         weights = dat_v$weights[!is.na(dat_v$s)]
@@ -127,7 +127,6 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA,
       dens <- suppressWarnings(stats::density(
         x = df_dens$s,
         bw = "ucv",
-        # adjust = 2, # !!!!!
         weights = df_dens$weights
       ))
       kde_data <- data.frame(
@@ -138,7 +137,36 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA,
 
     } else {
 
-      stop("TO DO")
+      df_dens <- data.frame(
+        s = dat_v$s[!is.na(dat_v$s) & dat_v$s!=min_s],
+        weights = dat_v$weights[!is.na(dat_v$s) & dat_v$s!=min_s]
+      )
+      df_dens$weights <- df_dens$weights / sum(df_dens$weights)
+      dens <- suppressWarnings(stats::density(
+        x = df_dens$s,
+        bw = "ucv",
+        weights = df_dens$weights
+      ))
+      dens$y <- dens$y * (1-p_edge)
+
+      plot_width <- z_x[2]-z_x[1]
+      rect_x <- c(min_s-0.025*plot_width, min_s+0.025*plot_width)
+      rect_y <- p_edge / (rect_x[2]-rect_x[1])
+      inds_to_remove <- dens$x>rect_x[2]
+      dens$x <- dens$x[inds_to_remove]
+      dens$y <- dens$y[inds_to_remove]
+      dens$x[length(dens$x)+1] <- rect_x[1]
+      dens$y[length(dens$y)+1] <- rect_y
+      dens$x[length(dens$x)+1] <- rect_x[2]
+      dens$y[length(dens$y)+1] <- rect_y
+      dens$x[length(dens$x)+1] <- rect_x[2] + plot_width/10^5
+      dens$y[length(dens$y)+1] <- z_y[1]
+
+      kde_data <- data.frame(
+        x = dens$x,
+        ymin = z_y[1],
+        ymax = dens_height * (dens$y/max(dens$y)) + z_y[1]
+      )
 
     }
 
