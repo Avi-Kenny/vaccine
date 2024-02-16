@@ -10,6 +10,14 @@
 
 Various semiparametric and nonparametric statistical tools for immune correlates analysis of vaccine clinical trial data. This includes calculation of summary statistics and estimation of risk, vaccine efficacy, controlled effects (controlled risk and controlled vaccine efficacy), and mediation effects (natural direct effect, natural indirect effect, proportion mediated). See Gilbert P, Fong Y, Kenny A, and Carone, M (2022) \doi{10.1093/biostatistics/kxac024} and Fay MP and Follmann DA (2023) \doi{10.48550/arXiv.2208.06465}.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/Avi-Kenny/vaccine}
+  \item Report bugs at \url{https://github.com/Avi-Kenny/vaccine/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Avi Kenny \email{avi.kenny@gmail.com} [copyright holder]
 
