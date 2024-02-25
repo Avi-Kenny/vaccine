@@ -43,5 +43,5 @@ Suggests:
 Depends: 
     R (>= 2.10)
 Config/testthat/edition: 3
-URL: https://github.com/Avi-Kenny/vaccine
+URL: https://github.com/Avi-Kenny/vaccine, https://avi-kenny.github.io/vaccine/
 BugReports: https://github.com/Avi-Kenny/vaccine/issues
