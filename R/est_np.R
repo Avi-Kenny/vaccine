@@ -632,8 +632,6 @@ est_np <- function(
       }
     }
 
-    if (return_p_value) { res$p <- test_res$p }
-
     res$extras <- list(
       r_Mn = data.frame(
         s = s_out_orig,
@@ -655,17 +653,19 @@ est_np <- function(
       Qc_n = Qc_n_df
     )
 
-    # !!!!! TEMP
-    if (p$edge_corr) {
-      res$extras$r_Mn_edge_est <- r_Mn_edge_est
-      res$extras$r_Mn_0 <- r_Mn(0)
-      res$extras$r_Mn_Gr_0 <- r_Mn_Gr(0)
-      res$extras$sigma2_edge_est <- sigma2_edge_est
-      res$extras$risk_p <- risk_p
-      res$extras$se_p <- se_p
-    }
+    # # !!!!! TEMP
+    # if (p$edge_corr) {
+    #   res$extras$r_Mn_edge_est <- r_Mn_edge_est
+    #   res$extras$r_Mn_0 <- r_Mn(0)
+    #   res$extras$r_Mn_Gr_0 <- r_Mn_Gr(0)
+    #   res$extras$sigma2_edge_est <- sigma2_edge_est
+    #   res$extras$risk_p <- risk_p
+    #   res$extras$se_p <- se_p
+    # }
 
   }
+
+  if (return_p_value) { res$p <- test_res$p }
 
   return(res)
 
