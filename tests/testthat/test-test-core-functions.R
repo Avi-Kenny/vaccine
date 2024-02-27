@@ -253,6 +253,65 @@ test_that("est_np (CVE)", {
   expect_equal(ests_np$cve$ci_upper[50], -0.7437654, tolerance=0.01)
 })
 
+# Make sure character/categorical covariates are handled correctly
+ests_o_KM_fac <- est_overall(dat=dat_fac, t_0=578, method="KM")
+ests_o_KM_ch <- est_overall(dat=dat_ch, t_0=578, method="KM")
+ests_risk_v_fac <- ests_o_KM_fac[
+  ests_o_KM_fac$stat=="risk"&ests_o_KM_fac$group=="vaccine",
+]
+ests_risk_v_ch <- ests_o_KM_ch[
+  ests_o_KM_ch$stat=="risk"&ests_o_KM_ch$group=="vaccine",
+]
+
+test_that("est_overall (KM); factor/character X", {
+  expect_equal(ests_risk_v_fac$est, 0.04147597, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$se, 0.00806502, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$ci_lower, 0.02825303, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$ci_upper, 0.06050218, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$est, 0.04147597, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$se, 0.00806502, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$ci_lower, 0.02825303, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$ci_upper, 0.06050218, tolerance=0.01)
+})
+
+ests_o_Cox_fac <- est_overall(dat=dat_fac, t_0=578, method="Cox")
+ests_o_Cox_ch <- est_overall(dat=dat_ch, t_0=578, method="Cox")
+ests_risk_v_fac <- ests_o_Cox_fac[
+  ests_o_Cox_fac$stat=="risk"&ests_o_Cox_fac$group=="vaccine",
+]
+ests_risk_v_ch <- ests_o_Cox_ch[
+  ests_o_Cox_ch$stat=="risk"&ests_o_Cox_ch$group=="vaccine",
+]
+
+test_that("est_overall (Cox); factor/character X", {
+  expect_equal(ests_risk_v_fac$est, 0.04147597, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$se, 0.00806502, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$ci_lower, 0.02825303, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$ci_upper, 0.06050218, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$est, 0.04147597, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$se, 0.00806502, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$ci_lower, 0.02825303, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$ci_upper, 0.06050218, tolerance=0.01)
+})
+
+ests_cox_fac <- est_ce(dat=dat_fac, type="Cox", t_0=578, cve=T)
+ests_cox_ch <- est_ce(dat=dat_ch, type="Cox", t_0=578, cve=T)
+
+test_that("est_cox (CR)", {
+  expect_equal(ests_cox_fac$cr$s[50], 1.15447, tolerance=0.01)
+  expect_equal(ests_cox_fac$cr$est[50], 0.0911562, tolerance=0.01)
+  expect_equal(ests_cox_fac$cr$se[50], 0.02091785, tolerance=0.01)
+  expect_equal(ests_cox_fac$cr$ci_lower[50], 0.05762341, tolerance=0.01)
+  expect_equal(ests_cox_fac$cr$ci_upper[50], 0.1412773, tolerance=0.01)
+  expect_equal(ests_cox_ch$cr$s[50], 1.15447, tolerance=0.01)
+  expect_equal(ests_cox_ch$cr$est[50], 0.0911562, tolerance=0.01)
+  expect_equal(ests_cox_ch$cr$se[50], 0.02091785, tolerance=0.01)
+  expect_equal(ests_cox_ch$cr$ci_lower[50], 0.05762341, tolerance=0.01)
+  expect_equal(ests_cox_ch$cr$ci_upper[50], 0.1412773, tolerance=0.01)
+})
+
+# Test plotting functionality
+
 p <- plot_ce(ests_np)
 
 test_that("plot_ce", {
