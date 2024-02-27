@@ -49,20 +49,20 @@ test_that("load_data", {
 })
 
 test_that("load_data (character/factor columns)", {
-  expect_equal(length(dat_fac), 14)
-  expect_equal(length(dat_ch), 14)
+  expect_equal(length(dat_fac), 13)
+  expect_equal(length(dat_ch), 13)
   expect_equal(attr(dat_fac, "covariate_names"),
-               c("age", "BMI", paste0("x_fac_",c(1:5))))
+               c("age", "BMI", paste0("x_fac_",c(1:4))))
   expect_equal(attr(dat_ch, "covariate_names"),
-               c("age", "BMI", paste0("x_ch_",c(1:5))))
-  expect_equal(attr(dat_fac, "dim_x"), 7)
-  expect_equal(attr(dat_ch, "dim_x"), 7)
-  expect_equal(names(dat_fac)[1:7], paste0("x",c(1:7)))
-  expect_equal(names(dat_ch)[1:7], paste0("x",c(1:7)))
+               c("age", "BMI", paste0("x_ch_",c(1:4))))
+  expect_equal(attr(dat_fac, "dim_x"), 6)
+  expect_equal(attr(dat_ch, "dim_x"), 6)
+  expect_equal(names(dat_fac)[1:6], paste0("x",c(1:6)))
+  expect_equal(names(dat_ch)[1:6], paste0("x",c(1:6)))
   expect_equal(sort(unique(dat_fac$x3)), c(0,1))
-  expect_equal(sort(unique(dat_fac$x7)), c(0,1))
+  expect_equal(sort(unique(dat_fac$x6)), c(0,1))
   expect_equal(sort(unique(dat_ch$x3)), c(0,1))
-  expect_equal(sort(unique(dat_ch$x7)), c(0,1))
+  expect_equal(sort(unique(dat_ch$x6)), c(0,1))
 })
 
 ss <- summary_stats(dat, quietly=TRUE)
