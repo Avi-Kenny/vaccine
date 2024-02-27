@@ -90,7 +90,7 @@ load_data <- function(
               tmp_col <- as.integer(as.factor(val[,col]))
               tmp_unique <- unique(tmp_col)
               tmp_size <- length(tmp_unique)
-              for (i in c(1:tmp_size)) {
+              for (i in c(1:(tmp_size-1))) {
                 col_new <- paste0(col, "_", i)
                 val2[[col_new]] <- as.integer(tmp_col==tmp_unique[i])
               }
