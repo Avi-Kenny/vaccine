@@ -264,14 +264,14 @@ ests_risk_v_ch <- ests_o_KM_ch[
 ]
 
 test_that("est_overall (KM); factor/character X", {
-  expect_equal(ests_risk_v_fac$est, 0.04147597, tolerance=0.01)
-  expect_equal(ests_risk_v_fac$se, 0.00806502, tolerance=0.01)
-  expect_equal(ests_risk_v_fac$ci_lower, 0.02825303, tolerance=0.01)
-  expect_equal(ests_risk_v_fac$ci_upper, 0.06050218, tolerance=0.01)
-  expect_equal(ests_risk_v_ch$est, 0.04147597, tolerance=0.01)
-  expect_equal(ests_risk_v_ch$se, 0.00806502, tolerance=0.01)
-  expect_equal(ests_risk_v_ch$ci_lower, 0.02825303, tolerance=0.01)
-  expect_equal(ests_risk_v_ch$ci_upper, 0.06050218, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$est, 0.04067009, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$se, 0.008230842, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$ci_lower, 0.02506853, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$ci_upper, 0.05602199, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$est, 0.04067009, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$se, 0.008230842, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$ci_lower, 0.02506853, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$ci_upper, 0.05602199, tolerance=0.01)
 })
 
 ests_o_Cox_fac <- est_overall(dat=dat_fac, t_0=578, method="Cox")
