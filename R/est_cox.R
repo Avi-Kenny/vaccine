@@ -3,42 +3,19 @@
 #' @description See docs for est_ce and params_ce_cox
 #' @noRd
 est_cox <- function(
-    dat, t_0, cr, cve, s_out, ci_type, placebo_risk_method, return_extras,
-    spline_df, spline_knots, edge_ind
+    dat, t_0, cr, cve, s_out, ci_type, placebo_risk_method, return_p_value,
+    return_extras, spline_df, spline_knots, edge_ind, p_val_only=FALSE
 ) {
-
-  # # Setup
-  # if (verbose) {
-  #   print(paste("Check 0 (start):", Sys.time()))
-  #   pbapply::pboptions(type="txt", char="#", txt.width=40, style=3)
-  # } else {
-  #   pbapply::pboptions(type="none")
-  # }
-  # if (parallel) {
-  #   n_cores <- parallel::detectCores() - 1
-  #   cl <- parallel::makeCluster(n_cores)
-  #   if (verbose) {
-  #     print(cl)
-  #   }
-  # } else {
-  #   cl <- NULL
-  # }
-
-  if (!methods::is(dat,"vaccine_dat")) {
-    stop(paste0("`dat` must be an object of class 'vaccine_dat' returned by lo",
-                "ad_data()."))
-  }
-
-  if (!(attr(dat, "groups") %in% c("vaccine", "both"))) {
-    stop("Vaccine group data not detected.")
-  }
-
-  # !!!!! Validate other inputs; import error handling function from SimEngine
 
   if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
 
+  # Create filtered data objects
+  dat_v <- dat[dat$a==1,]
+  dat_p <- dat[dat$a==0,]
+
   # Create spline basis and function
-  dat$v$spl <- data.frame("s1"=dat$v$s)
+  dat_v_spl <- data.frame("s1"=dat_v$s)
+  basic_cox_model <- F
   if ((!is.na(spline_df) && spline_df!=1) || !is.na(spline_knots[[1]])) {
 
     if (!is.na(spline_df) && !is.na(spline_knots)) {
@@ -49,22 +26,9 @@ est_cox <- function(
       stop("`spline_knots` must be a numeric vector of at least length 3.")
     }
 
-    # # Create spline basis
-    # Note: this method uses quantiles of the observed marker; however, we have
-    #   seen that this leads to improper variance estimation, and so we do not
-    #   use it.
-    # spl_basis <- splines::ns(
-    #   x = dat$v$s,
-    #   df = spline_df,
-    #   intercept = F,
-    #   Boundary.knots = stats::quantile(dat$v$s, c(0.05,0.95), na.rm=T)
-    # )
-    # spl_knots <- as.numeric(attr(spl_basis, "knots"))
-    # spl_bnd_knots <- as.numeric(attr(spl_basis, "Boundary.knots"))
-
     # Create spline basis
     if (!is.na(spline_df)) {
-      spl_bnd_knots <- as.numeric(stats::quantile(dat$v$s, c(0.05,0.95), na.rm=T))
+      spl_bnd_knots <- as.numeric(stats::quantile(dat_v$s, c(0.05,0.95), na.rm=T))
       spl_knots <- seq(spl_bnd_knots[1], spl_bnd_knots[2],
                        length.out=spline_df+1)[c(2:spline_df)]
     } else {
@@ -72,22 +36,22 @@ est_cox <- function(
       spl_knots <- spline_knots[c(2:(length(spline_knots)-1))]
     }
     spl_basis <- splines::ns(
-      x = dat$v$s,
+      x = dat_v$s,
       knots = spl_knots,
       intercept = F,
       Boundary.knots = spl_bnd_knots
     )
 
     for (i in c(1:(dim(spl_basis)[2]))) {
-      dat$v$spl[[paste0("s",i)]] <- spl_basis[,i]
+      dat_v_spl[[paste0("s",i)]] <- spl_basis[,i]
     }
     dim_s <- dim(spl_basis)[2]
 
     if (edge_ind) {
 
       dim_s <- dim_s + 1
-      min_s <- min(dat$v$s, na.rm=T)
-      dat$v$spl[,paste0("s",dim_s)] <- In(dat$v$s==min_s)
+      min_s <- min(dat_v$s, na.rm=T)
+      dat_v_spl[[paste0("s",dim_s)]] <- In(dat_v$s==min_s) # !!!!! Should this be dim_s+1 ?????
       s_to_spl <- function(s) {
         spl <- as.numeric(splines::ns(
           x = s,
@@ -116,36 +80,36 @@ est_cox <- function(
     if (edge_ind) {
 
       dim_s <- 2
-      min_s <- min(dat$v$s, na.rm=T)
-      dat$v$spl[,paste0("s",dim_s)] <- In(dat$v$s==min_s)
+      min_s <- min(dat_v$s, na.rm=T)
+      dat_v_spl[[paste0("s",dim_s)]] <- In(dat_v$s==min_s)
       s_to_spl <- function(s) { c(s, In(s==min_s)) }
 
     } else {
 
       dim_s <- 1
       s_to_spl <- function(s) { s }
+      basic_cox_model <- T
 
     }
 
   }
 
-  # Create phase-two data object (unrounded)
-  dat_v_ph2 <- ss(dat$v, which(dat$v$z==1))
+  # Create phase-two data objects (unrounded)
+  dat_v2 <- dat_v[dat_v$z==1,]
+  dat_v2_spl <- dat_v_spl[dat_v$z==1,, drop=F]
 
   # Alias random variables
-  WT <- dat_v_ph2$weights
-  ST <- dat_v_ph2$strata
-  N <- length(dat$v$s)
-  n <- length(dat_v_ph2$s)
-  X <- dat_v_ph2$x
-  SP <- dat_v_ph2$spl
+  WT <- dat_v2$weights
+  ST <- dat_v2$strata
+  n_vacc <- attr(dat, "n_vacc")
+  dim_x <- attr(dat_v, "dim_x")
+  X <- dat_v2[,c(1:dim_x), drop=F]
+  class(X) <- "data.frame"
+  SP <- dat_v2_spl
   V_ <- t(as.matrix(cbind(X,SP)))
-  Y_ <- dat_v_ph2$y
-  D_ <- dat_v_ph2$delta
-
-  # Get dimensions
+  Y_ <- dat_v2$y
+  D_ <- dat_v2$delta
   dim_v <- dim(V_)[1]
-  dim_x <- attr(dat$v, "dim_x")
 
   # Create set of event times
   i_ev <- which(D_==1)
@@ -160,6 +124,17 @@ est_cox <- function(
   )
   coeffs <- model$coefficients
   beta_n <- as.numeric(coeffs)
+  if (return_p_value) {
+    if (basic_cox_model) {
+      test_res <- list(p=summary(model)$coefficients["s1","Pr(>|z|)"])
+    } else {
+      p_msg <- paste0("Cox-based P-values are only available for the basic Cox",
+                      " model (i.e., not for the spline model or the edge indi",
+                      "cator model).")
+      test_res <- list(p=p_msg)
+    }
+    if (p_val_only) { return(test_res) }
+  }
 
   if (any(is.na(coeffs))) {
 
@@ -200,7 +175,7 @@ est_cox <- function(
         val <- .cache[[as.character(x)]]
         if (is.null(val)) {
           val <- (function(x) {
-            (1/N) * sum(WT*In(Y_>=x)*exp(LIN))
+            (1/n_vacc) * sum(WT*In(Y_>=x)*exp(LIN))
           })(x)
           .cache[[as.character(x)]] <- val
         }
@@ -214,7 +189,7 @@ est_cox <- function(
         val <- .cache[[as.character(x)]]
         if (is.null(val)) {
           val <- (function(x) {
-            (1/N) * as.numeric(V_ %*% (WT*In(Y_>=x)*exp(LIN)))
+            (1/n_vacc) * as.numeric(V_ %*% (WT*In(Y_>=x)*exp(LIN)))
           })(x)
           .cache[[as.character(x)]] <- val
         }
@@ -234,7 +209,7 @@ est_cox <- function(
                 if (!is.na(res[j,i])) {
                   res[i,j] <- res[j,i]
                 } else {
-                  res[i,j] <- (1/N)*sum(WT*In(Y_>=x)*V_[i,]*V_[j,]*exp(LIN))
+                  res[i,j] <- (1/n_vacc)*sum(WT*In(Y_>=x)*V_[i,]*V_[j,]*exp(LIN))
                 }
               }
             }
@@ -254,12 +229,12 @@ est_cox <- function(
   I_tilde <- Reduce("+", lapply(i_ev, function(i) {
     WT[i] * ( (S_2n(Y_[i])/S_0n(Y_[i])) - m_n(Y_[i]) %*% t(m_n(Y_[i])) )
   }))
-  I_tilde <- (1/N)*I_tilde
+  I_tilde <- (1/n_vacc)*I_tilde
   I_tilde_inv <- solve(I_tilde)
 
   # Score function (Cox model)
   l_n <- function(v_i,d_i,y_i) {
-    d_i*(v_i-m_n(y_i)) - (1/N)*Reduce("+", lapply(i_ev, function(j) {
+    d_i*(v_i-m_n(y_i)) - (1/n_vacc)*Reduce("+", lapply(i_ev, function(j) {
       (WT[j]*exp(sum(v_i*beta_n))*In(Y_[j]<=y_i) * (v_i-m_n(Y_[j]))) /
         S_0n(Y_[j])
     }))
@@ -282,12 +257,12 @@ est_cox <- function(
   })()
 
   # Create p_n and p1_n vectors
-  n_strata <- max(dat$v$strata)
+  n_strata <- max(dat_v$strata)
   p_n <- c()
   p1_n <- c()
   for (c in c(1:n_strata)) {
-    p_n[c] <- mean(c==dat$v$strata)
-    p1_n[c] <- mean(c==dat$v$strata & dat$v$z==1)
+    p_n[c] <- mean(c==dat_v$strata)
+    p1_n[c] <- mean(c==dat_v$strata & dat_v$z==1)
   }
 
   # Influence function: beta_hat (est. weights)
@@ -295,7 +270,7 @@ est_cox <- function(
     .cache <- new.env()
 
     exp_terms <- list()
-    for (i in c(1:max(dat$v$strata))) {
+    for (i in c(1:max(dat_v$strata))) {
       js <- which(ST==i)
       if (length(js)>0) {
         exp_terms[[i]] <- (1/length(js)) * Reduce("+", lapply(js, function(j) {
@@ -334,7 +309,7 @@ est_cox <- function(
   })()
 
   # Nuisance constant: mu_n
-  mu_n <- -1 * (1/N) * as.numeric(Reduce("+", lapply(i_ev, function(j) {
+  mu_n <- -1 * (1/n_vacc) * as.numeric(Reduce("+", lapply(i_ev, function(j) {
     (WT[j] * In(Y_[j]<=t_0) * m_n(Y_[j])) / S_0n(Y_[j])
   })))
 
@@ -349,7 +324,7 @@ est_cox <- function(
           k_set <- which(ST==st_i)
           if (length(k_set)>0) {
             return(
-              (1/N) * (p1_n[st_i]-p_n[st_i]*z_i)/(p1_n[st_i])^2 * sum(
+              (1/n_vacc) * (p1_n[st_i]-p_n[st_i]*z_i)/(p1_n[st_i])^2 * sum(
                 unlist(lapply(k_set, function(k) {
                   In(Y_[k]>=y_j) * exp(sum(beta_n*V_[,k]))
                 }))
@@ -374,7 +349,7 @@ est_cox <- function(
           k_set <- which(ST==st_i)
           if (length(k_set)>0) {
             return(
-              (1/N) * (p1_n[st_i]-p_n[st_i]*z_i)/(p1_n[st_i])^2 * sum(
+              (1/n_vacc) * (p1_n[st_i]-p_n[st_i]*z_i)/(p1_n[st_i])^2 * sum(
                 unlist(lapply(k_set, function(k) {
                   ( D_[k] * In(Y_[k]<=t_0) ) / S_0n(Y_[k])
                 }))
@@ -390,10 +365,12 @@ est_cox <- function(
 
   # Breslow estimator
   Lambda_n <- function(t) {
-    (1/N) * sum(unlist(lapply(i_ev, function(i) {
+    (1/n_vacc) * sum(unlist(lapply(i_ev, function(i) {
       WT[i] * ( In(Y_[i]<=t) / S_0n(Y_[i]) )
     })))
   }
+  # Lambda_n_alt <- survival::basehaz(model, centered=FALSE) # !!!!! Debugging
+  # browser() # !!!!! Debugging
 
   # Survival estimator (at a point)
   Q_n <- (function() {
@@ -409,7 +386,7 @@ est_cox <- function(
       val <- .cache[[key]]
       if (is.null(val)) {
         val <- (function(v_i,z_i,d_i,y_i,wt_i,st_i) {
-          pc_4 <- (1/N) * sum(unlist(lapply(i_ev, function(j) {
+          pc_4 <- (1/n_vacc) * sum(unlist(lapply(i_ev, function(j) {
             ( WT[j] * In(Y_[j]<=t_0) * v_1n(st_i,z_i,Y_[j]) ) / (S_0n(Y_[j]))^2
           })))
           pc_5 <- sum(mu_n*infl_fn_beta(v_i,z_i,d_i,y_i,wt_i,st_i))
@@ -417,7 +394,7 @@ est_cox <- function(
 
           if (z_i==1) {
             pc_1 <- ( wt_i * d_i * In(y_i<=t_0) ) / S_0n(y_i)
-            pc_3 <- (1/N) * sum(unlist(lapply(i_ev, function(j) {
+            pc_3 <- (1/n_vacc) * sum(unlist(lapply(i_ev, function(j) {
               (WT[j]*In(Y_[j]<=t_0)*wt_i*In(y_i>=Y_[j])*exp(sum(beta_n*v_i))) /
                 (S_0n(Y_[j]))^2
             })))
@@ -435,38 +412,169 @@ est_cox <- function(
   # Compute marginalized risk
   res_cox <- list()
   Lambda_n_t_0 <- Lambda_n(t_0)
-  res_cox$est_marg <- unlist(lapply(s_out, function(s) {
-    (1/N) * sum((apply(dat$v$x, 1, function(r) {
-      x_i <- as.numeric(r[1:dim_x])
-      s_spl <- s_to_spl(s)
-      exp(-1*exp(sum(beta_n*c(x_i,s_spl)))*Lambda_n_t_0)
-    })))
-  }))
+  if (attr(dat, "covariates_ph2")) {
+    res_cox$est_marg <- unlist(lapply(s_out, function(s) {
+      (1/n_vacc) * sum(dat_v2$weights * apply(dat_v2, 1, function(r) {
+        x_i <- as.numeric(r[1:dim_x])
+        s_spl <- s_to_spl(s)
+        exp(-1*exp(sum(beta_n*c(x_i,s_spl)))*Lambda_n_t_0)
+      }))
+    }))
+  } else {
+    res_cox$est_marg <- unlist(lapply(s_out, function(s) {
+      (1/n_vacc) * sum(apply(dat_v, 1, function(r) {
+        x_i <- as.numeric(r[1:dim_x])
+        s_spl <- s_to_spl(s)
+        exp(-1*exp(sum(beta_n*c(x_i,s_spl)))*Lambda_n_t_0)
+      }))
+    }))
+  }
 
   # Compute variance estimate
   if (ci_type!="none") {
 
-    dat_v_df <- as_df(dat$v, strata=T)
     res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
+    # res_cox$var_est_marg <- unlist(lapply(s_out[length(s_out)], function(s) { # !!!!! Debugging
 
       # Precalculate pieces dependent on s
       s_spl <- s_to_spl(s)
-      K_n <- (1/N) * Reduce("+", apply2(dat_v_df, 1, function(r) {
-        x_i <- as.numeric(r[1:dim_x])
-        Q <- Q_n(c(x_i,s_spl))
-        explin <- exp(sum(c(x_i,s_spl)*beta_n))
-        K_n1 <- Q
-        K_n2 <- Q * explin
-        K_n3 <- Q * explin * c(x_i,s_spl)
-        return(c(K_n1,K_n2,K_n3))
-      }, simplify=F))
-      K_n1 <- K_n[1]
-      K_n2 <- K_n[2]
-      K_n3 <- K_n[3:length(K_n)]
+      if (attr(dat, "covariates_ph2")) {
 
-      (1/N^2) * sum((apply(dat_v_df, 1, function(r) {
+        K_n <- (1/n_vacc) * Reduce("+", apply2(dat_v2, 1, function(r) {
+          wts <- r[["weights"]]
+          x_i <- as.numeric(r[1:dim_x])
+          Q <- Q_n(c(x_i,s_spl))
+          explin <- exp(sum(c(x_i,s_spl)*beta_n))
+          K_n1 <- wts * Q
+          K_n2 <- wts * Q * explin
+          K_n3 <- wts * Q * explin * c(x_i,s_spl)
+          return(c(K_n1,K_n2,K_n3))
+        }, simplify=F))
+        K_n1 <- K_n[1]
+        K_n2 <- K_n[2]
+        K_n3 <- K_n[3:length(K_n)]
 
-        x_i <- as.numeric(r[1:dim_x])
+        K_n4 <- (function() {
+          .cache <- new.env()
+          function(st_i,s) {
+            key <- paste(c(st_i,s), collapse=" ")
+            val <- .cache[[key]]
+            if (is.null(val)) {
+              val <- (function(st_i,s) {
+                k_set <- which(ST==st_i)
+                if (length(k_set)>0) {
+                  return(sum(unlist(lapply(k_set, function(k) {
+                    Q_n(c(as.numeric(X[k,]),s_spl))
+                  }))))
+                } else { return(0) }
+              })(st_i,s)
+              .cache[[key]] <- val
+            }
+            return(val)
+          }
+        })()
+
+      } else {
+
+        K_n <- (1/n_vacc) * Reduce("+", apply2(dat_v, 1, function(r) {
+          x_i <- as.numeric(r[1:dim_x])
+          Q <- Q_n(c(x_i,s_spl))
+          explin <- exp(sum(c(x_i,s_spl)*beta_n))
+          K_n1 <- Q
+          K_n2 <- Q * explin
+          K_n3 <- Q * explin * c(x_i,s_spl)
+          return(c(K_n1,K_n2,K_n3))
+        }, simplify=F))
+        K_n1 <- K_n[1]
+        K_n2 <- K_n[2]
+        K_n3 <- K_n[3:length(K_n)]
+
+      }
+
+      # !!!!!
+      if (F) {
+
+        vec1 <- (1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+
+          x_i <- as.numeric(r[1:dim_x])
+          if (!is.na(r[["s"]])) {
+            s_i <- s_to_spl(r[["s"]])
+          } else {
+            s_i <- NA
+          }
+          z_i <- r[["z"]]
+          d_i <- r[["delta"]]
+          y_i <- r[["y"]]
+          wt_i <- r[["weights"]]
+          st_i <- r[["strata"]]
+
+          pc_2 <- Lambda_n_t_0 * sum(
+            K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          )
+          pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          pc_4 <- K_n1
+
+          # if (ii==77) { browser() } # !!!!!
+          # ii <<- ii+1 # !!!!!
+
+          if (attr(dat, "covariates_ph2")) {
+            den <- sum(ST==st_i)
+            k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
+            pc_5 <- k_n_i * K_n4(st_i,s)
+            return((pc_2+pc_3+pc_4-pc_1-pc_5)^2)
+          } else {
+            pc_1 <- Q_n(c(x_i,s_spl))
+            return((pc_2+pc_3+pc_4-pc_1)^2)
+          }
+
+        })))
+        var1 <- (1/n_vacc^2) * sum(vec1)
+
+        vec2 <- (1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+
+          x_i <- as.numeric(r[1:dim_x])
+          if (!is.na(r[["s"]])) {
+            s_i <- s_to_spl(r[["s"]])
+          } else {
+            s_i <- NA
+          }
+          z_i <- r[["z"]]
+          d_i <- r[["delta"]]
+          y_i <- r[["y"]]
+          wt_i <- r[["weights"]]
+          st_i <- r[["strata"]]
+
+          pc_2 <- Lambda_n_t_0 * sum(
+            K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          )
+          pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          pc_4 <- K_n1
+
+          # if (ii==77) { browser() } # !!!!!
+          # ii <<- ii+1 # !!!!!
+
+          if (attr(dat, "covariates_ph2")) {
+            pc_1 <- wt_i * Q_n(c(x_i,s_spl))
+            den <- sum(ST==st_i)
+            k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
+            pc_5 <- k_n_i * K_n4(st_i,s)
+            return((pc_2+pc_3+pc_4-pc_1-pc_5)^2)
+          } else {
+            pc_1 <- Q_n(c(x_i,s_spl))
+            return((pc_2+pc_3+pc_4-pc_1)^2)
+          }
+
+        })))
+        var2 <- (1/n_vacc^2) * sum(vec2)
+
+        browser()
+
+      }
+
+      # ii <- 1 # !!!!!
+      return((1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+
+        x_i <- as.numeric(r[1:dim_x]) # This will include NAs if is.na(r[["s"]]) and covariates_ph2=T; make sure this doesn't cause issues
         if (!is.na(r[["s"]])) {
           s_i <- s_to_spl(r[["s"]])
         } else {
@@ -478,16 +586,31 @@ est_cox <- function(
         wt_i <- r[["weights"]]
         st_i <- r[["strata"]]
 
-        pc_1 <- Q_n(c(x_i,s_spl))
         pc_2 <- Lambda_n_t_0 * sum(
           K_n3 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
         )
         pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
         pc_4 <- K_n1
 
-        return((pc_1-pc_2-pc_3-pc_4)^2)
+        # if (ii==77) { browser() } # !!!!!
+        # ii <<- ii+1 # !!!!!
 
-      })))
+        if (attr(dat, "covariates_ph2")) {
+          if (wt_i==0) {
+            pc_1 <- 0
+          } else {
+            pc_1 <- wt_i * Q_n(c(x_i,s_spl))
+          }
+          den <- sum(ST==st_i)
+          k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
+          pc_5 <- k_n_i * K_n4(st_i,s)
+          return((pc_2+pc_3+pc_4-pc_1-pc_5)^2)
+        } else {
+          pc_1 <- Q_n(c(x_i,s_spl))
+          return((pc_2+pc_3+pc_4-pc_1)^2)
+        }
+
+      }))))
 
     }))
 
@@ -531,9 +654,7 @@ est_cox <- function(
   # Compute CVE
   if (cve) {
     res$cve <- list(s=s_out)
-    if (attr(dat, "groups")!="both") {
-      stop("Placebo group data not detected.")
-    }
+    if (attr(dat, "groups")!="both") { stop("Placebo group not detected.") }
     ov <- est_overall(dat=dat, t_0=t_0, method=placebo_risk_method, ve=F)
     risk_p <- ov[ov$group=="placebo","est"]
     se_p <- ov[ov$group=="placebo","se"] # This equals sd_p/n_orig
@@ -579,7 +700,8 @@ est_cox <- function(
 
   }
 
-  # Return extras
+  # Return P-value and/or extras
+  if (return_p_value) { res$p <- test_res$p }
   if (return_extras) { res$extras <- list(model=model) }
 
   return(res)

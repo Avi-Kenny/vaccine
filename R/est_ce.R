@@ -26,6 +26,9 @@
 #'     overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
 #'     and "Cox" computes an estimate based on a marginalized Cox model survival
 #'     curve. Only relevant if cve=TRUE.
+#' @param return_p_value Boolean; if TRUE, a P-value corresponding to the null
+#'     hypothesis that the CVE curve is flat is returned. The type of P-value
+#'     corresponds to the \code{type} argument.
 #' @param return_extras Boolean; if TRUE, objects useful for debugging are
 #'     returned.
 #' @param params_cox A list of options returned by
@@ -51,38 +54,38 @@
 #' }
 #' @references Gilbert P, Fong Y, Kenny A, and Carone, M (2022). A Controlled
 #'     Effects Approach to Assessing Immune Correlates of Protection.
-#'     <doi:10.1093/biostatistics/kxac24>
+#'     <doi:10.1093/biostatistics/kxac024>
 #' @export
 est_ce <- function(
     dat, type="Cox", t_0, cr=TRUE, cve=FALSE,
-    s_out=seq(from=min(dat$v$s,na.rm=TRUE), to=max(dat$v$s,na.rm=TRUE), l=101),
-    ci_type="transformed", placebo_risk_method="KM", return_extras=FALSE,
-    params_cox=params_ce_cox(), params_np=params_ce_np()
+    s_out=seq(from=min(dat$s,na.rm=TRUE), to=max(dat$s,na.rm=TRUE), l=101),
+    ci_type="transformed", placebo_risk_method="KM", return_p_value=FALSE,
+    return_extras=FALSE, params_cox=params_ce_cox(), params_np=params_ce_np()
 ) {
 
-  # !!!!! Input validation
+  if (!methods::is(dat,"vaccine_dat")) {
+    stop(paste0("`dat` must be an object of class 'vaccine_dat' returned by lo",
+                "ad_data()."))
+  }
 
-  # !!!!! Move common functionality (e.g. data prep) into here
+  if (!(attr(dat, "groups") %in% c("vaccine", "both"))) {
+    stop("Vaccine group data not detected.")
+  }
 
   if (type=="Cox") {
-    p <- params_cox
     ests <- est_cox(
       dat=dat, t_0=t_0, cr=cr, cve=cve, s_out=s_out, ci_type=ci_type,
-      placebo_risk_method=placebo_risk_method, return_extras=return_extras,
-      spline_df=p$spline_df, spline_knots=p$spline_knots, edge_ind=p$edge_ind
+      placebo_risk_method=placebo_risk_method, return_p_value=return_p_value,
+      return_extras=return_extras, spline_df=params_cox$spline_df,
+      spline_knots=params_cox$spline_knots, edge_ind=params_cox$edge_ind
     )
   }
 
   if (type=="NP") {
-    p <- params_np
-    params_np[["dir"]] <- NULL
-    params_np[["edge_corr"]] <- NULL
-    params_np[["grid_size"]] <- NULL
     ests <- est_np(
       dat=dat, t_0=t_0, cr=cr, cve=cve, s_out=s_out, ci_type=ci_type,
-      placebo_risk_method=placebo_risk_method, return_extras=return_extras, dir=p$dir,
-      edge_corr=p$edge_corr, params=params_np, grid_size=p$grid_size,
-      cf_folds=1
+      placebo_risk_method=placebo_risk_method, return_p_value=return_p_value,
+      return_extras=return_extras, params=params_np, cf_folds=1
     )
   }
 

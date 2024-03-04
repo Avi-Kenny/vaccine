@@ -5,5 +5,8 @@
 ^R/scratch\.R$
 ^cran-comments\.md$
 ^CRAN-SUBMISSION$
+<<<<<<< HEAD
 ^Makefile$
+=======
+>>>>>>> 8c96a88da56ef7662a7a6866f819373f2d9d2174
 ^\.github$

@@ -18,16 +18,17 @@ summary_stats <- function(dat, quietly=FALSE) {
                 "ad_data()."))
   }
 
-  # !!!!! Checks based on identical(dat$v,list()) and identical(dat$p,list())
+  dat_v <- dat[dat$a==1,]
+  dat_p <- dat[dat$a==0,]
 
-  num_ph1_subj_v <- length(dat$v$delta)
-  num_ph1_subj_p <- length(dat$p$delta)
-  num_ph2_subj_v <- sum(dat$v$z)
-  num_ph2_subj_p <- sum(dat$p$z)
-  num_ph1_events_v <- sum(dat$v$delta==1)
-  num_ph1_events_p <- sum(dat$p$delta==1)
-  num_ph2_events_v <- sum(dat$v$z==1 & dat$v$delta==1)
-  num_ph2_events_p <- sum(dat$p$z==1 & dat$p$delta==1)
+  num_ph1_subj_v <- length(dat_v$delta)
+  num_ph1_subj_p <- length(dat_p$delta)
+  num_ph2_subj_v <- sum(dat_v$z)
+  num_ph2_subj_p <- sum(dat_p$z)
+  num_ph1_events_v <- sum(dat_v$delta==1)
+  num_ph1_events_p <- sum(dat_p$delta==1)
+  num_ph2_events_v <- sum(dat_v$z==1 & dat_v$delta==1)
+  num_ph2_events_p <- sum(dat_p$z==1 & dat_p$delta==1)
 
   ss <- list(
     "num_ph1_subj_v" = num_ph1_subj_v,

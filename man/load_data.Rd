@@ -13,7 +13,8 @@ load_data(
   weights,
   ph2,
   strata = NA,
-  data
+  data,
+  covariates_ph2 = FALSE
 )
 }
 \arguments{
@@ -47,6 +48,9 @@ either integer (0/1) or Boolean (T/F) values.}
 identifiers (for two-phase sampling strata).}
 
 \item{data}{A dataframe containing the vaccine trial data.}
+
+\item{covariates_ph2}{A boolean; if at least one of the covariates is
+measured only in the phase-two cohort, set this to TRUE.}
 }
 \value{
 An object of class \code{vaccine_dat}.
@@ -54,9 +58,10 @@ An object of class \code{vaccine_dat}.
 \description{
 This function takes in user-supplied data and returns a data
     object that can be read in by \code{\link{summary_stats}},
-    \code{\link{est_ce}}, and other estimation functions. Data is expected to
-    come from a two-phase sampling design and should be filtered to include
-    all phase-one individuals.
+    \code{\link{est_ce}}, \code{\link{est_med}}, and other estimation
+    functions. Data is expected to come from a vaccine clinical trial,
+    possibly involving two-phase sampling and possibly including a biomarker
+    of interest.
 }
 \examples{
 data(hvtn505)

@@ -1,4 +1,49 @@
 
+# Debugging hypothesis test
+if (F) {
+
+  library(vaccine)
+  set.seed(1)
+  data(hvtn505)
+  dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+                   marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
+                   weights="wt", ph2="casecontrol", data=hvtn505)
+  dat <- dat[dat$a==1,]
+  dat <- dat[sample(c(1:attr(dat, "n_vacc")), size=300),]
+
+  # !!!!! TESTING/PROFILING
+  attr(dat, "n") <- attr(dat, "n_vacc") <- nrow(dat)
+  attr(dat, "n_vacc2") <- round(sum(dat$z))
+  attr(dat, "n_plac") <- 0
+
+  source("R/one_step_estimators.R")
+  source("R/nuisance_estimators.R")
+  source("R/influence_functions.R")
+  source("R/misc_functions.R")
+
+  # ests_np <- est_ce(dat=dat, type="NP", t_0=578, return_p_value=T, params_np=params_ce_np(surv_type="Cox", density_type="parametric"))
+
+  if (T) {
+    t_0 <- 578
+    cr <- T
+    cve <- F
+    s_out <- seq(from=min(dat$s,na.rm=TRUE), to=max(dat$s,na.rm=TRUE), l=101)
+    ci_type <- "transformed"
+    placebo_risk_method <- "KM"
+    return_p_value <- T
+    return_extras <- F
+    params <- params_ce_np(
+      surv_type = "Cox",
+      density_type = "parametric"
+    )
+    cf_folds <- 1
+    p_val_only <- T
+  }
+
+  # Next, run everything manually in est_np.R and profile lines as needed
+
+}
+
 if (F) {
 
   library(vaccine)

@@ -2,10 +2,12 @@
 
 export(diagnostics)
 export(est_ce)
+export(est_med)
 export(est_overall)
 export(load_data)
 export(params_ce_cox)
 export(params_ce_np)
+export(params_med_np)
 export(plot_ce)
 export(summary_stats)
 import(ggplot2)

@@ -21,10 +21,12 @@
 #' ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
 #' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 #' plot_ce(ests_cox, ests_np)
-#' plot_ce(ests_cox, ests_np, density=list(s=dat$v$s, weights=dat$v$weights))
 #' }
 #' @export
 plot_ce <- function(..., which, labels=NA, density=NA) {
+
+  # !!!!! Add to examples:
+  # plot_ce(ests_cox, ests_np, density=list(s=dat_v$s, weights=dat_v$weights))
 
   # To prevent R CMD CHECK notes
   x <- y <- ci_lower <- ci_upper <- NULL; rm(x,y,ci_lower,ci_upper);

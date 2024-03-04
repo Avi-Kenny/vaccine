@@ -10,10 +10,10 @@ est_ce(
   t_0,
   cr = TRUE,
   cve = FALSE,
-  s_out = seq(from = min(dat$v$s, na.rm = TRUE), to = max(dat$v$s, na.rm = TRUE), l =
-    101),
+  s_out = seq(from = min(dat$s, na.rm = TRUE), to = max(dat$s, na.rm = TRUE), l = 101),
   ci_type = "transformed",
   placebo_risk_method = "KM",
+  return_p_value = FALSE,
   return_extras = FALSE,
   params_cox = params_ce_cox(),
   params_np = params_ce_np()
@@ -52,6 +52,10 @@ overall risk in the placebo group. "KM" computes a Kaplan-Meier estimate
 and "Cox" computes an estimate based on a marginalized Cox model survival
 curve. Only relevant if cve=TRUE.}
 
+\item{return_p_value}{Boolean; if TRUE, a P-value corresponding to the null
+hypothesis that the CVE curve is flat is returned. The type of P-value
+corresponds to the \code{type} argument.}
+
 \item{return_extras}{Boolean; if TRUE, objects useful for debugging are
 returned.}
 
@@ -88,5 +92,5 @@ ests_np <- est_ce(dat=dat, type="NP", t_0=578)
 \references{
 Gilbert P, Fong Y, Kenny A, and Carone, M (2022). A Controlled
     Effects Approach to Assessing Immune Correlates of Protection.
-    <doi:10.1093/biostatistics/kxac24>
+    <doi:10.1093/biostatistics/kxac024>
 }
