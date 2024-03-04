@@ -4,7 +4,14 @@
 \alias{plot_ce}
 \title{Plotting controlled effect curves}
 \usage{
-plot_ce(..., which, labels = NA, density = NA)
+plot_ce(
+  ...,
+  which = "CR",
+  density_type = "none",
+  dat = NA,
+  zoom_x = "zoom in",
+  zoom_y = "zoom out"
+)
 }
 \arguments{
 \item{...}{One or more objects of class \code{"vaccine_est"} returned by
@@ -13,13 +20,27 @@ plot_ce(..., which, labels = NA, density = NA)
 \item{which}{One of c("CR", "CVE"); controls whether to plot CR curves or CVE
 curves.}
 
-\item{labels}{A character vector of labels corresponding to the estimate
-objects.}
+\item{density_type}{One of c("none", "kde", "kde edge").
+Controls the type of estimator used for the background marker density
+plot. For "none", no density plot is displayed. For "kde", a weighted
+kernel density estimator is used. For "kde edge", a modified version of
+"kde" is used that allows for a possible point mass at the left edge of
+the marker distribution.}
 
-\item{density}{A list with keys \code{s} and \code{weights} used to construct
-and plot a kernel estimate of the marker density. \code{s} gives a vector
-of marker values and \code{weights} gives the corresponding
-inverse-probability-of-sampling weights.}
+\item{dat}{The data object originally passed into \code{\link{est_ce}}. It is
+only necessary to pass this in if \code{density_type} is not set to
+"none".}
+
+\item{zoom_x}{Either one of c("zoom in", "zoom out") or a vector of
+length 2. Controls the zooming on the X-axis. The default "zoom in" will
+set the zoom limits to the plot estimates. Choosing "zoom out" will set
+the zoom limits to show the entire distribution of the marker. Entering a
+vector of length 2 will set the left and right zoom limits explicitly.}
+
+\item{zoom_y}{Either "zoom out" or a vector of length 2. Controls the zooming
+on the Y-axis. The default "zoom out" will show the entire vertical range
+of the estimates. Entering a vector of length 2 will set the lower and
+upper zoom limits explicitly.}
 }
 \value{
 A plot of CR/CVE estimates

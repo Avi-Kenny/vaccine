@@ -71,8 +71,8 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
 
     # Prevents CRAN Note
     if (F) {
-      x <- earth::earth
-      x <- glmnet::glmnet
+      # x <- earth::earth
+      # x <- glmnet::glmnet
       x <- e1071::svm
     }
 
@@ -92,7 +92,7 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
       }
     )
 
-    srv <- survSuperLearner(
+    srv <- suppressWarnings(survSuperLearner(
       time = dat_v$y,
       event = dat_v$delta,
       X = dat_v[,c(1:dim_x,which(names(dat_v)=="s"))],
@@ -102,7 +102,7 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
       cens.SL.library = methods,
       obsWeights = dat_v$weights,
       control = list(initWeightAlg=methods[1], max.SL.iter=10)
-    )
+    ))
 
     srv_pred <- srv$event.SL.predict
     cens_pred <- srv$cens.SL.predict
@@ -148,7 +148,7 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
     )
     if (type=="survML-G") {
 
-      fit <- do.call(survML::stackG, survML_args)
+      fit <- suppressWarnings(do.call(survML::stackG, survML_args))
       srv_pred <- fit$S_T_preds
       cens_pred <- fit$S_C_preds
 
@@ -156,8 +156,8 @@ construct_Q_n <- function(type, dat_v, vals, return_model=F) {
 
       survML_args2 <- survML_args
       survML_args2$event <- round(1 - survML_args2$event)
-      fit_s <- do.call(survML::stackL, survML_args)
-      fit_c <- do.call(survML::stackL, survML_args2)
+      fit_s <- suppressWarnings(do.call(survML::stackL, survML_args))
+      fit_c <- suppressWarnings(do.call(survML::stackL, survML_args2))
       srv_pred <- fit_s$S_T_preds
       cens_pred <- fit_c$S_T_preds
 
@@ -279,7 +279,7 @@ construct_Q_noS_n <- function(type, dat, vals, return_model=F) {
       }
     )
 
-    srv <- survSuperLearner(
+    srv <- suppressWarnings(survSuperLearner(
       time = dat$y,
       event = dat$delta,
       X = dat[,c(1:dim_x), drop=F],
@@ -288,7 +288,7 @@ construct_Q_noS_n <- function(type, dat, vals, return_model=F) {
       event.SL.library = methods,
       cens.SL.library = methods,
       control = list(initWeightAlg=methods[1], max.SL.iter=10)
-    )
+    ))
 
     srv_pred <- srv$event.SL.predict
     cens_pred <- srv$cens.SL.predict
@@ -937,20 +937,21 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
 
     # Fit SuperLearner regression
     do.call("library", list("SuperLearner"))
-    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.loess",
-                    "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
+    # SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.loess",
+    #                 "SL.nnet", "SL.ksvm", "SL.rpartPrune", "SL.svm")
+    SL.library <- c("SL.mean", "SL.mean", "SL.gam", "SL.gam", "SL.ranger") # Changed on 2024-02-13; SL.mean written twice to avoid SuperLearner bug
 
-    model_sl <- SuperLearner::SuperLearner(
+    model_sl <- suppressWarnings(SuperLearner::SuperLearner(
       Y = dat_v2$po,
       X = dat_v2[,c(1:dim_x,which(names(dat_v2)=="s"))],
       newX = newX,
       family = "gaussian",
       SL.library = SL.library,
       verbose = F
-    )
+    ))
     pred <- as.numeric(model_sl$SL.predict)
     if (sum(pred<0)!=0) {
-      warning(paste("gamma_n:", sum(pred<0), "negative predicted values"))
+      warning(paste("gamma_n:", sum(pred<0), "negative predicted values."))
     }
 
     # Construct regression function
@@ -973,11 +974,20 @@ construct_gamma_n <- function(dat_v, type="Super Learner", omega_n,
 construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
                            f_sIx_z1_n) {
 
+  # Prevents CRAN Note
+  if (F) {
+    x <- ranger::ranger
+    x <- gam::gam
+  }
+
   # Set library
   if (type=="Super Learner") {
     do.call("library", list("SuperLearner"))
-    SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.nnet",
-                    "SL.glmnet")
+    # SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.earth", "SL.nnet",
+    #                 "SL.glmnet")
+    # SL.library <- c("SL.mean", "SL.gam", "SL.ranger", "SL.nnet",
+    #                 "SL.glmnet")
+    SL.library <- c("SL.mean", "SL.mean", "SL.gam", "SL.gam", "SL.ranger") # Changed 2024-02-13; SL.mean written twice to avoid SuperLearner bug
   } else if (type=="logistic") {
     SL.library <- c("SL.glm")
   }
@@ -993,24 +1003,24 @@ construct_g_zn <- function(dat_v, type="Super Learner", f_sIx_n,
   # Fit SuperLearner regression
   if (attr(dat_v, "covariates_ph2")) {
     newX <- dplyr::distinct(datx_v2)
-    model_sl <- SuperLearner::SuperLearner(
+    model_sl <- suppressWarnings(SuperLearner::SuperLearner(
       Y = dat_v2$z,
       X = datx_v2,
       newX = newX,
       family = "binomial",
       SL.library = SL.library,
       verbose = F
-    )
+    ))
   } else {
     newX <- dplyr::distinct(datx_v)
-    model_sl <- SuperLearner::SuperLearner(
+    model_sl <- suppressWarnings(SuperLearner::SuperLearner(
       Y = dat_v$z,
       X = datx_v,
       newX = newX,
       family = "binomial",
       SL.library = SL.library,
       verbose = F
-    )
+    ))
   }
 
   pred <- as.numeric(model_sl$SL.predict)

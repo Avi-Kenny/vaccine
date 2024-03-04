@@ -49,20 +49,20 @@ test_that("load_data", {
 })
 
 test_that("load_data (character/factor columns)", {
-  expect_equal(length(dat_fac), 14)
-  expect_equal(length(dat_ch), 14)
+  expect_equal(length(dat_fac), 13)
+  expect_equal(length(dat_ch), 13)
   expect_equal(attr(dat_fac, "covariate_names"),
-               c("age", "BMI", paste0("x_fac_",c(1:5))))
+               c("age", "BMI", paste0("x_fac_",c(1:4))))
   expect_equal(attr(dat_ch, "covariate_names"),
-               c("age", "BMI", paste0("x_ch_",c(1:5))))
-  expect_equal(attr(dat_fac, "dim_x"), 7)
-  expect_equal(attr(dat_ch, "dim_x"), 7)
-  expect_equal(names(dat_fac)[1:7], paste0("x",c(1:7)))
-  expect_equal(names(dat_ch)[1:7], paste0("x",c(1:7)))
+               c("age", "BMI", paste0("x_ch_",c(1:4))))
+  expect_equal(attr(dat_fac, "dim_x"), 6)
+  expect_equal(attr(dat_ch, "dim_x"), 6)
+  expect_equal(names(dat_fac)[1:6], paste0("x",c(1:6)))
+  expect_equal(names(dat_ch)[1:6], paste0("x",c(1:6)))
   expect_equal(sort(unique(dat_fac$x3)), c(0,1))
-  expect_equal(sort(unique(dat_fac$x7)), c(0,1))
+  expect_equal(sort(unique(dat_fac$x6)), c(0,1))
   expect_equal(sort(unique(dat_ch$x3)), c(0,1))
-  expect_equal(sort(unique(dat_ch$x7)), c(0,1))
+  expect_equal(sort(unique(dat_ch$x6)), c(0,1))
 })
 
 ss <- summary_stats(dat, quietly=TRUE)
@@ -234,13 +234,10 @@ test_that("est_np (CR)", {
   expect_equal(ests_np$cr$s[50], 1.15447, tolerance=0.01)
   expect_equal(ests_np$cr$est[1], 0.2692285, tolerance=0.01)
   expect_equal(ests_np$cr$est[50], 0.08646103, tolerance=0.01)
-  # expect_equal(ests_np$cr$se[1], 999, tolerance=0.01)
-  # expect_equal(ests_np$cr$se[50], 999, tolerance=0.01)
-  # expect_equal(ests_np$cr$se[101], 999, tolerance=0.01)
-  expect_equal(ests_np$cr$ci_lower[1], 0.161259, tolerance=0.01)
-  expect_equal(ests_np$cr$ci_lower[50], 0.06596329, tolerance=0.01)
-  expect_equal(ests_np$cr$ci_upper[1], 0.4155087, tolerance=0.01)
-  expect_equal(ests_np$cr$ci_upper[50], 0.1151884, tolerance=0.01)
+  expect_equal(ests_np$cr$ci_lower[1], 0.1541638, tolerance=0.01)
+  expect_equal(ests_np$cr$ci_lower[50], 0.06357959, tolerance=0.01)
+  expect_equal(ests_np$cr$ci_upper[1], 0.4286726, tolerance=0.01)
+  expect_equal(ests_np$cr$ci_upper[50], 0.119551, tolerance=0.01)
 })
 
 test_that("est_np (CVE)", {
@@ -248,16 +245,86 @@ test_that("est_np (CVE)", {
   expect_equal(ests_np$cve$s[50], 1.15447, tolerance=0.01)
   expect_equal(ests_np$cve$est[1], -8.348665, tolerance=0.01)
   expect_equal(ests_np$cve$est[50], -2.002264, tolerance=0.01)
-  expect_equal(ests_np$cve$se[1], 3.161112, tolerance=0.01)
-  expect_equal(ests_np$cve$se[50], 0.8215806, tolerance=0.01)
-  expect_equal(ests_np$cve$ci_lower[1], -17.13744, tolerance=0.01)
-  expect_equal(ests_np$cve$ci_lower[50], -4.133193, tolerance=0.01)
-  expect_equal(ests_np$cve$ci_upper[1], -3.837045, tolerance=0.01)
-  expect_equal(ests_np$cve$ci_upper[50], -0.7789708, tolerance=0.01)
+  expect_equal(ests_np$cve$se[1], 3.305265, tolerance=0.01)
+  expect_equal(ests_np$cve$se[50], 0.8562881, tolerance=0.01)
+  expect_equal(ests_np$cve$ci_lower[1], -17.69397, tolerance=0.01)
+  expect_equal(ests_np$cve$ci_lower[50], -4.250831, tolerance=0.01)
+  expect_equal(ests_np$cve$ci_upper[1], -3.695139, tolerance=0.01)
+  expect_equal(ests_np$cve$ci_upper[50], -0.7437654, tolerance=0.01)
 })
+
+# Make sure character/categorical covariates are handled correctly
+ests_o_KM_fac <- est_overall(dat=dat_fac, t_0=578, method="KM")
+ests_o_KM_ch <- est_overall(dat=dat_ch, t_0=578, method="KM")
+ests_risk_v_fac <- ests_o_KM_fac[
+  ests_o_KM_fac$stat=="risk"&ests_o_KM_fac$group=="vaccine",
+]
+ests_risk_v_ch <- ests_o_KM_ch[
+  ests_o_KM_ch$stat=="risk"&ests_o_KM_ch$group=="vaccine",
+]
+
+test_that("est_overall (KM); factor/character X", {
+  expect_equal(ests_risk_v_fac$est, 0.04067009, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$se, 0.008230842, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$ci_lower, 0.02506853, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$ci_upper, 0.05602199, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$est, 0.04067009, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$se, 0.008230842, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$ci_lower, 0.02506853, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$ci_upper, 0.05602199, tolerance=0.01)
+})
+
+ests_o_Cox_fac <- est_overall(dat=dat_fac, t_0=578, method="Cox")
+ests_o_Cox_ch <- est_overall(dat=dat_ch, t_0=578, method="Cox")
+ests_risk_v_fac <- ests_o_Cox_fac[
+  ests_o_Cox_fac$stat=="risk"&ests_o_Cox_fac$group=="vaccine",
+]
+ests_risk_v_ch <- ests_o_Cox_ch[
+  ests_o_Cox_ch$stat=="risk"&ests_o_Cox_ch$group=="vaccine",
+]
+
+test_that("est_overall (Cox); factor/character X", {
+  expect_equal(ests_risk_v_fac$est, 0.04147597, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$se, 0.00806502, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$ci_lower, 0.02825303, tolerance=0.01)
+  expect_equal(ests_risk_v_fac$ci_upper, 0.06050218, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$est, 0.04147597, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$se, 0.00806502, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$ci_lower, 0.02825303, tolerance=0.01)
+  expect_equal(ests_risk_v_ch$ci_upper, 0.06050218, tolerance=0.01)
+})
+
+ests_cox_fac <- est_ce(dat=dat_fac, type="Cox", t_0=578, cve=T)
+ests_cox_ch <- est_ce(dat=dat_ch, type="Cox", t_0=578, cve=T)
+
+test_that("est_cox (CR)", {
+  expect_equal(ests_cox_fac$cr$s[50], 1.15447, tolerance=0.01)
+  expect_equal(ests_cox_fac$cr$est[50], 0.0911562, tolerance=0.01)
+  expect_equal(ests_cox_fac$cr$se[50], 0.02091785, tolerance=0.01)
+  expect_equal(ests_cox_fac$cr$ci_lower[50], 0.05762341, tolerance=0.01)
+  expect_equal(ests_cox_fac$cr$ci_upper[50], 0.1412773, tolerance=0.01)
+  expect_equal(ests_cox_ch$cr$s[50], 1.15447, tolerance=0.01)
+  expect_equal(ests_cox_ch$cr$est[50], 0.0911562, tolerance=0.01)
+  expect_equal(ests_cox_ch$cr$se[50], 0.02091785, tolerance=0.01)
+  expect_equal(ests_cox_ch$cr$ci_lower[50], 0.05762341, tolerance=0.01)
+  expect_equal(ests_cox_ch$cr$ci_upper[50], 0.1412773, tolerance=0.01)
+})
+
+# Test plotting functionality
 
 p <- plot_ce(ests_np)
 
 test_that("plot_ce", {
   expect_equal(class(p), c("gg", "ggplot"))
 })
+
+# # Should produce errors
+# plot_ce(which="CVE")
+# plot_ce(list(x=999), which="CVE")
+# plot_ce(ests_cox, which="CVE", zoom_x=c(1,2,3))
+# plot_ce(ests_cox, which="CVE", zoom_x="wrong")
+# plot_ce(ests_cox, which="CVE", zoom_y=c(1,2,3))
+# plot_ce(ests_cox, which="CVE", zoom_y="wrong")
+# plot_ce(ests_cox3, which="CVE", zoom_x="zoom out")
+# plot_ce(ests_cox3, which="CVE", zoom_x=2, dat=dat)
+# plot_ce(ests_cox, density_type="kde")

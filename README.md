@@ -30,9 +30,9 @@ The current development version can be installed using `devtools::install_github
 devtools::install_github(repo="Avi-Kenny/vaccine")
 ```
 
-<!--## Documentation
+## Documentation
 
-The full package documentation can be found at [https://avi-kenny.github.io/SimEngine/](https://avi-kenny.github.io/SimEngine/). All of the CRAN documentation (i.e. the function reference and vignettes) can also be found here.-->
+The full package documentation can be found at [https://avi-kenny.github.io/vaccine/](https://avi-kenny.github.io/vaccine/).
 
 ## Bugs reports and feature requests
 

@@ -8,27 +8,18 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-<<<<<<< HEAD
-Semiparametric and nonparametric statistical tools for immune correlates analysis of vaccine efficacy clinical trial data. This includes calculation of summary statistics and estimation of risk, vaccine efficacy, controlled risk, and controlled vaccine efficacy based on Gilbert P, Fong Y, Kenny A, and Carone, M (2022) \doi{10.1093/biostatistics/kxac24}. Also included are semiparametric-efficient, causal machine learning estimators of stochastic vaccine efficacy (SVE) as initially studied in Hejazi N, van der Laan M, Janes H, Gilbert P, Benkeser D (2021) \doi{10.1111/biom.13375}.
+Various semiparametric and nonparametric statistical tools for immune correlates analysis of vaccine clinical trial data. This includes calculation of summary statistics and estimation of risk, vaccine efficacy, controlled effects (controlled risk and controlled vaccine efficacy), and mediation effects (natural direct effect, natural indirect effect, proportion mediated). See Gilbert P, Fong Y, Kenny A, and Carone, M (2022) \doi{10.1093/biostatistics/kxac024} and Fay MP and Follmann DA (2023) \doi{10.48550/arXiv.2208.06465}.
 }
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/Avi-Kenny/vaccine}
+  \item \url{https://avi-kenny.github.io/vaccine/}
   \item Report bugs at \url{https://github.com/Avi-Kenny/vaccine/issues}
 }
 
-=======
-Various semiparametric and nonparametric statistical tools for immune correlates analysis of vaccine clinical trial data. This includes calculation of summary statistics and estimation of risk, vaccine efficacy, controlled effects (controlled risk and controlled vaccine efficacy), and mediation effects (natural direct effect, natural indirect effect, proportion mediated). See Gilbert P, Fong Y, Kenny A, and Carone, M (2022) \doi{10.1093/biostatistics/kxac024} and Fay MP and Follmann DA (2023) \doi{10.48550/arXiv.2208.06465}.
->>>>>>> 8c96a88da56ef7662a7a6866f819373f2d9d2174
 }
 \author{
-\strong{Maintainer}: Avi Kenny \email{avi.kenny@gmail.com} (\href{https://orcid.org/0000-0002-9465-7307}{ORCID}) [copyright holder]
-
-Authors:
-\itemize{
-  \item Nima Hejazi \email{nh@nimahejazi.org} (\href{https://orcid.org/0000-0002-7127-2789}{ORCID})
-}
+\strong{Maintainer}: Avi Kenny \email{avi.kenny@gmail.com}
 
 }
 \keyword{internal}
