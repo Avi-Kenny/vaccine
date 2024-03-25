@@ -13,13 +13,13 @@ Various semiparametric and nonparametric statistical tools for immune correlates
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/Avi-Kenny/vaccine}
+  \item \url{https://avi-kenny.github.io/vaccine/}
   \item Report bugs at \url{https://github.com/Avi-Kenny/vaccine/issues}
 }
 
 }
 \author{
-\strong{Maintainer}: Avi Kenny \email{avi.kenny@gmail.com} [copyright holder]
+\strong{Maintainer}: Avi Kenny \email{avi.kenny@gmail.com}
 
 }
 \keyword{internal}
