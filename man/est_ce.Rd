@@ -10,6 +10,7 @@ est_ce(
   t_0,
   cr = TRUE,
   cve = FALSE,
+  cr_placebo_arm = F,
   s_out = seq(from = min(dat$s, na.rm = TRUE), to = max(dat$s, na.rm = TRUE), l = 101),
   ci_type = "transformed",
   placebo_risk_method = "KM",
@@ -33,6 +34,9 @@ returned.}
 
 \item{cve}{Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
 computed and returned.}
+
+\item{cr_placebo_arm}{Boolean. If TRUE, the CR curve is estimated for the
+placebo arm instead of the vaccine arm.}
 
 \item{s_out}{A numeric vector of s-values (on the biomarker scale) for which
 cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points

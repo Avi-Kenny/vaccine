@@ -11,6 +11,8 @@
 #'     returned.
 #' @param cve Boolean. If TRUE, the controlled vaccine efficacy (CVE) curve is
 #'     computed and returned.
+#' @param cr_placebo_arm Boolean. If TRUE, the CR curve is estimated for the
+#'     placebo arm instead of the vaccine arm.
 #' @param s_out A numeric vector of s-values (on the biomarker scale) for which
 #'     cve(s) and/or cr(s) are computed. Defaults to a grid of 101 points
 #'     between the min and max biomarker values.
@@ -57,7 +59,7 @@
 #'     <doi:10.1093/biostatistics/kxac024>
 #' @export
 est_ce <- function(
-    dat, type="Cox", t_0, cr=TRUE, cve=FALSE,
+    dat, type="Cox", t_0, cr=TRUE, cve=FALSE, cr_placebo_arm=F,
     s_out=seq(from=min(dat$s,na.rm=TRUE), to=max(dat$s,na.rm=TRUE), l=101),
     ci_type="transformed", placebo_risk_method="KM", return_p_value=FALSE,
     return_extras=FALSE, params_cox=params_ce_cox(), params_np=params_ce_np()
@@ -70,6 +72,23 @@ est_ce <- function(
 
   if (!(attr(dat, "groups") %in% c("vaccine", "both"))) {
     stop("Vaccine group data not detected.")
+  }
+
+  if (cr_placebo_arm && cve) {
+    stop(paste0("`cve` option cannot be set to TRUE if `cr_placebo_arm` is als",
+                "o set to TRUE."))
+  }
+
+  if (cr_placebo_arm) {
+
+    dat$a <- round(1 - dat$a)
+    n_vacc <- attr(dat, "n_vacc")
+    n_vacc2 <- attr(dat, "n_vacc2")
+    n_plac <- attr(dat, "n_plac")
+    attr(dat, "n_vacc") <- sum(dat$a)
+    attr(dat, "n_vacc2") <- sum(dat$a*dat$z)
+    attr(dat, "n_plac") <- sum(1-dat$a)
+
   }
 
   if (type=="Cox") {
@@ -87,6 +106,10 @@ est_ce <- function(
       placebo_risk_method=placebo_risk_method, return_p_value=return_p_value,
       return_extras=return_extras, params=params_np, cf_folds=1
     )
+  }
+
+  if (cr_placebo_arm) {
+    attr(ests, "cr_placebo_arm") <- TRUE
   }
 
   class(ests) <- "vaccine_est"

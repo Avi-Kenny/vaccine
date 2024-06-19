@@ -111,6 +111,8 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA,
   # Construct KDE dataframe
   if (density_type!="none") {
 
+    if (!is.null(attr(list(...)[[1]], "cr_placebo_arm"))) { dat$a <- 1-dat$a }
+
     dat_v <- dat[dat$a==1,]
     min_s <- min(dat_v$s, na.rm=T)
     p_edge <- mean(dat_v$s==min_s, na.rm=T) # !!!!! Make this weighted
