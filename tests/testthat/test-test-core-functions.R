@@ -44,7 +44,7 @@ test_that("load_data", {
   expect_equal(sum(dat[dat$a==1,"y"]), 391608)
   expect_equal(sum(dat[dat$a==0,"y"]), 380935)
   expect_equal(unique(dat$delta), c(0,1))
-  expect_equal(sort(unique(dat$strata), na.last=T), c(1:8,NA))
+  expect_equal(sort(unique(dat$strata)), c(1:8))
   expect_equal(unique(dat$z), c(0,1))
 })
 
@@ -225,8 +225,10 @@ test_that("est_cox spline (CVE)", {
 })
 
 set.seed(1)
-ests_np <- est_ce(dat=dat, type="NP", t_0=578, cve=T,
-                  params_np=params_ce_np(surv_type="Cox"))
+suppressWarnings({
+  ests_np <- est_ce(dat=dat, type="NP", t_0=578, cve=T,
+                    params_np=params_ce_np(surv_type="Cox"))
+})
 
 test_that("est_np (CR)", {
   expect_equal(class(ests_np), "vaccine_est")
