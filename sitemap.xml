@@ -1,69 +1,25 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/404.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/LICENSE.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/articles/index.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/articles/vaccine.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/authors.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/index.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/news/index.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/as_table.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/diagnostics.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/est_ce.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/est_med.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/est_overall.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/hvtn505.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/index.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/load_data.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/params_ce_cox.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/params_ce_np.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/params_med_np.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/plot_ce.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/summary_stats.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/trim.html</loc>
-  </url>
-  <url>
-    <loc>https://avi-kenny.github.io/vaccine/reference/vaccine-package.html</loc>
-  </url>
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>https://avi-kenny.github.io/vaccine/404.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/LICENSE.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/articles/index.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/articles/vaccine.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/authors.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/index.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/news/index.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/as_table.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/diagnostics.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/est_ce.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/est_med.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/est_overall.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/hvtn505.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/index.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/load_data.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/params_ce_cox.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/params_ce_np.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/params_med_np.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/plot_ce.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/summary_stats.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/trim.html</loc></url>
+<url><loc>https://avi-kenny.github.io/vaccine/reference/vaccine-package.html</loc></url>
 </urlset>
+
