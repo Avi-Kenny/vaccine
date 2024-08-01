@@ -33,14 +33,33 @@
 #'     upper zoom limits explicitly.
 #' @return A plot of CR/CVE estimates
 #' @examples
+#' \donttest{
+#' # Plot one curve
 #' data(hvtn505)
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
-#' \donttest{
 #' ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
+#' plot_ce(ests_cox, density_type="kde", dat=dat)
+#'
+#' # Trim display of plot according to quantiles of the biomarker distribution
+#' ests_cox_tr <- trim(ests_cox, dat=dat, quantiles=c(0.05,0.95))
+#' plot_ce(ests_cox_tr, density_type="kde", dat=dat)
+#'
+#' # Plot multiple curves (same biomarker)
 #' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
-#' plot_ce(ests_cox, ests_np)
+#' plot_ce(ests_cox, ests_np, density_type="kde", dat=dat)
+#'
+#' # Plot multiple curves (two different biomarkers)
+#' dat2 <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+#'                   marker="IgG_env", covariates=c("age","BMI","bhvrisk"),
+#'                   weights="wt", ph2="casecontrol", data=hvtn505)
+#' ests_cox2 <- est_ce(dat=dat2, type="Cox", t_0=578)
+#' dat_alt <- list(
+#'   data.frame(s=dat$s[dat$a==1], weights=dat$weights[dat$a==1]),
+#'   data.frame(s=dat2$s[dat2$a==1], weights=dat2$weights[dat2$a==1])
+#' )
+#' plot_ce(ests_cox, ests_cox2, density_type="kde", dat_alt=dat_alt)
 #' }
 #' @export
 plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
@@ -281,32 +300,13 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
 #' @return A modified copy of \code{ests} with the data trimmed.
 #' @examples
 #' \donttest{
-#' # Plot one curve
 #' data(hvtn505)
 #' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
 #'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
-#' plot_ce(ests_cox, density_type="kde", dat=dat)
-#'
-#' # Trim display of plot according to quantiles of the biomarker distribution
 #' ests_cox_tr <- trim(ests_cox, dat=dat, quantiles=c(0.05,0.95))
 #' plot_ce(ests_cox_tr, density_type="kde", dat=dat)
-#'
-#' # Plot multiple curves (same biomarker)
-#' ests_np <- est_ce(dat=dat, type="NP", t_0=578)
-#' plot_ce(ests_cox, ests_np, density_type="kde", dat=dat)
-#'
-#' # Plot multiple curves (two different biomarkers)
-#' dat2 <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
-#'                   marker="IgG_env", covariates=c("age","BMI","bhvrisk"),
-#'                   weights="wt", ph2="casecontrol", data=hvtn505)
-#' ests_cox2 <- est_ce(dat=dat2, type="Cox", t_0=578)
-#' dat_alt <- list(
-#'   data.frame(s=dat$s[dat$a==1], weights=dat$weights[dat$a==1]),
-#'   data.frame(s=dat2$s[dat2$a==1], weights=dat2$weights[dat2$a==1])
-#' )
-#' plot_ce(ests_cox, ests_cox2, density_type="kde", dat_alt=dat_alt)
 #' }
 #' @export
 trim <- function(ests, dat, quantiles) {
