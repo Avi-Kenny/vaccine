@@ -4,7 +4,7 @@
 \alias{trim}
 \title{Trim data for plotting/reporting}
 \usage{
-trim(ests, dat, quantiles)
+trim(ests, dat, quantiles, placebo = FALSE)
 }
 \arguments{
 \item{ests}{An object of class \code{"vaccine_est"} returned by
@@ -16,6 +16,9 @@ trim(ests, dat, quantiles)
 marker distribution at which to trim the data; if, for example,
 \code{quantiles=c(0.1,0.9)} is specified, values outside the 10% and 90%
 (weighted) quantiles of the marker distribution will be trimmed.}
+
+\item{placebo}{Boolean; if TRUE, quantiles are computed based on the marker
+distribution in the placebo arm instead of the vaccine arm}
 }
 \value{
 A modified copy of \code{ests} with the data trimmed.

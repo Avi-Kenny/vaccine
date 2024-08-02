@@ -303,6 +303,8 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
 #'     marker distribution at which to trim the data; if, for example,
 #'     \code{quantiles=c(0.1,0.9)} is specified, values outside the 10% and 90%
 #'     (weighted) quantiles of the marker distribution will be trimmed.
+#' @param placebo Boolean; if TRUE, quantiles are computed based on the marker
+#'     distribution in the placebo arm instead of the vaccine arm
 #' @return A modified copy of \code{ests} with the data trimmed.
 #' @examples
 #' \donttest{
@@ -315,10 +317,14 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
 #' plot_ce(ests_cox_tr, density_type="kde", dat=dat)
 #' }
 #' @export
-trim <- function(ests, dat, quantiles) {
+trim <- function(ests, dat, quantiles, placebo=FALSE) {
 
-  dat_v <- dat[dat$a==1,]
-  cutoffs <- stats::quantile(dat_v$s, na.rm=T, probs=quantiles) # !!!!! Make this weighted quantile
+  if (placebo) {
+    dat_ <- dat[dat$a==0,]
+  } else {
+    dat_ <- dat[dat$a==1,]
+  }
+  cutoffs <- stats::quantile(dat_$s, na.rm=T, probs=quantiles) # !!!!! Make this weighted quantile
 
   for (i in c(1:length(ests))) {
     if (names(ests)[i] %in% c("cr", "cve")) {
