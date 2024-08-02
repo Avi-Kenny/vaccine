@@ -185,10 +185,14 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
       dat_ <- dat_alt[[i]]
       min_s <- min(dat_$s, na.rm=T)
       p_edge <- sum(dat_$weights*In(dat_$s==min_s), na.rm=T)/nrow(dat_)
-      if (p_edge<0.03 & density_type=="kde edge") { density_type <- "kde" }
+      if (p_edge>=0.03 & density_type=="kde edge") {
+        density_type2 <- "kde edge"
+      } else {
+        density_type2 <- "kde"
+      }
       dens_height <- 0.6 * (z_y[2]-z_y[1])
 
-      if (density_type=="kde") {
+      if (density_type2=="kde") {
 
         df_dens <- data.frame(
           s = dat_$s[!is.na(dat_$s)],
@@ -218,15 +222,17 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
         plot_width <- z_x[2]-z_x[1]
         rect_x <- c(min_s-0.025*plot_width, min_s+0.025*plot_width)
         rect_y <- p_edge / (rect_x[2]-rect_x[1])
-        inds_to_remove <- dens$x>rect_x[2]
-        dens$x <- dens$x[inds_to_remove]
-        dens$y <- dens$y[inds_to_remove]
-        dens$x[length(dens$x)+1] <- rect_x[1]
-        dens$y[length(dens$y)+1] <- rect_y
-        dens$x[length(dens$x)+1] <- rect_x[2]
-        dens$y[length(dens$y)+1] <- rect_y
-        dens$x[length(dens$x)+1] <- rect_x[2] + plot_width/10^5
-        dens$y[length(dens$y)+1] <- z_y[1]
+        inds_to_keep <- dens$x>rect_x[2]
+        dens$x <- dens$x[inds_to_keep]
+        dens$y <- dens$y[inds_to_keep]
+        dens$x <- c(rect_x[1], rect_x[2], rect_x[2] + plot_width/10^5, dens$x)
+        dens$y <- c(rect_y, rect_y, z_y[1], dens$y)
+        # dens$x[length(dens$x)+1] <- rect_x[1]
+        # dens$y[length(dens$y)+1] <- rect_y
+        # dens$x[length(dens$x)+1] <- rect_x[2]
+        # dens$y[length(dens$y)+1] <- rect_y
+        # dens$x[length(dens$x)+1] <- rect_x[2] + plot_width/10^5
+        # dens$y[length(dens$y)+1] <- z_y[1]
 
       }
 
