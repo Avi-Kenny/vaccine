@@ -9,6 +9,7 @@ plot_ce(
   which = "CR",
   density_type = "none",
   dat = NA,
+  dat_alt = NA,
   zoom_x = "zoom in",
   zoom_y = "zoom out"
 )
@@ -27,9 +28,18 @@ kernel density estimator is used. For "kde edge", a modified version of
 "kde" is used that allows for a possible point mass at the left edge of
 the marker distribution.}
 
-\item{dat}{The data object originally passed into \code{\link{est_ce}}. It is
-only necessary to pass this in if \code{density_type} is not set to
-"none".}
+\item{dat}{The data object originally passed into \code{\link{est_ce}}, used
+for plotting densities. It is only necessary to pass this in if
+\code{density_type} is not set to "none".}
+
+\item{dat_alt}{Alternative data object; a list containing one or more
+dataframes, each of the form \code{data.frame(s=..., weights=...)}.
+Column \code{s} contains biomarker values and column \code{weights}
+contains corresponding two-phase sampling weights. This can be used as an
+alternative to specifying \code{dat}, and is particularly useful for
+plotting multiple densities on a single plot. If plotting multiple
+densities, the order of the dataframes should correspond to the order of
+\code{"vaccine_est"} objects passed in. See examples.}
 
 \item{zoom_x}{Either one of c("zoom in", "zoom out") or a vector of
 length 2. Controls the zooming on the X-axis. The default "zoom in" will
@@ -49,13 +59,32 @@ A plot of CR/CVE estimates
 Plot CR and/or CVE curves
 }
 \examples{
+\donttest{
+# Plot one curve
 data(hvtn505)
 dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
                  weights="wt", ph2="casecontrol", data=hvtn505)
-\donttest{
 ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
+plot_ce(ests_cox, density_type="kde", dat=dat)
+
+# Trim display of plot according to quantiles of the biomarker distribution
+ests_cox_tr <- trim(ests_cox, dat=dat, quantiles=c(0.05,0.95))
+plot_ce(ests_cox_tr, density_type="kde", dat=dat)
+
+# Plot multiple curves (same biomarker)
 ests_np <- est_ce(dat=dat, type="NP", t_0=578)
-plot_ce(ests_cox, ests_np)
+plot_ce(ests_cox, ests_np, density_type="kde", dat=dat)
+
+# Plot multiple curves (two different biomarkers)
+dat2 <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+                  marker="IgG_env", covariates=c("age","BMI","bhvrisk"),
+                  weights="wt", ph2="casecontrol", data=hvtn505)
+ests_cox2 <- est_ce(dat=dat2, type="Cox", t_0=578)
+dat_alt <- list(
+  data.frame(s=dat$s[dat$a==1], weights=dat$weights[dat$a==1]),
+  data.frame(s=dat2$s[dat2$a==1], weights=dat2$weights[dat2$a==1])
+)
+plot_ce(ests_cox, ests_cox2, density_type="kde", dat_alt=dat_alt)
 }
 }

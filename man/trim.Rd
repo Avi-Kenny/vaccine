@@ -24,13 +24,13 @@ A modified copy of \code{ests} with the data trimmed.
 Removes a subset of estimates returned by \code{\link{est_ce}}
 }
 \examples{
+\donttest{
 data(hvtn505)
 dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
                  weights="wt", ph2="casecontrol", data=hvtn505)
-\donttest{
 ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
-ests_cox <- trim(ests_cox, dat=dat, quantiles=c(0.1,0.9))
-plot_ce(ests_cox, density_type="kde", dat=dat)
+ests_cox_tr <- trim(ests_cox, dat=dat, quantiles=c(0.05,0.95))
+plot_ce(ests_cox_tr, density_type="kde", dat=dat)
 }
 }
