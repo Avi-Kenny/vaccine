@@ -120,8 +120,8 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
   x <- y <- ci_lower <- ci_upper <- curve <- ymin <- ymax <- NULL
   rm(x, y, ci_lower, ci_upper, curve, ymin, ymax)
 
-  df_plot <- as_table(..., which=which)
   if (missing(labels)) { labels <- sapply(substitute(list(...))[-1], deparse) }
+  df_plot <- as_table(..., which=which, labels=labels)
 
   # Color scheme
   curve_colors <- c("deepskyblue3", "darkorchid3", "darkgreen", "darkorange",
@@ -362,6 +362,8 @@ trim <- function(ests, dat, quantiles, placebo=FALSE) {
 #'     \code{\link{est_ce}}.
 #' @param which One of c("CR", "CVE"); controls whether the table contains CR or
 #'     CVE values.
+#' @param labels A character vector of length equal to length(list(...))
+#'     representing curve labels
 #' @return A table of CR or CVE values
 #' @examples
 #' data(hvtn505)
@@ -375,7 +377,7 @@ trim <- function(ests, dat, quantiles, placebo=FALSE) {
 #' head(ests_table)
 #' }
 #' @export
-as_table <- function(..., which="CR") {
+as_table <- function(..., which="CR", labels=NA) {
 
   # !!!!! Move all error handling into a function
 
@@ -386,8 +388,6 @@ as_table <- function(..., which="CR") {
     ci_upper = double(),
     curve = character()
   )
-
-  labels <- sapply(substitute(list(...))[-1], deparse)
 
   counter <- 1
   for (obj in list(...)) {

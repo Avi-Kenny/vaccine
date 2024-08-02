@@ -4,7 +4,7 @@
 \alias{as_table}
 \title{Create table of estimates}
 \usage{
-as_table(..., which = "CR")
+as_table(..., which = "CR", labels = NA)
 }
 \arguments{
 \item{...}{One or more objects of class \code{"vaccine_est"} returned by
@@ -12,6 +12,9 @@ as_table(..., which = "CR")
 
 \item{which}{One of c("CR", "CVE"); controls whether the table contains CR or
 CVE values.}
+
+\item{labels}{A character vector of length equal to length(list(...))
+representing curve labels}
 }
 \value{
 A table of CR or CVE values
