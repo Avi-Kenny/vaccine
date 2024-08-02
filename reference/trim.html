@@ -39,7 +39,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">trim</span><span class="op">(</span><span class="va">ests</span>, <span class="va">dat</span>, <span class="va">quantiles</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">trim</span><span class="op">(</span><span class="va">ests</span>, <span class="va">dat</span>, <span class="va">quantiles</span>, placebo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -60,6 +60,11 @@
 marker distribution at which to trim the data; if, for example,
 <code>quantiles=c(0.1,0.9)</code> is specified, values outside the 10<!-- % and 90% -->
 (weighted) quantiles of the marker distribution will be trimmed.</p></dd>
+
+
+<dt id="arg-placebo">placebo<a class="anchor" aria-label="anchor" href="#arg-placebo"></a></dt>
+<dd><p>Boolean; if TRUE, quantiles are computed based on the marker
+distribution in the placebo arm instead of the vaccine arm</p></dd>
 
 </dl></div>
     <div class="section level2">
