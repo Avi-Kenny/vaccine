@@ -44,6 +44,7 @@
 <span>  which <span class="op">=</span> <span class="st">"CR"</span>,</span>
 <span>  density_type <span class="op">=</span> <span class="st">"none"</span>,</span>
 <span>  dat <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  dat_alt <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  zoom_x <span class="op">=</span> <span class="st">"zoom in"</span>,</span>
 <span>  zoom_y <span class="op">=</span> <span class="st">"zoom out"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -73,9 +74,20 @@ the marker distribution.</p></dd>
 
 
 <dt id="arg-dat">dat<a class="anchor" aria-label="anchor" href="#arg-dat"></a></dt>
-<dd><p>The data object originally passed into <code><a href="est_ce.html">est_ce</a></code>. It is
-only necessary to pass this in if <code>density_type</code> is not set to
-"none".</p></dd>
+<dd><p>The data object originally passed into <code><a href="est_ce.html">est_ce</a></code>, used
+for plotting densities. It is only necessary to pass this in if
+<code>density_type</code> is not set to "none".</p></dd>
+
+
+<dt id="arg-dat-alt">dat_alt<a class="anchor" aria-label="anchor" href="#arg-dat-alt"></a></dt>
+<dd><p>Alternative data object; a list containing one or more
+dataframes, each of the form <code>data.frame(s=..., weights=...)</code>.
+Column <code>s</code> contains biomarker values and column <code>weights</code>
+contains corresponding two-phase sampling weights. This can be used as an
+alternative to specifying <code>dat</code>, and is particularly useful for
+plotting multiple densities on a single plot. If plotting multiple
+densities, the order of the dataframes should correspond to the order of
+<code>"vaccine_est"</code> objects passed in. See examples.</p></dd>
 
 
 <dt id="arg-zoom-x">zoom_x<a class="anchor" aria-label="anchor" href="#arg-zoom-x"></a></dt>
@@ -100,14 +112,33 @@ upper zoom limits explicitly.</p></dd>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">hvtn505</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># \donttest{</span></span>
+<span><span class="co"># Plot one curve</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">hvtn505</span><span class="op">)</span></span>
 <span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_data.html">load_data</a></span><span class="op">(</span>time<span class="op">=</span><span class="st">"HIVwk28preunblfu"</span>, event<span class="op">=</span><span class="st">"HIVwk28preunbl"</span>, vacc<span class="op">=</span><span class="st">"trt"</span>,</span>
 <span>                 marker<span class="op">=</span><span class="st">"IgG_V2"</span>, covariates<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"age"</span>,<span class="st">"BMI"</span>,<span class="st">"bhvrisk"</span><span class="op">)</span>,</span>
 <span>                 weights<span class="op">=</span><span class="st">"wt"</span>, ph2<span class="op">=</span><span class="st">"casecontrol"</span>, data<span class="op">=</span><span class="va">hvtn505</span><span class="op">)</span></span>
-<span><span class="co"># \donttest{</span></span>
 <span><span class="va">ests_cox</span> <span class="op">&lt;-</span> <span class="fu"><a href="est_ce.html">est_ce</a></span><span class="op">(</span>dat<span class="op">=</span><span class="va">dat</span>, type<span class="op">=</span><span class="st">"Cox"</span>, t_0<span class="op">=</span><span class="fl">578</span><span class="op">)</span></span>
+<span><span class="fu">plot_ce</span><span class="op">(</span><span class="va">ests_cox</span>, density_type<span class="op">=</span><span class="st">"kde"</span>, dat<span class="op">=</span><span class="va">dat</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Trim display of plot according to quantiles of the biomarker distribution</span></span>
+<span><span class="va">ests_cox_tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="trim.html">trim</a></span><span class="op">(</span><span class="va">ests_cox</span>, dat<span class="op">=</span><span class="va">dat</span>, quantiles<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>,<span class="fl">0.95</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">plot_ce</span><span class="op">(</span><span class="va">ests_cox_tr</span>, density_type<span class="op">=</span><span class="st">"kde"</span>, dat<span class="op">=</span><span class="va">dat</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Plot multiple curves (same biomarker)</span></span>
 <span><span class="va">ests_np</span> <span class="op">&lt;-</span> <span class="fu"><a href="est_ce.html">est_ce</a></span><span class="op">(</span>dat<span class="op">=</span><span class="va">dat</span>, type<span class="op">=</span><span class="st">"NP"</span>, t_0<span class="op">=</span><span class="fl">578</span><span class="op">)</span></span>
-<span><span class="fu">plot_ce</span><span class="op">(</span><span class="va">ests_cox</span>, <span class="va">ests_np</span><span class="op">)</span></span>
+<span><span class="fu">plot_ce</span><span class="op">(</span><span class="va">ests_cox</span>, <span class="va">ests_np</span>, density_type<span class="op">=</span><span class="st">"kde"</span>, dat<span class="op">=</span><span class="va">dat</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Plot multiple curves (two different biomarkers)</span></span>
+<span><span class="va">dat2</span> <span class="op">&lt;-</span> <span class="fu"><a href="load_data.html">load_data</a></span><span class="op">(</span>time<span class="op">=</span><span class="st">"HIVwk28preunblfu"</span>, event<span class="op">=</span><span class="st">"HIVwk28preunbl"</span>, vacc<span class="op">=</span><span class="st">"trt"</span>,</span>
+<span>                  marker<span class="op">=</span><span class="st">"IgG_env"</span>, covariates<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"age"</span>,<span class="st">"BMI"</span>,<span class="st">"bhvrisk"</span><span class="op">)</span>,</span>
+<span>                  weights<span class="op">=</span><span class="st">"wt"</span>, ph2<span class="op">=</span><span class="st">"casecontrol"</span>, data<span class="op">=</span><span class="va">hvtn505</span><span class="op">)</span></span>
+<span><span class="va">ests_cox2</span> <span class="op">&lt;-</span> <span class="fu"><a href="est_ce.html">est_ce</a></span><span class="op">(</span>dat<span class="op">=</span><span class="va">dat2</span>, type<span class="op">=</span><span class="st">"Cox"</span>, t_0<span class="op">=</span><span class="fl">578</span><span class="op">)</span></span>
+<span><span class="va">dat_alt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>s<span class="op">=</span><span class="va">dat</span><span class="op">$</span><span class="va">s</span><span class="op">[</span><span class="va">dat</span><span class="op">$</span><span class="va">a</span><span class="op">==</span><span class="fl">1</span><span class="op">]</span>, weights<span class="op">=</span><span class="va">dat</span><span class="op">$</span><span class="va">weights</span><span class="op">[</span><span class="va">dat</span><span class="op">$</span><span class="va">a</span><span class="op">==</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>s<span class="op">=</span><span class="va">dat2</span><span class="op">$</span><span class="va">s</span><span class="op">[</span><span class="va">dat2</span><span class="op">$</span><span class="va">a</span><span class="op">==</span><span class="fl">1</span><span class="op">]</span>, weights<span class="op">=</span><span class="va">dat2</span><span class="op">$</span><span class="va">weights</span><span class="op">[</span><span class="va">dat2</span><span class="op">$</span><span class="va">a</span><span class="op">==</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu">plot_ce</span><span class="op">(</span><span class="va">ests_cox</span>, <span class="va">ests_cox2</span>, density_type<span class="op">=</span><span class="st">"kde"</span>, dat_alt<span class="op">=</span><span class="va">dat_alt</span><span class="op">)</span></span>
 <span><span class="co"># }</span></span></code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
