@@ -22,6 +22,8 @@
 #'     plotting multiple densities on a single plot. If plotting multiple
 #'     densities, the order of the dataframes should correspond to the order of
 #'     \code{"vaccine_est"} objects passed in. See examples.
+#' @param labels A character vector of length equal to the length of list(...),
+#'     representing plot labels. Only used if length(list(...))>1.
 #' @param zoom_x Either one of c("zoom in", "zoom out") or a vector of
 #'     length 2. Controls the zooming on the X-axis. The default "zoom in" will
 #'     set the zoom limits to the plot estimates. Choosing "zoom out" will set
@@ -63,7 +65,7 @@
 #' }
 #' @export
 plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
-                    zoom_x="zoom in", zoom_y="zoom out") {
+                    zoom_x="zoom in", zoom_y="zoom out", labels=NA) {
 
   # Error handling
   if (!(which %in% c("CR", "CVE"))) {
@@ -119,6 +121,7 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
   rm(x, y, ci_lower, ci_upper, curve, ymin, ymax)
 
   df_plot <- as_table(..., which=which)
+  if (missing(labels)) { labels <- sapply(substitute(list(...))[-1], deparse) }
 
   # Color scheme
   curve_colors <- c("deepskyblue3", "darkorchid3", "darkgreen", "darkorange",
@@ -179,6 +182,12 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
     if (!use_dat_alt) { dat_alt <- list(dat[dat$a==1,]) }
 
     kde_area <- c()
+    kde_data_final <- data.frame(
+      "x" = double(),
+      "ymin" = double(),
+      "ymax" = double(),
+      "curve" = character()
+    )
 
     for (i in c(1:length(dat_alt))) {
 
@@ -227,19 +236,14 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
         dens$y <- dens$y[inds_to_keep]
         dens$x <- c(rect_x[1], rect_x[2], rect_x[2] + plot_width/10^5, dens$x)
         dens$y <- c(rect_y, rect_y, z_y[1], dens$y)
-        # dens$x[length(dens$x)+1] <- rect_x[1]
-        # dens$y[length(dens$y)+1] <- rect_y
-        # dens$x[length(dens$x)+1] <- rect_x[2]
-        # dens$y[length(dens$y)+1] <- rect_y
-        # dens$x[length(dens$x)+1] <- rect_x[2] + plot_width/10^5
-        # dens$y[length(dens$y)+1] <- z_y[1]
 
       }
 
       kde_data <- data.frame(
         x = dens$x,
         ymin = z_y[1],
-        ymax = dens_height * (dens$y/max(dens$y)) + z_y[1]
+        ymax = dens_height * (dens$y/max(dens$y)) + z_y[1],
+        curve = labels[i]
       )
       assign(x=paste0("kde_data_",i), value=kde_data)
 
@@ -256,18 +260,28 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
       kde_data <- get(paste0("kde_data_",i))
       area_mult <- min(kde_area)/kde_area[i]
       kde_data$ymax <- area_mult*(kde_data$ymax-kde_data$ymin) + kde_data$ymin
+      kde_data_final <- rbind(kde_data_final, kde_data)
 
-      # Plot background KDE
-      fill_color <- ifelse(length(dat_alt)==1, "orange", curve_colors[i])
+    }
+
+    # Plot background KDE
+    if (length(dat_alt)==1) {
       plot <- plot + ggplot2::geom_ribbon(
         ggplot2::aes(x=x, ymin=ymin, ymax=ymax),
-        data = kde_data,
+        data = kde_data_final,
         inherit.aes = F,
         color = "white",
-        fill = fill_color,
+        fill = "orange",
         alpha = 0.2
       )
-
+    } else {
+      plot <- plot + ggplot2::geom_ribbon(
+        ggplot2::aes(x=x, ymin=ymin, ymax=ymax, fill=curve),
+        data = kde_data_final,
+        inherit.aes = F,
+        color = "white",
+        alpha = 0.2
+      )
     }
 
   }

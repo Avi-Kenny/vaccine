@@ -11,7 +11,8 @@ plot_ce(
   dat = NA,
   dat_alt = NA,
   zoom_x = "zoom in",
-  zoom_y = "zoom out"
+  zoom_y = "zoom out",
+  labels = NA
 )
 }
 \arguments{
@@ -51,6 +52,9 @@ vector of length 2 will set the left and right zoom limits explicitly.}
 on the Y-axis. The default "zoom out" will show the entire vertical range
 of the estimates. Entering a vector of length 2 will set the lower and
 upper zoom limits explicitly.}
+
+\item{labels}{A character vector of length equal to the length of list(...),
+representing plot labels. Only used if length(list(...))>1.}
 }
 \value{
 A plot of CR/CVE estimates
