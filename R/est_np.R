@@ -321,7 +321,9 @@ est_np <- function(
   } else if (p$convex_type=="CLS") {
     # This approach is experimental; asymptotic theory not yet developed
     gcm <- function(x) { 1 } # Ignored
-    fit <- simest::cvx.lse.reg(t=gcm_x_vals, z=gcm_y_vals)
+    stop(paste0("convex_type='CLS' temporarily disabled because of dependency ",
+                "issue with package simest."))
+    # fit <- simest::cvx.lse.reg(t=gcm_x_vals, z=gcm_y_vals)
     pred_x <- round(seq(0,1,0.001),3)
     pred_y <- stats::predict(fit, newdata=pred_x)
     dGCM <- function(u) {
