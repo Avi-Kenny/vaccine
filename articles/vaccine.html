@@ -14,8 +14,8 @@
 <link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png">
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.4.2/css/all.min.css" rel="stylesheet">
-<link href="../deps/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
 <meta property="og:title" content="Basic package workflow">
 </head>
@@ -27,7 +27,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">vaccine</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.2.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,7 +68,7 @@
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://avi-kenny.github.io/vaccine/">vaccine</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; vaccine (version 1.2.1).</span></span>
+<span><span class="co">#&gt; vaccine (version 1.3.0).</span></span>
 <span><span class="co">#&gt; Type ?vaccine to get started.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span></code></pre></div>
 <p>The <code>load_data</code> function takes in raw data and creates a
@@ -120,11 +120,13 @@ marginalized Cox model.</p>
 <span><span class="co">#&gt; 2 risk placebo  0.02938706 0.006486545  0.01901930 0.04514638</span></span>
 <span><span class="co">#&gt; 3   ve    both -0.42159246 0.417915188 -1.52937491 0.20101796</span></span></code></pre></div>
 <p>The <code>est_ce</code> function allows us to compute controlled
-effects curves; see <a href="https://academic.oup.com/biostatistics/article-abstract/24/4/850/7320953" class="external-link">Gilbert,
-Fong, Kenny, and Carone 2022</a> for more detail.</p>
+effects curves; see <a href="https://pubmed.ncbi.nlm.nih.gov/37850938/" class="external-link">Gilbert, Fong, Kenny,
+and Carone 2022</a> for more detail.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ests_cox</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/est_ce.html">est_ce</a></span><span class="op">(</span>dat<span class="op">=</span><span class="va">dat</span>, type<span class="op">=</span><span class="st">"Cox"</span>, t_0<span class="op">=</span><span class="fl">578</span><span class="op">)</span></span>
 <span><span class="va">ests_np</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/est_ce.html">est_ce</a></span><span class="op">(</span>dat<span class="op">=</span><span class="va">dat</span>, type<span class="op">=</span><span class="st">"NP"</span>, t_0<span class="op">=</span><span class="fl">578</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Error in get(paste0(generic, ".", class), envir = get_method_env()) : </span></span>
+<span><span class="co">#&gt;   object 'type_sum.accel' not found</span></span>
 <span><span class="co">#&gt; Loading required package: nnls</span></span>
 <span><span class="co">#&gt; Loading required package: gam</span></span>
 <span><span class="co">#&gt; Loading required package: splines</span></span>
