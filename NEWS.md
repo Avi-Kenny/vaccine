@@ -1,3 +1,19 @@
+# vaccine 1.3.0
+
+### Major changes
+
+- Allow for controlled risk (CR) curves to be estimated in placebo arm
+- Added ability to plot multiple density plots on a single graph via the plot() function
+
+### Minor changes
+
+- Updated trim() function to work on placebo arm data
+- Removed dependency on `simest` package
+- Updated package logo
+- Fixed bug with nonparametric CVE P-values
+- Fixed bug associated with reading in datasets with categorical covariates
+- Downgraded `ranger` required version from 0.16.0 to 0.14.0
+
 # vaccine 1.2.1
 
 ### Minor changes
