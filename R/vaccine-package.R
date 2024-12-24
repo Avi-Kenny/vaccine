@@ -24,7 +24,7 @@
 #'   \item IgG_V2: IgG Binding to V1V2
 #'   \item IgG_V3: IgG Binding to V3
 #' }
-#' @source \url{https://atlas.scharp.org/cpas/project/HVTN\%20Public\%20Data/HVTN\%20505/begin.view}
+#' @source \url{https://atlas.scharp.org/project/HVTN\%20Public\%20Data/HVTN\%20505/begin.view}
 #' @docType data
 #' @keywords datasets
 #' @name hvtn505

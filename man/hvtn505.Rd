@@ -26,7 +26,7 @@ A data frame with 1,950 rows and 10 variables:
 }
 }
 \source{
-\url{https://atlas.scharp.org/cpas/project/HVTN\%20Public\%20Data/HVTN\%20505/begin.view}
+\url{https://atlas.scharp.org/project/HVTN\%20Public\%20Data/HVTN\%20505/begin.view}
 }
 \usage{
 data(hvtn505)
