@@ -34,7 +34,8 @@ Imports:
     e1071 (>= 1.7.12),
     gam (>= 1.22.3),
     ranger (>= 0.14.0),
-    utils (>= 4.3.2)
+    utils (>= 4.3.2),
+    MASS (>= 7.3.60.2)
 Suggests: 
     knitr,
     rmarkdown,

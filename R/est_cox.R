@@ -433,6 +433,10 @@ est_cox <- function(
   # Compute variance estimate
   if (ci_type!="none") {
 
+    K_n1s <- list()
+    K_n2s <- list()
+    K_n3s <- list()
+
     res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
     # res_cox$var_est_marg <- unlist(lapply(s_out[length(s_out)], function(s) { # !!!!! Debugging
 
@@ -488,6 +492,10 @@ est_cox <- function(
         K_n1 <- K_n[1]
         K_n2 <- K_n[2]
         K_n3 <- K_n[3:length(K_n)]
+
+        K_n1s[[as.character(s)]] <<- K_n1
+        K_n2s[[as.character(s)]] <<- K_n2
+        K_n3s[[as.character(s)]] <<- K_n3
 
       }
 
@@ -616,6 +624,88 @@ est_cox <- function(
 
   }
 
+  if (ci_type=="uniform") {
+
+    time_1 <- Sys.time()
+    print(time_1)
+    print("Sampling c_n: start")
+
+    # Estimate/populate Sigma_n covariance matrix
+    ses_cr <- sqrt(res_cox$var_est_marg) # Repeated
+    len <- length(s_out)
+    Sigma_n_tilde <- matrix(NA, nrow=len, ncol=len)
+    for (u in c(1:len)) {
+      for (v in c(1:len)) {
+        if (u>v) {
+
+          Sigma_n_tilde[u,v] <- Sigma_n_tilde[v,u]
+
+        } else {
+
+          s_u <- s_out[u]
+          s_v <- s_out[v]
+          s_spl_u <- s_to_spl(s_u)
+          s_spl_v <- s_to_spl(s_v)
+
+          K_n1u <- K_n1s[[as.character(s_u)]]
+          K_n2u <- K_n2s[[as.character(s_u)]]
+          K_n3u <- K_n3s[[as.character(s_u)]]
+          K_n1v <- K_n1s[[as.character(s_v)]]
+          K_n2v <- K_n2s[[as.character(s_v)]]
+          K_n3v <- K_n3s[[as.character(s_v)]]
+
+          Sigma_n <- (1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+
+            x_i <- as.numeric(r[1:dim_x])
+            if (!is.na(r[["s"]])) {
+              s_i <- s_to_spl(r[["s"]])
+            } else {
+              s_i <- NA
+            }
+            z_i <- r[["z"]]
+            d_i <- r[["delta"]]
+            y_i <- r[["y"]]
+            wt_i <- r[["weights"]]
+            st_i <- r[["strata"]]
+
+            ifB <- infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+            pc_2u <- Lambda_n_t_0 * sum(K_n3u*ifB)
+            pc_2v <- Lambda_n_t_0 * sum(K_n3v*ifB)
+
+            ifL <- infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+            pc_3u <- K_n2u * ifL
+            pc_3v <- K_n2v * ifL
+
+            pc_4u <- K_n1u
+            pc_4v <- K_n1v
+
+            pc_1u <- Q_n(c(x_i,s_spl_u))
+            pc_1v <- Q_n(c(x_i,s_spl_v))
+
+            return((pc_2u+pc_3u+pc_4u-pc_1u)*(pc_2v+pc_3v+pc_4v-pc_1v))
+
+          })))
+
+          Sigma_n_tilde[u,v] <- Sigma_n / (ses_cr[u]*ses_cr[v])
+
+        }
+      }
+    }
+
+    n_samps <- 1000
+    mvn <- MASS::mvrnorm(
+      n = n_samps,
+      mu = rep(0, len),
+      Sigma = Sigma_n_tilde
+    )
+    vec <- apply(mvn, MARGIN=1, function(x) { max(abs(x)) })
+    c_n <- quantile(vec, probs=0.95)
+
+    print("Sampling c_n: end")
+    round(difftime(Sys.time(), time_1, units="mins"), 1)
+
+  }
+
   # Extract estimates and SEs
   ests_cr <- 1-res_cox$est_marg
 
@@ -640,6 +730,12 @@ est_cox <- function(
     } else if (ci_type=="transformed 2") {
       ci_lo_cr <- expit2(logit2(ests_cr) - 1.96*deriv_logit2(ests_cr)*ses_cr)
       ci_up_cr <- expit2(logit2(ests_cr) + 1.96*deriv_logit2(ests_cr)*ses_cr)
+    } else if (ci_type=="uniform") {
+      # !!!!! Probably equal to deriv_logit expression above
+      # !!!!! n_vacc scaling commented out for now
+      se_cr_tildes <- ses_cr / (ests_cr*(1-ests_cr))
+      ci_lo_cr <- expit(logit(ests_cr) - c_n*se_cr_tildes) # *n_vacc^(-1/2)
+      ci_up_cr <- expit(logit(ests_cr) + c_n*se_cr_tildes) # *n_vacc^(-1/2)
     }
 
   }
