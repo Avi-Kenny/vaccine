@@ -22,8 +22,6 @@
 #'     plotting multiple densities on a single plot. If plotting multiple
 #'     densities, the order of the dataframes should correspond to the order of
 #'     \code{"vaccine_est"} objects passed in. See examples.
-#' @param labels A character vector of length equal to the length of list(...),
-#'     representing plot labels. Only used if length(list(...))>1.
 #' @param zoom_x Either one of c("zoom in", "zoom out") or a vector of
 #'     length 2. Controls the zooming on the X-axis. The default "zoom in" will
 #'     set the zoom limits to the plot estimates. Choosing "zoom out" will set
@@ -33,6 +31,12 @@
 #'     on the Y-axis. The default "zoom out" will show the entire vertical range
 #'     of the estimates. Entering a vector of length 2 will set the lower and
 #'     upper zoom limits explicitly.
+#' @param labels A character vector of length equal to the length of list(...),
+#'     representing plot labels. Only used if length(list(...))>1.
+#' @param bw Bandwidth type for kernel density; passed to
+#'     \code{stats::density}
+#' @param adjust Bandwidth adjustment factor for kernel density; passed to
+#'     \code{stats::density}
 #' @return A plot of CR/CVE estimates
 #' @examples
 #' \donttest{
@@ -65,7 +69,8 @@
 #' }
 #' @export
 plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
-                    zoom_x="zoom in", zoom_y="zoom out", labels=NA) {
+                    zoom_x="zoom in", zoom_y="zoom out", labels=NA, bw="ucv",
+                    adjust=1) {
 
   # Error handling
   if (!(which %in% c("CR", "CVE"))) {
@@ -210,7 +215,8 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
         df_dens$weights <- df_dens$weights / sum(df_dens$weights)
         dens <- suppressWarnings(stats::density(
           x = df_dens$s,
-          bw = "ucv",
+          bw = bw,
+          adjust = 1,
           weights = df_dens$weights
         ))
 
@@ -223,7 +229,8 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
         df_dens$weights <- df_dens$weights / sum(df_dens$weights)
         dens <- suppressWarnings(stats::density(
           x = df_dens$s,
-          bw = "ucv",
+          bw = bw,
+          adjust = 1,
           weights = df_dens$weights
         ))
         dens$y <- dens$y * (1-p_edge)
