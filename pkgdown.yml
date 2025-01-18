@@ -3,7 +3,7 @@ pkgdown: 2.1.1
 pkgdown_sha: ~
 articles:
   vaccine: vaccine.html
-last_built: 2024-12-24T17:57Z
+last_built: 2025-01-18T12:51Z
 urls:
   reference: https://avi-kenny.github.io/vaccine/reference
   article: https://avi-kenny.github.io/vaccine/articles
