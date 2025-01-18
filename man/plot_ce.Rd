@@ -12,7 +12,9 @@ plot_ce(
   dat_alt = NA,
   zoom_x = "zoom in",
   zoom_y = "zoom out",
-  labels = NA
+  labels = NA,
+  bw = "ucv",
+  adjust = 1
 )
 }
 \arguments{
@@ -55,6 +57,12 @@ upper zoom limits explicitly.}
 
 \item{labels}{A character vector of length equal to the length of list(...),
 representing plot labels. Only used if length(list(...))>1.}
+
+\item{bw}{Bandwidth type for kernel density; passed to
+\code{stats::density}}
+
+\item{adjust}{Bandwidth adjustment factor for kernel density; passed to
+\code{stats::density}}
 }
 \value{
 A plot of CR/CVE estimates
