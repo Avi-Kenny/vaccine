@@ -216,7 +216,7 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
         dens <- suppressWarnings(stats::density(
           x = df_dens$s,
           bw = bw,
-          adjust = 1,
+          adjust = adjust,
           weights = df_dens$weights
         ))
 
@@ -230,7 +230,7 @@ plot_ce <- function(..., which="CR", density_type="none", dat=NA, dat_alt=NA,
         dens <- suppressWarnings(stats::density(
           x = df_dens$s,
           bw = bw,
-          adjust = 1,
+          adjust = adjust,
           weights = df_dens$weights
         ))
         dens$y <- dens$y * (1-p_edge)
