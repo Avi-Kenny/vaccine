@@ -399,8 +399,8 @@ as_table <- function(..., which="CR", labels=NA) {
   counter <- 1
   for (obj in list(...)) {
     if (!methods::is(obj, "vaccine_est")) {
-      stop(paste0("One or more of the objects passed into `plot_ce` is not of ",
-                  "of class 'vaccine_est'."))
+      stop(paste0("One or more of the objects passed into `as_table` is not of ",
+                  "class 'vaccine_est'."))
     }
     if (which=="CR") {
       if (methods::is(obj$cr, "NULL")) {
