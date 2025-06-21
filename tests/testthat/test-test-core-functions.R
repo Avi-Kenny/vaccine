@@ -317,7 +317,7 @@ test_that("est_cox (CR)", {
 p <- plot_ce(ests_np)
 
 test_that("plot_ce", {
-  expect_equal(class(p), c("gg", "ggplot"))
+  expect_true(methods::is(p, "ggplot"))
 })
 
 # # Should produce errors
