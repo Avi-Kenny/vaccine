@@ -3,9 +3,12 @@
 
 #' HVTN 505 Dataset
 #'
-#' A dataset from the HVTN 505 clinical trial
+#' A dataset from the HVTN 505 clinical trial. This is a filtered version of the
+#'     original dataset (which contains 2,502 rows) based on the week28
+#'     variable, which defines eligibility for inclusion in a correlates
+#'     analysis. Additionally, two rows were removed due to missing data.
 #'
-#' @format A data frame with 1,950 rows and 10 variables:
+#' @format A data frame with 2,302 rows and 10 variables:
 #' \itemize{
 #'   \item pub_id: Unique individual identifier
 #'   \item trt: Treatment Assignment: 1=Vaccine, 0=Placebo
