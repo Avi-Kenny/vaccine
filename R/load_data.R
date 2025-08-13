@@ -49,6 +49,7 @@ load_data <- function(
   {
 
     if (!methods::is(data,"data.frame")) { stop("`data` must be a data frame.") }
+    if (methods::is(data,"tbl")) { data <- as.data.frame(data) }
     if (nrow(data)==0) { stop("`data` is an empty data frame.") }
 
     for (arg in c("time", "event", "vacc", "marker", "covariates", "weights",
