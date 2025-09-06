@@ -1,3 +1,12 @@
+# vaccine 1.3.1
+
+### Minor changes
+
+- Added the ability to fine-tune KDE plots via the `bw` and `adjust` arguments, passed to `stats::density()`
+- Fixed a reverse dependeny issue with ggplot2 v4.0.0.
+- Fixed a minor bug to allow tibbles to be read in via load_data().
+- Fixed an error in the HVTN 505 dataset documentation.
+
 # vaccine 1.3.0
 
 ### Major changes
