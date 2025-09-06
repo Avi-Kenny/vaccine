@@ -5,4 +5,4 @@
 ## R CMD check results
 * There were no ERRORs or WARNINGs.
 
-This update implements some new functionality and fixes a few minor bugs.
+This update is mostly very minor fixes and doc corrections.
