@@ -8,6 +8,9 @@ est_cox <- function(
 ) {
 
   if (any(is.na(s_out))) { stop("NA values not allowed in s_out.") }
+  if (ci_type=="uniform" && cve) {
+    stop("Uniform confidence bands only available for CR curves.")
+  }
 
   # Create filtered data objects
   dat_v <- dat[dat$a==1,]
@@ -789,16 +792,13 @@ est_cox <- function(
           log2(1-res$cve$est) - 1.96*deriv_log2(1-res$cve$est)*res$cve$se
         )
       } else if (ci_type=="uniform") {
-        # Note: does not account for variation due to placebo risk estimation
-        res$cve$ci_lower <- 1 - ci_up_cr/risk_p
-        res$cve$ci_upper <- 1 - ci_lo_cr/risk_p
+        stop("")
+        # res$cve$ci_lower <- 1 - ci_up_cr/risk_p
+        # res$cve$ci_upper <- 1 - ci_lo_cr/risk_p
       }
 
-      # # !!!!! OLD !!!!!
-      # res$cve$se <- NA
-      # res$cve$ci_lower <- 1 - res$cr$ci_up/risk_p # !!!!! Add placebo group correction
-      # res$cve$ci_upper <- 1 - res$cr$ci_lo/risk_p # !!!!! Add placebo group correction
     }
+    browser() # !!!!!
 
   }
 
