@@ -433,12 +433,20 @@ est_cox <- function(
   # Compute variance estimate
   if (ci_type!="none") {
 
+    len <- length(s_out)
+    K_n1_ls <- lapply(rep(NA,3), identity)
+    K_n2_ls <- K_n3_ls <- K_n1_ls
+
     res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
-    # res_cox$var_est_marg <- unlist(lapply(s_out[length(s_out)], function(s) { # !!!!! Debugging
 
       # Precalculate pieces dependent on s
       s_spl <- s_to_spl(s)
       if (attr(dat, "covariates_ph2")) {
+
+        if (ci_type=="uniform") {
+          stop(paste0("Uniform confidence bands are not available when some co",
+                      "variates are only measured in the phase 2 sample."))
+        }
 
         K_n <- (1/n_vacc) * Reduce("+", apply2(dat_v2, 1, function(r) {
           wts <- r[["weights"]]
@@ -488,6 +496,12 @@ est_cox <- function(
         K_n1 <- K_n[1]
         K_n2 <- K_n[2]
         K_n3 <- K_n[3:length(K_n)]
+
+        if (ci_type=="uniform") {
+          K_n1_ls[[as.character(s)]] <<- K_n1
+          K_n2_ls[[as.character(s)]] <<- K_n2
+          K_n3_ls[[as.character(s)]] <<- K_n3
+        }
 
       }
 
@@ -640,6 +654,88 @@ est_cox <- function(
     } else if (ci_type=="transformed 2") {
       ci_lo_cr <- expit2(logit2(ests_cr) - 1.96*deriv_logit2(ests_cr)*ses_cr)
       ci_up_cr <- expit2(logit2(ests_cr) + 1.96*deriv_logit2(ests_cr)*ses_cr)
+    } else if (ci_type=="uniform") {
+
+      # Covariance function
+      cov_fn <- function(s1,s2) {
+
+        # Extract pieces dependent on (s1,s2)
+        s_spl_s1 <- s_to_spl(s1)
+        s_spl_s2 <- s_to_spl(s2)
+        K_n1_s1 <- K_n1_ls[[as.character(s1)]]
+        K_n1_s2 <- K_n1_ls[[as.character(s2)]]
+        K_n2_s1 <- K_n2_ls[[as.character(s1)]]
+        K_n2_s2 <- K_n2_ls[[as.character(s2)]]
+        K_n3_s1 <- K_n3_ls[[as.character(s1)]]
+        K_n3_s2 <- K_n3_ls[[as.character(s2)]]
+
+        return((1/n_vacc) * sum((apply(dat_v, 1, function(r) {
+
+          # Extract data pieces
+          x_i <- as.numeric(r[1:dim_x])
+          if (!is.na(r[["s"]])) {
+            s_i <- s_to_spl(r[["s"]])
+          } else {
+            s_i <- NA
+          }
+          z_i <- r[["z"]]
+          d_i <- r[["delta"]]
+          y_i <- r[["y"]]
+          wt_i <- r[["weights"]]
+          st_i <- r[["strata"]]
+
+          # Construct intermediate objects (s1)
+          s1_pc_1 <- K_n1_s1
+          s1_pc_2 <- K_n2_s1 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          s1_pc_3 <- Lambda_n_t_0 * sum(
+            K_n3_s1 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          )
+          s1_pc_4 <- Q_n(c(x_i,s_spl_s1))
+
+          # Construct intermediate objects (s2)
+          s2_pc_1 <- K_n1_s2
+          s2_pc_2 <- K_n2_s2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          s2_pc_3 <- Lambda_n_t_0 * sum(
+            K_n3_s2 * infl_fn_beta(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
+          )
+          s2_pc_4 <- Q_n(c(x_i,s_spl_s2))
+
+          # Return results
+          Sigma_in_s1 <- s1_pc_1 + s1_pc_2 + s1_pc_3 - s1_pc_4
+          Sigma_in_s2 <- s2_pc_1 + s2_pc_2 + s2_pc_3 - s2_pc_4
+          return(Sigma_in_s1*Sigma_in_s2)
+
+        }))))
+
+      }
+
+      # Monte Carlo estimation of critical value
+      cov_mtx <- matrix(NA, nrow=len, ncol=len)
+      for (i in c(1:len)) {
+        for (j in c(1:len)) {
+          if (i<j) {
+            cov_mtx[i,j] <- cov_fn(s_out[i],s_out[j]) / (ses_cr[i] * ses_cr[j])
+          } else if (i==j) {
+            cov_mtx[i,j] <- 1
+          } else if (i>j) {
+            cov_mtx[i,j] <- cov_mtx[j,i]
+          }
+        }
+      }
+
+      norm_samp <- MASS::mvrnorm(
+        n = 1000,
+        mu = rep(0, len),
+        Sigma = cov_mtx
+      )
+      norm_sup <- apply(norm_samp, MARGIN=1, max)
+      c_n_tilde <- as.numeric(quantile(norm_sup, probs=0.95))
+
+      # Construct limits
+      sigma_tilde <- ses_cr/(ests_cr*(1-ests_cr))
+      ci_lo_cr <- expit2(logit2(ests_cr) - c_n_tilde*sigma_tilde*n_vacc^(-1/2))
+      ci_up_cr <- expit2(logit2(ests_cr) + c_n_tilde*sigma_tilde*n_vacc^(-1/2))
+
     }
 
   }
@@ -690,6 +786,10 @@ est_cox <- function(
         res$cve$ci_upper <- 1 - exp2(
           log2(1-res$cve$est) - 1.96*deriv_log2(1-res$cve$est)*res$cve$se
         )
+      } else if (ci_type=="uniform") {
+        # Note: does not account for variation due to placebo risk estimation
+        res$cve$ci_lower <- 1 - ci_up_cr/risk_p
+        res$cve$ci_upper <- 1 - ci_lo_cr/risk_p
       }
 
       # # !!!!! OLD !!!!!
