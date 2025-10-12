@@ -731,7 +731,7 @@ est_cox <- function(
         Sigma = cov_mtx
       )
       norm_sup <- apply(norm_samp, MARGIN=1, function(x) { max(abs(x)) })
-      c_n_tilde <- as.numeric(quantile(norm_sup, probs=0.95))
+      c_n_tilde <- as.numeric(stats::quantile(norm_sup, probs=0.95))
 
       # Construct limits
       sigma_tilde <- ses_cr/(ests_cr*(1-ests_cr))
