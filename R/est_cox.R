@@ -669,7 +669,8 @@ est_cox <- function(
         K_n3_s1 <- K_n3_ls[[as.character(s1)]]
         K_n3_s2 <- K_n3_ls[[as.character(s2)]]
 
-        return((1/n_vacc) * sum((apply(dat_v, 1, function(r) {
+        # Changed n_vacc to n_vacc^2
+        return((1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
 
           # Extract data pieces
           x_i <- as.numeric(r[1:dim_x])
@@ -713,6 +714,7 @@ est_cox <- function(
       cov_mtx <- matrix(NA, nrow=len, ncol=len)
       for (i in c(1:len)) {
         for (j in c(1:len)) {
+          # print(paste0("i=", i, ", j=", j))
           if (i<j) {
             cov_mtx[i,j] <- cov_fn(s_out[i],s_out[j]) / (ses_cr[i] * ses_cr[j])
           } else if (i==j) {
@@ -728,13 +730,13 @@ est_cox <- function(
         mu = rep(0, len),
         Sigma = cov_mtx
       )
-      norm_sup <- apply(norm_samp, MARGIN=1, max)
+      norm_sup <- apply(norm_samp, MARGIN=1, function(x) { max(abs(x)) })
       c_n_tilde <- as.numeric(quantile(norm_sup, probs=0.95))
 
       # Construct limits
       sigma_tilde <- ses_cr/(ests_cr*(1-ests_cr))
-      ci_lo_cr <- expit2(logit2(ests_cr) - c_n_tilde*sigma_tilde*n_vacc^(-1/2))
-      ci_up_cr <- expit2(logit2(ests_cr) + c_n_tilde*sigma_tilde*n_vacc^(-1/2))
+      ci_lo_cr <- expit2(logit2(ests_cr) - c_n_tilde*sigma_tilde)
+      ci_up_cr <- expit2(logit2(ests_cr) + c_n_tilde*sigma_tilde)
 
     }
 
