@@ -60,9 +60,30 @@ est_overall <- function(dat, t_0, method="Cox", risk=TRUE, ve=TRUE) { # ci_type=
 
     if (method=="Cox") {
 
+      if (attr(dat_grp, "covariates_ph2")) {
+
+        rm_set <- c()
+        dim_x_orig <- attr(dat_grp, "dim_x")
+        for (i in c(1:dim_x_orig)) {
+          if (any(is.na(dat_grp[[paste0("x",i)]]))) {
+            rm_set <- c(rm_set,i)
+            dat_grp[[paste0("x",i)]] <- NULL
+            attr(dat_grp, "dim_x") <- attr(dat_grp, "dim_x") - 1
+            warning(paste0("Covariate `", attr(dat_grp, "covariate_names")[i],
+                           "` not being used for overall risk estimation in ",
+                           grp, " group due to NA values."))
+          }
+        }
+        if (length(rm_set)>0) {
+          attr(dat_grp, "covariate_names") <-
+            attr(dat_grp, "covariate_names")[-rm_set]
+        }
+
+      }
+
       # Alias random variables
       N <- length(dat_grp$s)
-      dim_x <- attr(dat, "dim_x")
+      dim_x <- attr(dat_grp, "dim_x")
       X <- dat_grp[,c(1:dim_x), drop=F]
       V_ <- t(as.matrix(X))
       Y_ <- dat_grp$y

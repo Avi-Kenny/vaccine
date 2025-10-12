@@ -798,7 +798,6 @@ est_cox <- function(
       }
 
     }
-    browser() # !!!!!
 
   }
 
