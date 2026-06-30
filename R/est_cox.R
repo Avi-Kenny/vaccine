@@ -747,10 +747,8 @@ est_cox <- function(
 
   # Create results object
   res <- list()
-  if (cr) {
-    res$cr <- list(s=s_out, est=ests_cr, se=ses_cr, ci_lower=ci_lo_cr,
-                   ci_upper=ci_up_cr)
-  }
+  res$cr <- list(s=s_out, est=ests_cr, se=ses_cr, ci_lower=ci_lo_cr,
+                 ci_upper=ci_up_cr)
 
   # Compute CVE
   if (cve) {
@@ -800,6 +798,8 @@ est_cox <- function(
     }
 
   }
+
+  if (!cr) { res$cr <- NULL }
 
   # Return P-value and/or extras
   if (return_p_value) { res$p <- test_res$p }

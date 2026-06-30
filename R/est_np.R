@@ -469,14 +469,12 @@ est_np <- function(
 
   # Create results object
   res <- list()
-  if (cr) {
-    res$cr <- list(
-      s = s_out_orig,
-      est = c(rep(NA,na_head), ests_cr, rep(NA,na_tail)),
-      ci_lower = c(rep(NA,na_head), ci_lo_cr, rep(NA,na_tail)),
-      ci_upper = c(rep(NA,na_head), ci_up_cr, rep(NA,na_tail))
-    )
-  }
+  res$cr <- list(
+    s = s_out_orig,
+    est = c(rep(NA,na_head), ests_cr, rep(NA,na_tail)),
+    ci_lower = c(rep(NA,na_head), ci_lo_cr, rep(NA,na_tail)),
+    ci_upper = c(rep(NA,na_head), ci_up_cr, rep(NA,na_tail))
+  )
 
   # Compute CVE
   if (cve) {
@@ -595,6 +593,8 @@ est_np <- function(
     }
 
   }
+
+  if (!cr) { res$cr <- NULL }
 
   if (return_extras) {
 
