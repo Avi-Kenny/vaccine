@@ -1,0 +1,125 @@
+# Plotting controlled effect curves
+
+Plot CR and/or CVE curves
+
+## Usage
+
+``` r
+plot_ce(
+  ...,
+  which = "CR",
+  density_type = "none",
+  dat = NA,
+  dat_alt = NA,
+  zoom_x = "zoom in",
+  zoom_y = "zoom out",
+  labels = NA,
+  bw = "ucv",
+  adjust = 1
+)
+```
+
+## Arguments
+
+- ...:
+
+  One or more objects of class `"vaccine_est"` returned by
+  [`est_ce`](https://avi-kenny.github.io/vaccine/reference/est_ce.md).
+
+- which:
+
+  One of c("CR", "CVE"); controls whether to plot CR curves or CVE
+  curves.
+
+- density_type:
+
+  One of c("none", "kde", "kde edge"). Controls the type of estimator
+  used for the background marker density plot. For "none", no density
+  plot is displayed. For "kde", a weighted kernel density estimator is
+  used. For "kde edge", a modified version of "kde" is used that allows
+  for a possible point mass at the left edge of the marker distribution.
+
+- dat:
+
+  The data object originally passed into
+  [`est_ce`](https://avi-kenny.github.io/vaccine/reference/est_ce.md),
+  used for plotting densities. It is only necessary to pass this in if
+  `density_type` is not set to "none".
+
+- dat_alt:
+
+  Alternative data object; a list containing one or more dataframes,
+  each of the form `data.frame(s=..., weights=...)`. Column `s` contains
+  biomarker values and column `weights` contains corresponding two-phase
+  sampling weights. This can be used as an alternative to specifying
+  `dat`, and is particularly useful for plotting multiple densities on a
+  single plot. If plotting multiple densities, the order of the
+  dataframes should correspond to the order of `"vaccine_est"` objects
+  passed in. See examples.
+
+- zoom_x:
+
+  Either one of c("zoom in", "zoom out") or a vector of length 2.
+  Controls the zooming on the X-axis. The default "zoom in" will set the
+  zoom limits to the plot estimates. Choosing "zoom out" will set the
+  zoom limits to show the entire distribution of the marker. Entering a
+  vector of length 2 will set the left and right zoom limits explicitly.
+
+- zoom_y:
+
+  Either "zoom out" or a vector of length 2. Controls the zooming on the
+  Y-axis. The default "zoom out" will show the entire vertical range of
+  the estimates. Entering a vector of length 2 will set the lower and
+  upper zoom limits explicitly.
+
+- labels:
+
+  A character vector of length equal to the length of list(...),
+  representing plot labels. Only used if length(list(...))\>1.
+
+- bw:
+
+  Bandwidth type for kernel density; passed to
+  [`stats::density`](https://rdrr.io/r/stats/density.html)
+
+- adjust:
+
+  Bandwidth adjustment factor for kernel density; passed to
+  [`stats::density`](https://rdrr.io/r/stats/density.html)
+
+## Value
+
+A plot of CR/CVE estimates
+
+## Examples
+
+``` r
+# \donttest{
+# Plot one curve
+data(hvtn505)
+dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+                 marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
+                 weights="wt", ph2="casecontrol", data=hvtn505)
+ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
+plot_ce(ests_cox, density_type="kde", dat=dat)
+
+# Trim display of plot according to quantiles of the biomarker distribution
+ests_cox_tr <- trim(ests_cox, dat=dat, quantiles=c(0.05,0.95))
+plot_ce(ests_cox_tr, density_type="kde", dat=dat)
+
+# Plot multiple curves (same biomarker)
+ests_np <- est_ce(dat=dat, type="NP", t_0=578)
+plot_ce(ests_cox, ests_np, density_type="kde", dat=dat)
+
+# Plot multiple curves (two different biomarkers)
+dat2 <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+                  marker="IgG_env", covariates=c("age","BMI","bhvrisk"),
+                  weights="wt", ph2="casecontrol", data=hvtn505)
+ests_cox2 <- est_ce(dat=dat2, type="Cox", t_0=578)
+dat_alt <- list(
+  data.frame(s=dat$s[dat$a==1], weights=dat$weights[dat$a==1]),
+  data.frame(s=dat2$s[dat2$a==1], weights=dat2$weights[dat2$a==1])
+)
+plot_ce(ests_cox, ests_cox2, density_type="kde", dat_alt=dat_alt)
+# }
+```

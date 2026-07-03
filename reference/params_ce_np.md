@@ -1,0 +1,110 @@
+# Set parameters controlling nonparametric estimation of controlled effect curves
+
+This should be used in conjunction with
+[`est_ce`](https://avi-kenny.github.io/vaccine/reference/est_ce.md) to
+set parameters controlling nonparametric estimation of controlled effect
+curves; see examples.
+
+## Usage
+
+``` r
+params_ce_np(
+  dir = "decr",
+  edge_corr = FALSE,
+  grid_size = list(y = 101, s = 101, x = 5),
+  surv_type = "survML-G",
+  density_type = "binning",
+  density_bins = 15,
+  deriv_type = "m-spline",
+  convex_type = "GCM"
+)
+```
+
+## Arguments
+
+- dir:
+
+  One of c("decr", "incr"); controls the direction of monotonicity. If
+  dir="decr", it is assumed that CR decreases as a function of the
+  marker. If dir="incr", it is assumed that CR increases as a function
+  of the marker.
+
+- edge_corr:
+
+  Boolean. If TRUE, the "edge correction" is performed to adjust for
+  bias near the marker lower limit (see references). It is recommended
+  that the edge correction is only performed if there are at least
+  (roughly) 10 events corresponding to the marker lower limit.
+
+- grid_size:
+
+  A list with keys `y`, `s`, and `x`; controls the rounding of data
+  values. Decreasing the grid size values results in shorter computation
+  times, and increasing the values results in more precise estimates. If
+  grid_size\$s=101, this means that a grid of 101 equally-spaced points
+  (defining 100 intervals) will be created from min(S) to max(S), and
+  each S value will be rounded to the nearest grid point. For
+  grid_size\$y, a grid will be created from 0 to t_0, and then extended
+  to max(Y). For grid_size\$x, a separate grid is created for each
+  covariate column (binary/categorical covariates are ignored).
+
+- surv_type:
+
+  One of c("Cox", "survSL", "survML-G", "survML-L"); controls the method
+  to use to estimate the conditional survival and conditional censoring
+  functions. If type="Cox", a survival function based on a Cox
+  proportional hazard model will be used. If type="survSL", the Super
+  Learner method of Westling 2023 is used. If type="survML-G", the
+  global survival stacking method of Wolock 2022 is used. If
+  type="survML-L", the local survival stacking method of Polley 2011 is
+  used.
+
+- density_type:
+
+  One of c("binning", "parametric"); controls the method to use to
+  estimate the density ratio f(S\|X)/f(S).
+
+- density_bins:
+
+  An integer; if density_type="binning", the number of bins to use. If
+  density_bins=0, the number of bins will be selected via
+  cross-validation.
+
+- deriv_type:
+
+  One of c("m-spline", "linear"); controls the method to use to estimate
+  the derivative of the CR curve. If deriv_type="linear", a linear
+  spline is constructed based on the midpoints of the jump points of the
+  estimated function (plus the estimated function evaluated at the
+  endpoints), which is then numerically differentiated.
+  deriv_type="m-spline" is similar to deriv_type="linear" but smooths
+  the set of points (using the method of Fritsch and Carlson 1980)
+  before differentiating.
+
+- convex_type:
+
+  One of c("GCM", "CLS"). Whether the greatest convex minorant ("GCM")
+  or convex least squares ("CLS") projection should be used in the
+  smoothing of the primitive estimator Gamma_n. convex_type="CLS" is
+  experimental and should be used with caution.
+
+## Value
+
+A list of options.
+
+## Examples
+
+``` r
+data(hvtn505)
+dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+                 marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
+                 weights="wt", ph2="casecontrol", data=hvtn505)
+# \donttest{
+ests_np <- est_ce(
+  dat = dat,
+  type = "NP",
+  t_0 = 578,
+  params_np = params_ce_np(edge_corr=TRUE, surv_type="survML-L")
+)
+# }
+```

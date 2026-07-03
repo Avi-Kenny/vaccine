@@ -1,0 +1,84 @@
+# vaccine
+
+Statistical tools for immune correlates analysis of vaccine clinical
+trial data
+
+## Overview
+
+**vaccine** is an open-source R package containing various
+semiparametric and nonparametric statistical tools for immune correlates
+analysis of vaccine clinical trial data. This includes calculation of
+summary statistics and estimation of risk, vaccine efficacy, controlled
+risk, and controlled vaccine efficacy.
+
+## Installation
+
+The latest stable version of **vaccine** can be installed from CRAN
+using
+[`install.packages()`](https://rdrr.io/r/utils/install.packages.html):
+
+``` r
+
+install.packages("vaccine")
+```
+
+The current development version can be installed using
+`devtools::install_github()`:
+
+``` r
+
+devtools::install_github(repo="Avi-Kenny/vaccine")
+```
+
+## Documentation
+
+The full package documentation can be found at
+<https://avi-kenny.github.io/vaccine/>.
+
+## Bugs reports and feature requests
+
+To submit a bug report or request a new feature, please submit a new
+[GitHub Issue](https://github.com/Avi-Kenny/vaccine/issues).
+
+# Package index
+
+## All functions
+
+- [`as_table()`](https://avi-kenny.github.io/vaccine/reference/as_table.md)
+  : Create table of estimates
+- [`diagnostics()`](https://avi-kenny.github.io/vaccine/reference/diagnostics.md)
+  : Run diagnostics
+- [`est_ce()`](https://avi-kenny.github.io/vaccine/reference/est_ce.md)
+  : Estimate controlled effect curves
+- [`est_med()`](https://avi-kenny.github.io/vaccine/reference/est_med.md)
+  : Estimate mediation effects
+- [`est_overall()`](https://avi-kenny.github.io/vaccine/reference/est_overall.md)
+  : Estimate overall risk and vaccine efficacy
+- [`hvtn505`](https://avi-kenny.github.io/vaccine/reference/hvtn505.md)
+  : HVTN 505 Dataset
+- [`load_data()`](https://avi-kenny.github.io/vaccine/reference/load_data.md)
+  : Load and format data object
+- [`params_ce_cox()`](https://avi-kenny.github.io/vaccine/reference/params_ce_cox.md)
+  : Set parameters controlling Cox model estimation of controlled effect
+  curves
+- [`params_ce_np()`](https://avi-kenny.github.io/vaccine/reference/params_ce_np.md)
+  : Set parameters controlling nonparametric estimation of controlled
+  effect curves
+- [`params_med_cox()`](https://avi-kenny.github.io/vaccine/reference/params_med_cox.md)
+  : Set parameters controlling Cox model estimation of mediation effects
+- [`params_med_np()`](https://avi-kenny.github.io/vaccine/reference/params_med_np.md)
+  : Set parameters controlling nonparametric estimation of mediation
+  effects
+- [`plot_ce()`](https://avi-kenny.github.io/vaccine/reference/plot_ce.md)
+  : Plotting controlled effect curves
+- [`summary_stats()`](https://avi-kenny.github.io/vaccine/reference/summary_stats.md)
+  : Calculate summary statistics
+- [`trim()`](https://avi-kenny.github.io/vaccine/reference/trim.md) :
+  Trim data for plotting/reporting
+
+# Articles
+
+### All vignettes
+
+- [Basic package
+  workflow](https://avi-kenny.github.io/vaccine/articles/vaccine.md):

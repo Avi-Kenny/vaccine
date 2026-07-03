@@ -1,0 +1,119 @@
+# Changelog
+
+## vaccine 1.3.1
+
+CRAN release: 2025-09-07
+
+#### Minor changes
+
+- Added the ability to fine-tune KDE plots via the `bw` and `adjust`
+  arguments, passed to
+  [`stats::density()`](https://rdrr.io/r/stats/density.html)
+- Fixed a reverse dependeny issue with ggplot2 v4.0.0.
+- Fixed a minor bug to allow tibbles to be read in via load_data().
+- Fixed an error in the HVTN 505 dataset documentation.
+
+## vaccine 1.3.0
+
+CRAN release: 2025-01-07
+
+#### Major changes
+
+- Allow for controlled risk (CR) curves to be estimated in placebo arm
+- Added ability to plot multiple density plots on a single graph via the
+  plot() function
+
+#### Minor changes
+
+- Updated trim() function to work on placebo arm data
+- Removed dependency on `simest` package
+- Updated package logo
+- Fixed bug with nonparametric CVE P-values
+- Fixed bug associated with reading in datasets with categorical
+  covariates
+- Downgraded `ranger` required version from 0.16.0 to 0.14.0
+
+## vaccine 1.2.1
+
+CRAN release: 2024-02-16
+
+#### Minor changes
+
+- Fixed a bug that displayed an incorrect package version number at
+  startup.
+- Tweaked the SuperLearner library involved in standard error estimation
+  for `est_ce(..., type="NP")`, resulting in improved performance.
+- Fixed a bug related to `plot_ce(..., density_type="kde edge")`.
+- Fixed a minor bug related to the `SuperLearner` package introduced in
+  version 1.2.0.
+
+## vaccine 1.2.0
+
+CRAN release: 2024-02-14
+
+#### Major changes
+
+- Added the `trim` function, which can be used in conjunction with the
+  `plot_ce` function to truncate the display of estimate objects
+  produced by `est_ce`. Specifically, estimates with X-coordinates that
+  lie outside specified quantiles of the observed distribution of the
+  marker are removed. See package vignette and examples.
+- Added the `as_table` function, which formats estimate objects produced
+  using `est_ce` as a table.
+
+#### Minor changes
+
+- Implemented various changes to the `plot_ce` function: added
+  background kernel density plotting, changed default plot styling,
+  fixed a bug that caused CR plots to be displayed instead of CVE plots
+  when `plot_ce(..., which="CVE")` was called, and added to the plotting
+  section of the main package vignette.
+
+## vaccine 1.1.0
+
+CRAN release: 2023-12-04
+
+#### Major changes
+
+- In `est_ce`, added the option `return_p_value`; if set to `TRUE`, a
+  P-value will be returned corresponding to the null hypothesis that the
+  CVE curve (or equivalently, the CR curve in the vaccine group) is
+  constant. If `type='Cox'` is specified, this will be a Wald-type test
+  using the estimated Cox model parameter vector. If `type='NP'`, this
+  will be a nonparametric test assuming monotonicity of the curve.
+
+#### Minor changes
+
+- Fixed importing of factor/character variables in `load_data`.
+
+## vaccine 1.0.0
+
+CRAN release: 2023-10-20
+
+#### Major changes
+
+- Added functions for nonparametric estimation and inference for
+  mediation analysis parameters, including the natural direct effect,
+  the natural indirect effect, and the proportion mediated.
+- Adapted nonparametric and Cox-based CVE estimation and inference to
+  handle settings in which some or all covariates are measured only in
+  phase two (e.g., applicable to settings in which researchers want to
+  control for a baseline biomarker measurement).
+- Added confidence band monotonization for nonparametric CVE inference.
+
+#### Minor changes
+
+- Various minor bug fixes and code speed improvements.
+- Completed unit testing framework and increased code coverage to 67%.
+
+## vaccine 0.1.0
+
+CRAN release: 2023-07-08
+
+#### Major changes
+
+- Initial package release
+
+#### Minor changes
+
+- None
