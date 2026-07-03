@@ -167,3 +167,34 @@ params_med_np <- function(
   return(list(grid_size=grid_size, surv_type=surv_type,
               density_type=density_type, density_bins=density_bins))
 }
+
+
+
+#' Set parameters controlling Cox model estimation of mediation effects
+#'
+#' @description This should be used in conjunction with \code{\link{est_med}} to
+#'     set parameters controlling Cox model estimation of mediation effects;
+#'     see examples.
+#' @param edge_ind Boolean. If TRUE, an indicator variable corresponding to the
+#'     lower limit of the marker will be included in the Cox model linear
+#'     predictor.
+#' @return A list of options.
+#' @examples
+#' data(hvtn505)
+#' dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
+#'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
+#'                  weights="wt", ph2="casecontrol", data=hvtn505)
+#' \donttest{
+#' ests_med <- est_med(
+#'   dat = dat,
+#'   type = "Cox",
+#'   t_0 = 578,
+#'   params_np = params_med_cox(edge_ind=TRUE)
+#' )
+#' }
+#' @export
+params_med_cox <- function(
+    edge_ind = F
+) {
+  return(list(edge_ind=edge_ind))
+}

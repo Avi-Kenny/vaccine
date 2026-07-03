@@ -12,6 +12,7 @@ est_med(
   nie = TRUE,
   pm = TRUE,
   scale = "RR",
+  params_cox = params_med_cox(),
   params_np = params_med_np()
 )
 }

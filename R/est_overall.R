@@ -258,7 +258,7 @@ est_overall <- function(dat, t_0, method="Cox", risk=TRUE, ve=TRUE) { # ci_type=
       })))
 
       # Compute variance estimate
-      res_cox$var_est_marg <- (function() {
+      var_components <- (function() {
 
         # Precalculate pieces dependent on s
         K_n <- (1/N) * Reduce("+", apply2(dat_grp, 1, function(r) {
@@ -274,7 +274,7 @@ est_overall <- function(dat, t_0, method="Cox", risk=TRUE, ve=TRUE) { # ci_type=
         K_n2 <- K_n[2]
         K_n3 <- K_n[3:length(K_n)]
 
-        (1/N^2) * sum((apply(dat_grp, 1, function(r) {
+        IF_vec <- as.numeric(apply(dat_grp, 1, function(r) {
 
           x_i <- as.numeric(r[1:dim_x])
           z_i <- r[["z"]]
@@ -286,13 +286,17 @@ est_overall <- function(dat, t_0, method="Cox", risk=TRUE, ve=TRUE) { # ci_type=
           pc_3 <- K_n2 * infl_fn_Lambda(x_i,d_i,y_i)
           pc_4 <- K_n1
 
-          return((pc_1-pc_2-pc_3-pc_4)^2)
+          return(pc_1-pc_2-pc_3-pc_4)
 
-        })))
+        }))
+
+        var_est <- (1/N^2) * sum(IF_vec^2)
+        return(list(var_est=var_est, IF_vec=IF_vec))
 
       })()
 
       # Extract estimates and SEs
+      res_cox$var_est_marg <- var_components$var_est
       est <- 1-res_cox$est_marg
       se <- sqrt(res_cox$var_est_marg)
 
@@ -323,6 +327,11 @@ est_overall <- function(dat, t_0, method="Cox", risk=TRUE, ve=TRUE) { # ci_type=
     # Update results dataframe
     res[nrow(res)+1,] <- list(stat="risk", group=grp, est=est, se=se,
                               ci_lower=ci_lo, ci_upper=ci_up)
+
+    # Add infludence function vector as an attribute
+    if (.vaccine_env$return_IF_vec) {
+      attr(res, paste0("IF_vec_", grp)) <- var_components$IF_vec
+    }
 
   }
 

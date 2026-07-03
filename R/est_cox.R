@@ -19,6 +19,8 @@ est_cox <- function(
   # Create spline basis and function
   dat_v_spl <- data.frame("s1"=dat_v$s)
   basic_cox_model <- F
+  min_s <- min(dat_v$s, na.rm=T)
+
   if ((!is.na(spline_df) && spline_df!=1) || !is.na(spline_knots[[1]])) {
 
     if (!is.na(spline_df) && !is.na(spline_knots)) {
@@ -53,7 +55,6 @@ est_cox <- function(
     if (edge_ind) {
 
       dim_s <- dim_s + 1
-      min_s <- min(dat_v$s, na.rm=T)
       dat_v_spl[[paste0("s",dim_s)]] <- In(dat_v$s==min_s) # !!!!! Should this be dim_s+1 ?????
       s_to_spl <- function(s) {
         spl <- as.numeric(splines::ns(
@@ -83,7 +84,6 @@ est_cox <- function(
     if (edge_ind) {
 
       dim_s <- 2
-      min_s <- min(dat_v$s, na.rm=T)
       dat_v_spl[[paste0("s",dim_s)]] <- In(dat_v$s==min_s)
       s_to_spl <- function(s) { c(s, In(s==min_s)) }
 
@@ -440,6 +440,7 @@ est_cox <- function(
     K_n1_ls <- lapply(rep(NA,3), identity)
     K_n2_ls <- K_n3_ls <- K_n1_ls
 
+    IF_vec <- NA
     res_cox$var_est_marg <- unlist(lapply(s_out, function(s) {
 
       # Precalculate pieces dependent on s
@@ -531,9 +532,6 @@ est_cox <- function(
           pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
           pc_4 <- K_n1
 
-          # if (ii==77) { browser() } # !!!!!
-          # ii <<- ii+1 # !!!!!
-
           if (attr(dat, "covariates_ph2")) {
             den <- sum(ST==st_i)
             k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
@@ -567,9 +565,6 @@ est_cox <- function(
           pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
           pc_4 <- K_n1
 
-          # if (ii==77) { browser() } # !!!!!
-          # ii <<- ii+1 # !!!!!
-
           if (attr(dat, "covariates_ph2")) {
             pc_1 <- wt_i * Q_n(c(x_i,s_spl))
             den <- sum(ST==st_i)
@@ -588,8 +583,7 @@ est_cox <- function(
 
       }
 
-      # ii <- 1 # !!!!!
-      return((1/n_vacc^2) * sum((apply(dat_v, 1, function(r) {
+      IF_vec_s <- as.numeric(apply(dat_v, 1, function(r) {
 
         x_i <- as.numeric(r[1:dim_x]) # This will include NAs if is.na(r[["s"]]) and covariates_ph2=T; make sure this doesn't cause issues
         if (!is.na(r[["s"]])) {
@@ -609,9 +603,6 @@ est_cox <- function(
         pc_3 <- K_n2 * infl_fn_Lambda(c(x_i,s_i),z_i,d_i,y_i,wt_i,st_i)
         pc_4 <- K_n1
 
-        # if (ii==77) { browser() } # !!!!!
-        # ii <<- ii+1 # !!!!!
-
         if (attr(dat, "covariates_ph2")) {
           if (wt_i==0) {
             pc_1 <- 0
@@ -621,13 +612,21 @@ est_cox <- function(
           den <- sum(ST==st_i)
           k_n_i <- ifelse(den!=0, (1-wt_i)/den, 0) # !!!!! this line might be problematic
           pc_5 <- k_n_i * K_n4(st_i,s)
-          return((pc_2+pc_3+pc_4-pc_1-pc_5)^2)
+          return(pc_2+pc_3+pc_4-pc_1-pc_5)
         } else {
           pc_1 <- Q_n(c(x_i,s_spl))
-          return((pc_2+pc_3+pc_4-pc_1)^2)
+          return(pc_2+pc_3+pc_4-pc_1)
         }
 
-      }))))
+      }))
+
+      var_est <- (1/n_vacc^2) * sum(IF_vec_s^2)
+
+      if (s==min_s && .vaccine_env$return_IF_vec) {
+        IF_vec <<- IF_vec_s
+      }
+
+      return(var_est)
 
     }))
 
@@ -800,6 +799,9 @@ est_cox <- function(
   }
 
   if (!cr) { res$cr <- NULL }
+
+  # Add infludence function vector as an attribute
+  if (.vaccine_env$return_IF_vec) { attr(res, "IF_vec_rM") <- IF_vec }
 
   # Return P-value and/or extras
   if (return_p_value) { res$p <- test_res$p }

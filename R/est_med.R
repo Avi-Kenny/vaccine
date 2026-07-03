@@ -39,7 +39,7 @@
 est_med <- function(
     dat, type="NP", t_0, nde=TRUE, nie=TRUE, pm=TRUE, scale="RR",
     # ci_type="transformed", return_extras=FALSE,
-    # params_cox=params_med_cox(),
+    params_cox=params_med_cox(),
     params_np=params_med_np()
 ) {
 
@@ -66,7 +66,108 @@ est_med <- function(
     stop("At least one of `nde`, `nie`, or `pm` must be TRUE.")
   }
 
-  if (type=="Cox") { stop("Coming soon!") }
+  # Create results object
+  res <- data.frame(
+    "effect" = character(),
+    "est" = double(),
+    "se" = double(),
+    "ci_lower" = double(),
+    "ci_upper" = double()
+  )
+
+  if (type=="Cox") {
+
+    r <- (function() {
+      v_env <- vaccine:::.vaccine_env
+      # v_env$return_IF_vec <- TRUE # !!!!! temp
+      .vaccine_env$return_IF_vec <- TRUE
+      on.exit(.vaccine_env$return_IF_vec <- FALSE)
+
+      # Get overall estimates and influence function vectors
+      ests_ov <- est_overall(dat=dat, t_0=t_0, method="Cox")
+      r_p <- ests_ov[which(ests_ov$group=="placebo"),"est"]
+      r_v <- ests_ov[which(ests_ov$group=="vaccine"),"est"]
+      IF_vec_vaccine <- attr(ests_ov, "IF_vec_vaccine")
+      IF_vec_placebo <- attr(ests_ov, "IF_vec_placebo")
+
+      # Get Cox model NDE estimate and influence function vector
+      # !!!!! Add edge ind option
+      min_s <- min(dat$s, na.rm=T)
+      ests_cox <- est_ce(
+        dat=dat, type="Cox", t_0=t_0, cve=T, s_out=min_s,
+        placebo_risk_method="Cox", params_cox = params_ce_cox()
+      )
+      r_m <- ests_cox$cr$est
+      IF_vec_rM <- attr(ests_cox, "IF_vec_rM")
+
+      return(list(r_p=r_p, r_v=r_v, r_m=r_m, IF_vec_vaccine=IF_vec_vaccine,
+                  IF_vec_placebo=IF_vec_placebo, IF_vec_rM=IF_vec_rM))
+
+    })()
+
+
+    # Variables used by all quantities
+    n_v <- length(r$IF_vec_vaccine)
+    n_p <- length(r$IF_vec_placebo)
+    n <- n_v + n_p
+    IF_vec_vaccine <- c((n/n_v)*r$IF_vec_vaccine, rep(0,n_p))
+    IF_vec_placebo <- c(rep(0,n_v), (n/n_p)*r$IF_vec_placebo)
+    IF_vec_rM <- c((n/n_v)*r$IF_vec_rM, rep(0,n_p))
+    r_m <- r$r_m
+    r_v <- r$r_v
+    r_p <- r$r_p
+
+
+    # Calculate NDE
+    if (nde) {
+
+      nde_est <- r_m/r_p
+      nde_var <- (1/n^2) * sum((
+        (1/r_p)*IF_vec_rM - (r_m/r_p^2)*IF_vec_placebo
+      )^2)
+      nde_se <- sqrt(nde_var)
+
+      nde_lo <- exp(log(nde_est)-1.96*(1/nde_est)*nde_se)
+      nde_up <- exp(log(nde_est)+1.96*(1/nde_est)*nde_se)
+      res[nrow(res)+1,] <- list("NDE", nde_est, nde_se, nde_lo, nde_up)
+
+    }
+
+    # Calculate NIE
+    if (nie) {
+
+      nie_est <- 1-r_v/r_m
+      nie_var <- (1/n^2) * sum((
+        (1/r_m)*IF_vec_vaccine - (r_v/r_m^2)*IF_vec_rM
+      )^2)
+      nie_se <- sqrt(nie_var)
+
+      nie_lo <- exp(log(nie_est)-1.96*(1/nie_est)*nie_se)
+      nie_up <- exp(log(nie_est)+1.96*(1/nie_est)*nie_se)
+      res[nrow(res)+1,] <- list("NIE", nie_est, nie_se, nie_lo, nie_up)
+
+    }
+
+    # Calculate PM
+    if (pm) {
+
+      pm_est <- 1 - (log(r_m/r_p)/log(r_v/r_p))
+      c1 <- 1/(log(r_v/r_p)^2)
+      c2 <- log(r_m/r_p)/r_v
+      c3 <- log(r_v/r_m)/r_p
+      c4 <- log(r_v/r_p)/r_m
+      pm_var <- (1/n^2) * sum((
+        c1*(c2*IF_vec_vaccine+c3*IF_vec_placebo+c4*IF_vec_rM)
+      )^2)
+      pm_se <- sqrt(pm_var)
+
+      pm_lo <- pm_est-1.96*pm_se
+      pm_up <- pm_est+1.96*pm_se
+      res[nrow(res)+1,] <- list("PM", pm_est, pm_se, pm_lo, pm_up)
+
+    }
+
+  }
 
   if (type=="NP") {
 
@@ -140,15 +241,6 @@ est_med <- function(
     infl_fn_r_Mn_edge <- construct_infl_fn_r_Mn_edge(Q_n, g_sn, omega_n, g_n,
                                                      r_Mn_edge_est, p_n, t_0)
 
-    # Create results object
-    res <- data.frame(
-      "effect" = character(),
-      "est" = double(),
-      "se" = double(),
-      "ci_lower" = double(),
-      "ci_upper" = double()
-    )
-
     # Create edge influence function (relative to the whole dataset)
     infl_fn_edge_2 <- function(a,z,weights,s,x,y,delta) {
       if (a==0) {
@@ -182,56 +274,30 @@ est_med <- function(
       infl_fn_risk_p <- construct_infl_fn_risk_p(dat_p_rd, Q_noS_n, omega_noS_n,
                                                  t_0, p_plac)
 
-      # !!!!! NEW CODE
-      if (T) {
+      # Precomputation values for conditional survival/censoring estimators
+      x_distinct_v <- dplyr::distinct(datx_v_rd)
+      x_distinct_v <- cbind("x_index"=c(1:nrow(x_distinct_v)), x_distinct_v)
+      vals_v_pre <- expand.grid(t=grid$y, x_index=x_distinct_v$x_index)
+      vals_v_pre <- dplyr::inner_join(vals_v_pre, x_distinct_v, by="x_index")
+      vals_v <- list(
+        t = vals_v_pre$t,
+        x = subset(vals_v_pre, select=names(datx_v_rd))
+      )
 
-        # Precomputation values for conditional survival/censoring estimators
-        x_distinct_v <- dplyr::distinct(datx_v_rd)
-        x_distinct_v <- cbind("x_index"=c(1:nrow(x_distinct_v)), x_distinct_v)
-        vals_v_pre <- expand.grid(t=grid$y, x_index=x_distinct_v$x_index)
-        vals_v_pre <- dplyr::inner_join(vals_v_pre, x_distinct_v, by="x_index")
-        vals_v <- list(
-          t = vals_v_pre$t,
-          x = subset(vals_v_pre, select=names(datx_v_rd))
-        )
+      # Fit conditional survival estimator (placebo group)
+      srvSL_v <- construct_Q_noS_n(type=p$surv_type, dat_v_rd, vals_v)
+      Q_noS_n_v <- srvSL_v$srv
+      Qc_noS_n_v <- srvSL_v$cens
 
-        # Fit conditional survival estimator (placebo group)
-        srvSL_v <- construct_Q_noS_n(type=p$surv_type, dat_v_rd, vals_v)
-        Q_noS_n_v <- srvSL_v$srv
-        Qc_noS_n_v <- srvSL_v$cens
-
-        # Construct other nuisance estimators
-        omega_noS_n_v <- construct_omega_noS_n(Q_noS_n_v, Qc_noS_n_v, t_0, grid)
-        risk_v_est <- risk_overall_np_v_v2(dat_v_rd, Q_noS_n_v, omega_noS_n_v,
-                                           t_0)
-        # print("!!!!! DEBUGGING !!!!!")
-        # print(paste("risk_v_est:", risk_v_est))
-        # print(paste("risk_p_est:", risk_p_est))
-        infl_fn_risk_v <- construct_infl_fn_risk_v_v2(dat_v_rd, Q_noS_n_v, # !!!!! Should still work
-                                                   omega_noS_n_v, t_0, p_vacc) # !!!!! Should still work
-
-      }
-
-      # q_tilde_n <- memoise2(function(x,y,delta) {
-      #   # !!!!! Replace with sapply
-      #   num <- sum(apply(dat_v2_rd, 1, function(r) {
-      #     r[["weights"]] * (omega_n(x,r[["s"]],y,delta)-Q_n(t_0,x,r[["s"]])) *
-      #       f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
-      #   }))
-      #   den <- sum(apply(dat_v2_rd, 1, function(r) {
-      #     r[["weights"]] * f_n_srv(y, delta, x, r[["s"]]) * g_n(r[["s"]],x)
-      #   }))
-      #   if (den==0) {
-      #     return(0)
-      #   } else {
-      #     return(num/den)
-      #   }
-      # })
-
-      # risk_v_est <- risk_overall_np_v(dat_v_rd, g_n, Q_n, omega_n, f_n_srv,
-      #                                 q_tilde_n, t_0)
-      # infl_fn_risk_v <- construct_infl_fn_risk_v(dat_v_rd, Q_n, g_n, omega_n,
-      #                                            q_tilde_n, t_0, p_vacc)
+      # Construct other nuisance estimators
+      omega_noS_n_v <- construct_omega_noS_n(Q_noS_n_v, Qc_noS_n_v, t_0, grid)
+      risk_v_est <- risk_overall_np_v_v2(dat_v_rd, Q_noS_n_v, omega_noS_n_v,
+                                         t_0)
+      # print("!!!!! DEBUGGING !!!!!")
+      # print(paste("risk_v_est:", risk_v_est))
+      # print(paste("risk_p_est:", risk_p_est))
+      infl_fn_risk_v <- construct_infl_fn_risk_v_v2(dat_v_rd, Q_noS_n_v, # !!!!! Should still work
+                                                    omega_noS_n_v, t_0, p_vacc) # !!!!! Should still work
 
       nde_est <- r_Mn_edge_est/risk_p_est
 
@@ -298,22 +364,26 @@ est_med <- function(
 
     }
 
-    if (scale=="VE") {
+  }
 
-      # NDE
+  if (scale=="VE") {
+
+    # NDE
+    if (nde) {
       res[res$effect=="NDE","est"] <- 1 - res[res$effect=="NDE","est"]
       res_lo_old <- res[res$effect=="NDE","ci_lower"]
       res_up_old <- res[res$effect=="NDE","ci_upper"]
       res[res$effect=="NDE","ci_lower"] <- 1 - res_up_old
       res[res$effect=="NDE","ci_upper"] <- 1 - res_lo_old
+    }
 
-      # NIE
+    # NIE
+    if (nie) {
       res[res$effect=="NIE","est"] <- 1 - res[res$effect=="NIE","est"]
       res_lo_old <- res[res$effect=="NIE","ci_lower"]
       res_up_old <- res[res$effect=="NIE","ci_upper"]
       res[res$effect=="NIE","ci_lower"] <- 1 - res_up_old
       res[res$effect=="NIE","ci_upper"] <- 1 - res_lo_old
-
     }
 
   }
