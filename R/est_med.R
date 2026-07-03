@@ -16,6 +16,8 @@
 #' @param scale One of c("RR", "VE"). This determines whether NDE and NIE
 #'     estimates and CIs are computed on the risk ratio (RR) scale or the
 #'     vaccine efficacy (VE) scale. The latter equals one minus the former.
+#' @param params_cox A list of options returned by \code{\link{params_med_cox}}
+#'     that are relevant if type="Cox".
 #' @param params_np A list of options returned by \code{\link{params_med_np}}
 #'     that are relevant if type="NP".
 #' @return A dataframe containing the following columns: \itemize{
@@ -31,6 +33,7 @@
 #'                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
 #'                  weights="wt", ph2="casecontrol", data=hvtn505)
 #' \donttest{
+#' ests_cox <- est_med(dat=dat, type="Cox", t_0=578)
 #' ests_np <- est_med(dat=dat, type="NP", t_0=578)
 #' }
 #' @references Fay MP and Follmann DA (2023). Mediation Analyses for the Effect
@@ -39,8 +42,7 @@
 est_med <- function(
     dat, type="NP", t_0, nde=TRUE, nie=TRUE, pm=TRUE, scale="RR",
     # ci_type="transformed", return_extras=FALSE,
-    params_cox=params_med_cox(),
-    params_np=params_med_np()
+    params_cox=params_med_cox(), params_np=params_med_np()
 ) {
 
   # !!!!! Need to refactor with est_ce functions
@@ -91,11 +93,11 @@ est_med <- function(
       IF_vec_placebo <- attr(ests_ov, "IF_vec_placebo")
 
       # Get Cox model NDE estimate and influence function vector
-      # !!!!! Add edge ind option
       min_s <- min(dat$s, na.rm=T)
       ests_cox <- est_ce(
         dat=dat, type="Cox", t_0=t_0, cve=T, s_out=min_s,
-        placebo_risk_method="Cox", params_cox = params_ce_cox()
+        placebo_risk_method="Cox",
+        params_cox=params_ce_cox(edge_ind=params_cox$edge_ind)
       )
       r_m <- ests_cox$cr$est
       IF_vec_rM <- attr(ests_cox, "IF_vec_rM")

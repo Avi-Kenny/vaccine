@@ -37,6 +37,9 @@ returned.}
 estimates and CIs are computed on the risk ratio (RR) scale or the
 vaccine efficacy (VE) scale. The latter equals one minus the former.}
 
+\item{params_cox}{A list of options returned by \code{\link{params_med_cox}}
+that are relevant if type="Cox".}
+
 \item{params_np}{A list of options returned by \code{\link{params_med_np}}
 that are relevant if type="NP".}
 }
@@ -60,6 +63,7 @@ dat <- load_data(time="HIVwk28preunblfu", event="HIVwk28preunbl", vacc="trt",
                  marker="IgG_V2", covariates=c("age","BMI","bhvrisk"),
                  weights="wt", ph2="casecontrol", data=hvtn505)
 \donttest{
+ests_cox <- est_med(dat=dat, type="Cox", t_0=578)
 ests_np <- est_med(dat=dat, type="NP", t_0=578)
 }
 }
