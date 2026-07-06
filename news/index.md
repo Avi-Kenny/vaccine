@@ -1,5 +1,30 @@
 # Changelog
 
+## vaccine 1.4.0
+
+CRAN release: 2026-07-05
+
+#### Major changes
+
+- Functionality to estimate mediation quantities (including the natural
+  direct effect, natural indirect effect, and proportion mediated) using
+  a Cox model based approach, via the
+  [`est_med()`](https://avi-kenny.github.io/vaccine/reference/est_med.md)
+  function.
+- Functionality to calculate uniform confidence bands for Cox model
+  based CR and CVE curves.
+
+#### Minor changes
+
+- Adapt
+  [`est_ce()`](https://avi-kenny.github.io/vaccine/reference/est_ce.md)
+  to work if some covariates are only measured in the phase-two sample.
+- Bug fix to allow for CVE curves to be returned without CR curves using
+  the
+  [`est_ce()`](https://avi-kenny.github.io/vaccine/reference/est_ce.md)
+  function.
+- Various other minor bug fixes.
+
 ## vaccine 1.3.1
 
 CRAN release: 2025-09-07

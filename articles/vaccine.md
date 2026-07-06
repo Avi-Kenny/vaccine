@@ -3,7 +3,7 @@
 ``` r
 
 library(vaccine)
-#> vaccine (version 1.3.1).
+#> vaccine (version 1.4.0).
 #> Type ?vaccine to get started.
 set.seed(123)
 ```
