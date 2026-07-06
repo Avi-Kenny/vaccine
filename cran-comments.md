@@ -4,5 +4,3 @@
 
 ## R CMD check results
 * There were no ERRORs or WARNINGs.
-
-This update is mostly very minor fixes and doc corrections.

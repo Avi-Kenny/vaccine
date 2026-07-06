@@ -80,8 +80,6 @@ est_med <- function(
   if (type=="Cox") {
 
     r <- (function() {
-      v_env <- vaccine:::.vaccine_env
-      # v_env$return_IF_vec <- TRUE # !!!!! temp
       .vaccine_env$return_IF_vec <- TRUE
       on.exit(.vaccine_env$return_IF_vec <- FALSE)
 

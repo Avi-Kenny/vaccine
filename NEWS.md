@@ -1,3 +1,16 @@
+# vaccine 1.4.0
+
+### Major changes
+
+- Functionality to estimate mediation quantities (including the natural direct effect, natural indirect effect, and proportion mediated) using a Cox model based approach, via the `est_med()` function.
+- Functionality to calculate uniform confidence bands for Cox model based CR and CVE curves.
+
+### Minor changes
+
+- Adapt `est_ce()` to work if some covariates are only measured in the phase-two sample.
+- Bug fix to allow for CVE curves to be returned without CR curves using the `est_ce()` function.
+- Various other minor bug fixes.
+
 # vaccine 1.3.1
 
 ### Minor changes
