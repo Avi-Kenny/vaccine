@@ -136,7 +136,7 @@ est_med <- function(
     # Calculate NIE
     if (nie) {
 
-      nie_est <- 1-r_v/r_m
+      nie_est <- r_v/r_m
       nie_var <- (1/n^2) * sum((
         (1/r_m)*IF_vec_vaccine - (r_v/r_m^2)*IF_vec_rM
       )^2)
