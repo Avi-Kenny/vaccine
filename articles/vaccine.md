@@ -76,14 +76,14 @@ see [Gilbert, Fong, Kenny, and Carone
 
 ests_cox <- est_ce(dat=dat, type="Cox", t_0=578)
 ests_np <- est_ce(dat=dat, type="NP", t_0=578)
-#> Loading required package: nnls
 #> Loading required package: gam
 #> Loading required package: splines
 #> Loading required package: foreach
 #> Loaded gam 1.22-7
+#> Loading required package: nnls
 #> Super Learner
-#> Version: 2.0-40
-#> Package created on 2025-12-14
+#> Version: 2.0-42
+#> Package created on 2026-09-14
 #> Loading required namespace: ranger
 ```
 
