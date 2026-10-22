@@ -1,5 +1,14 @@
 # Changelog
 
+## vaccine 1.4.1
+
+#### Minor changes
+
+- Fixed a bug in
+  [`est_med()`](https://avi-kenny.github.io/vaccine/reference/est_med.md)
+  that was causing incorrect NIE estimates (1-NIE was being reported
+  instead of NIE).
+
 ## vaccine 1.4.0
 
 CRAN release: 2026-07-05
