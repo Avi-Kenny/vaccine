@@ -1,3 +1,9 @@
+# vaccine 1.4.1
+
+### Minor changes
+
+- Fixed a bug in `est_med()` that was causing incorrect NIE estimates (1-NIE was being reported instead of NIE).
+
 # vaccine 1.4.0
 
 ### Major changes
